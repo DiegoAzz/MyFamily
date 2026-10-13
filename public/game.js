@@ -1,6 +1,6 @@
 // =========================================================
-// FRUIT MERGE 2048: SUIKA TOURNAMENT - CLIENT GAME ENGINE
-// Física 2D, Identificación Automática, Torneos y Ranking en Vivo
+// FRUIT MERGE 2048: WORLD CHAMPIONSHIP - CLIENT ENGINE
+// Bilingual (Tier 1 English & LatAm Spanish), High eCPM Ads & Leaderboard
 // =========================================================
 
 const socket = io({
@@ -9,17 +9,136 @@ const socket = io({
   reconnectionAttempts: 30
 });
 
-// Canvas & Dimensiones
+// Canvas & Contexto
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Elementos DOM
+// =========================================================
+// I18N DICCIONARIO BILINGÜE (INGLÉS TIER 1 & ESPAÑOL)
+// =========================================================
+const I18N = {
+  en: {
+    flag: '🇺🇸',
+    langBtn: '🇺🇸 EN',
+    title: 'World Grand Championship',
+    prize: '🎁 $50 USD Cash Prize for Rank #1!',
+    timerLabel: '⏳ Ends in:',
+    btnRanking: 'Leaderboard',
+    rankStatus: 'Rank #{rank} in tournament',
+    unrankedStatus: 'Play a game to rank in the tournament!',
+    score: 'SCORE',
+    best: 'BEST',
+    next: 'NEXT:',
+    shake: 'Shake',
+    bomb: 'Bomb',
+    wildcard: 'Wildcard',
+    thPlayer: 'Player',
+    thScore: 'Score',
+    thGames: 'Games',
+    lbTitle: '🏆 World Championship Leaderboard',
+    lbDesc: 'Top global players competing in real-time for the cash prize!',
+    myRankLabel: 'YOUR CURRENT RANK',
+    myRankGapLead: '🥇 You are leading the tournament!',
+    myRankGapChase: 'Keep playing to take the #1 spot!',
+    goTitle: 'Game Over!',
+    finalScore: 'Final Score:',
+    adBold: 'Save your score for the Tournament?',
+    adSub: 'Watch a quick ad to drop a Bomb and clear 40% of the jar!',
+    btnWatchAd: 'Watch Ad to Save!',
+    btnPlayAgain: '▶ Play Again',
+    btnViewLeaderboard: 'View Global Leaderboard',
+    adSponsor: 'SPONSORED REWARDED AD',
+    adCountdown: 'Reward in {sec}s...',
+    adClaim: 'Claim Reward & Continue!',
+    adWatching: 'Watching Ad ({sec}s)...',
+    savedToast: '💣 Score Saved! Continue playing!',
+    watermelonToast: '🍉 GIANT WATERMELON MERGED! (+5,000 pts)',
+    nameUpdatedToast: '✏️ Tournament name updated!',
+    shakeToast: '🌀 Jar Shaken!',
+    bombToast: '💣 Next fruit is a Bomb!',
+    wildToast: '🌈 Next fruit is a Wildcard!'
+  },
+  es: {
+    flag: '🇪🇸',
+    langBtn: '🇪🇸 ES',
+    title: 'Gran Torneo Mundial',
+    prize: '🎁 ¡$50 USD en Efectivo para el Puesto #1!',
+    timerLabel: '⏳ Finaliza en:',
+    btnRanking: 'Ver Ranking',
+    rankStatus: 'Puesto #{rank} en el torneo',
+    unrankedStatus: '¡Juega una partida para clasificar!',
+    score: 'PUNTOS',
+    best: 'RÉCORD',
+    next: 'SIGUIENTE:',
+    shake: 'Agitar',
+    bomb: 'Bomba',
+    wildcard: 'Comodín',
+    thPlayer: 'Jugador',
+    thScore: 'Puntos',
+    thGames: 'Partidas',
+    lbTitle: '🏆 Tabla de Posiciones del Concurso',
+    lbDesc: '¡Los mejores jugadores en tiempo real compitiendo por el premio!',
+    myRankLabel: 'TU PUESTO ACTUAL',
+    myRankGapLead: '🥇 ¡Vas liderando el concurso!',
+    myRankGapChase: '¡Sigue sumando puntos para el puesto #1!',
+    goTitle: '¡Partida Terminada!',
+    finalScore: 'Puntos obtenidos:',
+    adBold: '¿Salvar tu récord para el Torneo?',
+    adSub: 'Mira un anuncio corto para usar una Bomba y despejar el 40% del frasco',
+    btnWatchAd: '¡Ver Anuncio para Salvar!',
+    btnPlayAgain: '▶ Jugar Otra Partida',
+    btnViewLeaderboard: 'Ver Tabla de Posiciones',
+    adSponsor: 'ANUNCIO RECOMPENSADO PATROCINADO',
+    adCountdown: 'Recompensa en {sec}s...',
+    adClaim: '¡Reclamar Recompensa y Seguir!',
+    adWatching: 'Viendo Anuncio ({sec}s)...',
+    savedToast: '💣 ¡Partida Salvada con Éxito!',
+    watermelonToast: '🍉 ¡SANDÍA GIGANTE FUSIONADA! (+5,000 pts)',
+    nameUpdatedToast: '✏️ Nombre actualizado para el torneo',
+    shakeToast: '🌀 ¡Frasco Agitado!',
+    bombToast: '💣 ¡La siguiente fruta es una Bomba!',
+    wildToast: '🌈 ¡La siguiente fruta es Comodín!'
+  }
+};
+
+// Detección automática de idioma: Tier 1 (inglés) por defecto
+let currentLang = 'en';
+const userBrowserLang = (navigator.language || 'en').toLowerCase();
+if (userBrowserLang.startsWith('es')) {
+  currentLang = 'es';
+}
+
+function t(key, params = {}) {
+  let str = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.en && I18N.en[key]) || key;
+  Object.keys(params).forEach(k => {
+    str = str.replace(`{${k}}`, params[k]);
+  });
+  return str;
+}
+
+// Banderita según locale
+function getPlayerFlag() {
+  if (userBrowserLang.includes('us')) return '🇺🇸';
+  if (userBrowserLang.includes('gb') || userBrowserLang.includes('uk')) return '🇬🇧';
+  if (userBrowserLang.includes('ca')) return '🇨🇦';
+  if (userBrowserLang.includes('au')) return '🇦🇺';
+  if (userBrowserLang.includes('de')) return '🇩🇪';
+  if (userBrowserLang.includes('co')) return '🇨🇴';
+  if (userBrowserLang.includes('mx')) return '🇲🇽';
+  if (userBrowserLang.includes('es')) return '🇪🇸';
+  if (userBrowserLang.includes('ar')) return '🇦🇷';
+  return currentLang === 'en' ? '🇺🇸' : '🇨🇴';
+}
+
+// DOM Elements
 const tournamentTitle = document.getElementById('tournament-title');
 const tournamentPrize = document.getElementById('tournament-prize');
 const tournamentTimer = document.getElementById('tournament-timer');
 const btnOpenLeaderboard = document.getElementById('btn-open-leaderboard');
 const btnOpenAdmin = document.getElementById('btn-open-admin');
+const btnLangToggle = document.getElementById('btn-lang-toggle');
 
+const playerFlagIcon = document.getElementById('player-flag-icon');
 const playerAliasEl = document.getElementById('player-alias');
 const playerRankStatus = document.getElementById('player-rank-status');
 const btnEditAlias = document.getElementById('btn-edit-alias');
@@ -50,6 +169,10 @@ const btnReviveGame = document.getElementById('btn-revive-game');
 const btnRestartGame = document.getElementById('btn-restart-game');
 const btnViewRankGo = document.getElementById('btn-view-rank-go');
 
+const modalRewardedAd = document.getElementById('modal-rewarded-ad');
+const adCountdown = document.getElementById('ad-countdown');
+const btnClaimAdReward = document.getElementById('btn-claim-ad-reward');
+
 const modalAdmin = document.getElementById('modal-admin');
 const btnCloseAdmin = document.getElementById('btn-close-admin');
 const adminLoginView = document.getElementById('admin-login-view');
@@ -66,20 +189,125 @@ const toastBanner = document.getElementById('toast-banner');
 const toastMsg = document.getElementById('toast-msg');
 
 // =========================================================
+// GESTOR DE MONETIZACIÓN & ANUNCIOS (AD NETWORK BRIDGE)
+// =========================================================
+const AdManager = {
+  // Banners rotativos cada 30 segundos para generar impresiones continuas
+  initBannerRotation() {
+    const sponsors = [
+      '🎯 Play Daily & Win $50 Cash Tournament Prize!',
+      '🔥 Top 1 Leaderboard Wins Real Cash Rewards!',
+      '💎 Double your Tournament Coins with Daily Plays!',
+      '🍉 Can you merge the Golden Watermelon? Try now!'
+    ];
+    let idx = 0;
+    setInterval(() => {
+      idx = (idx + 1) % sponsors.length;
+      const el = document.getElementById('ad-banner-display');
+      if (el) el.innerHTML = `<span class="ad-sponsor-text">${sponsors[idx]}</span>`;
+    }, 28000);
+  },
+
+  // Mostrar Anuncio Recompensado (Simulado o Google H5/Poki SDK)
+  showRewardedAd(onRewarded, onFailed) {
+    // Si existe Google H5 Game Ads en window.adBreak
+    if (typeof window.adBreak === 'function') {
+      window.adBreak({
+        type: 'reward',
+        name: 'revive_bomb',
+        beforeReward: () => {},
+        beforeAd: () => {},
+        afterAd: () => {},
+        adDismissed: () => { if (onFailed) onFailed(); },
+        adViewed: () => { if (onRewarded) onRewarded(); }
+      });
+      return;
+    }
+
+    // Modal de Anuncio Recompensado con cuenta regresiva de 5 segundos
+    modalRewardedAd.classList.remove('hidden');
+    let timeLeft = 5;
+    btnClaimAdReward.disabled = true;
+    btnClaimAdReward.classList.add('disabled');
+    btnClaimAdReward.innerText = t('adWatching', { sec: timeLeft });
+    adCountdown.innerText = t('adCountdown', { sec: timeLeft });
+
+    const adTimer = setInterval(() => {
+      timeLeft--;
+      if (timeLeft > 0) {
+        btnClaimAdReward.innerText = t('adWatching', { sec: timeLeft });
+        adCountdown.innerText = t('adCountdown', { sec: timeLeft });
+      } else {
+        clearInterval(adTimer);
+        adCountdown.innerText = '✅ Reward Ready!';
+        btnClaimAdReward.disabled = false;
+        btnClaimAdReward.classList.remove('disabled');
+        btnClaimAdReward.innerText = t('adClaim');
+        btnClaimAdReward.onclick = () => {
+          modalRewardedAd.classList.add('hidden');
+          if (onRewarded) onRewarded();
+        };
+      }
+    }, 1000);
+  }
+};
+AdManager.initBannerRotation();
+
+// =========================================================
+// APLICAR TRADUCCIONES DE IDIOMA
+// =========================================================
+function applyTranslations() {
+  btnLangToggle.innerText = I18N[currentLang].langBtn;
+  if (playerFlagIcon) playerFlagIcon.innerText = getPlayerFlag();
+
+  document.getElementById('lbl-timer').innerText = t('timerLabel');
+  document.getElementById('lbl-btn-ranking').innerText = t('btnRanking');
+  document.getElementById('lbl-score').innerText = t('score');
+  document.getElementById('lbl-best').innerText = t('best');
+  document.getElementById('lbl-next').innerText = t('next');
+  document.getElementById('lbl-shake').innerText = t('shake');
+  document.getElementById('lbl-bomb').innerText = t('bomb');
+  document.getElementById('lbl-wild').innerText = t('wildcard');
+
+  document.getElementById('th-player').innerText = t('thPlayer');
+  document.getElementById('th-score').innerText = t('thScore');
+  document.getElementById('th-games').innerText = t('thGames');
+  document.getElementById('lbl-lb-title').innerText = t('lbTitle');
+  document.getElementById('lbl-lb-desc').innerText = t('lbDesc');
+  document.getElementById('lbl-my-rank').innerText = t('myRankLabel');
+
+  document.getElementById('lbl-go-title').innerText = t('goTitle');
+  document.getElementById('lbl-final-score').innerText = t('finalScore');
+  document.getElementById('lbl-ad-bold').innerText = t('adBold');
+  document.getElementById('lbl-ad-sub').innerText = t('adSub');
+  btnReviveGame.innerText = t('btnWatchAd');
+  document.getElementById('btn-restart-txt') && (document.getElementById('btn-restart-txt').innerText = t('btnPlayAgain'));
+  document.getElementById('btn-rank-txt') && (document.getElementById('btn-rank-txt').innerText = t('btnViewLeaderboard'));
+}
+
+btnLangToggle.addEventListener('click', () => {
+  currentLang = currentLang === 'en' ? 'es' : 'en';
+  applyTranslations();
+  updateTournamentDisplay();
+  showToast(currentLang === 'en' ? '🇺🇸 Language: English' : '🇪🇸 Idioma: Español');
+});
+applyTranslations();
+
+// =========================================================
 // DEFINICIÓN DE LAS 11 FRUTAS Y EVOLUCIÓN (SUIKA MERGE)
 // =========================================================
 const FRUITS = [
-  { level: 0, emoji: '🍒', name: 'Cereza', radius: 16, color: '#dc2626', points: 2 },
-  { level: 1, emoji: '🍓', name: 'Fresa', radius: 23, color: '#f43f5e', points: 4 },
-  { level: 2, emoji: '🍇', name: 'Uva', radius: 31, color: '#a855f7', points: 8 },
-  { level: 3, emoji: '🍋', name: 'Limón', radius: 39, color: '#facc15', points: 16 },
-  { level: 4, emoji: '🍊', name: 'Naranja', radius: 48, color: '#f97316', points: 32 },
-  { level: 5, emoji: '🍎', name: 'Manzana', radius: 58, color: '#ef4444', points: 64 },
-  { level: 6, emoji: '🍐', name: 'Pera', radius: 68, color: '#84cc16', points: 128 },
-  { level: 7, emoji: '🍑', name: 'Melocotón', radius: 80, color: '#fb923c', points: 256 },
-  { level: 8, emoji: '🍍', name: 'Piña', radius: 93, color: '#eab308', points: 512 },
-  { level: 9, emoji: '🍈', name: 'Melón', radius: 106, color: '#10b981', points: 1024 },
-  { level: 10, emoji: '🍉', name: 'Sandía Gigante', radius: 124, color: '#047857', points: 2048 }
+  { level: 0, emoji: '🍒', radius: 16, color: '#dc2626', points: 2 },
+  { level: 1, emoji: '🍓', radius: 23, color: '#f43f5e', points: 4 },
+  { level: 2, emoji: '🍇', radius: 31, color: '#a855f7', points: 8 },
+  { level: 3, emoji: '🍋', radius: 39, color: '#facc15', points: 16 },
+  { level: 4, emoji: '🍊', radius: 48, color: '#f97316', points: 32 },
+  { level: 5, emoji: '🍎', radius: 58, color: '#ef4444', points: 64 },
+  { level: 6, emoji: '🍐', radius: 68, color: '#84cc16', points: 128 },
+  { level: 7, emoji: '🍑', radius: 80, color: '#fb923c', points: 256 },
+  { level: 8, emoji: '🍍', radius: 93, color: '#eab308', points: 512 },
+  { level: 9, emoji: '🍈', radius: 106, color: '#10b981', points: 1024 },
+  { level: 10, emoji: '🍉', radius: 124, color: '#047857', points: 2048 }
 ];
 
 // =========================================================
@@ -101,7 +329,6 @@ function playPopSfx(level = 0) {
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
 
-    // Frecuencia armónica que sube con cada nivel de fruta
     const baseFreq = 260 + level * 65;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(baseFreq, now);
@@ -163,7 +390,7 @@ if (!playerUID) {
 }
 
 let playerData = {
-  alias: 'Jugador...',
+  alias: 'Player...',
   bestScore: 0,
   tournamentScore: 0,
   coins: 100
@@ -205,15 +432,15 @@ authPlayer();
 
 function updateMyRankDisplay(rankInfo) {
   if (rankInfo && rankInfo.rank > 0) {
-    playerRankStatus.innerText = `Puesto #${rankInfo.rank} en el Torneo`;
+    playerRankStatus.innerText = t('rankStatus', { rank: rankInfo.rank });
     myRankNumber.innerText = `#${rankInfo.rank}`;
     myRankScore.innerText = `${rankInfo.score} pts`;
-    myRankGap.innerText = rankInfo.rank === 1 ? '🥇 ¡Vas liderando el concurso!' : '¡Sigue sumando puntos para el #1!';
+    myRankGap.innerText = rankInfo.rank === 1 ? t('myRankGapLead') : t('myRankGapChase');
   } else {
-    playerRankStatus.innerText = `¡Juega para clasificar en el Torneo!`;
+    playerRankStatus.innerText = t('unrankedStatus');
     myRankNumber.innerText = `#--`;
     myRankScore.innerText = `0 pts`;
-    myRankGap.innerText = `¡Haz tu primera partida para clasificar!`;
+    myRankGap.innerText = t('unrankedStatus');
   }
 }
 
@@ -242,20 +469,18 @@ setInterval(() => {
 // MOTOR FÍSICO 2D DE SUIKA MERGE
 // =========================================================
 const GRAVITY = 0.38;
-const DANGER_Y = 70; // Línea roja de peligro
+const DANGER_Y = 70;
 let dangerTimer = 0;
 
 let droppedFruits = [];
 let particles = [];
 
-// Fruta que está lista para soltarse en la parte superior
 let dropX = canvas.width / 2;
-let currentFruitLevel = Math.floor(Math.random() * 3); // Comienza con frutas pequeñas 0, 1 o 2
+let currentFruitLevel = Math.floor(Math.random() * 3);
 let nextFruitLevel = Math.floor(Math.random() * 3);
 let canDrop = true;
 let dropCooldown = 0;
 
-// Estado de potenciadores
 let nextIsBomb = false;
 let nextIsRainbow = false;
 
@@ -264,7 +489,6 @@ function updateNextIndicator() {
 }
 updateNextIndicator();
 
-// Crear una nueva fruta física
 function createFruitBody(x, y, level, vx = 0, vy = 0) {
   const fDef = FRUITS[level];
   return {
@@ -281,11 +505,10 @@ function createFruitBody(x, y, level, vx = 0, vy = 0) {
     rot: Math.random() * Math.PI,
     vrot: (Math.random() - 0.5) * 0.05,
     isMerging: false,
-    scale: 0.2 // Animación de aparición
+    scale: 0.2
   };
 }
 
-// Soltar fruta actual
 function dropCurrentFruit() {
   if (!canDrop || isGameOver) return;
   initAudio();
@@ -303,14 +526,13 @@ function dropCurrentFruit() {
   droppedFruits.push(fruit);
 
   canDrop = false;
-  dropCooldown = 32; // ~0.5s cooldown antes de la siguiente
+  dropCooldown = 32;
 
   currentFruitLevel = nextFruitLevel;
   nextFruitLevel = Math.floor(Math.random() * 3);
   updateNextIndicator();
 }
 
-// Manejo de eventos táctiles y de ratón para apuntar la fruta
 function handlePointerInput(clientX) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
@@ -334,7 +556,7 @@ canvas.addEventListener('mouseup', () => {
   dropCurrentFruit();
 });
 
-canvas.addEventListener('touchend', (e) => {
+canvas.addEventListener('touchend', () => {
   dropCurrentFruit();
 });
 
@@ -354,16 +576,13 @@ function updatePhysics() {
     f.y += f.vy;
     f.rot += f.vrot;
 
-    // Fricción y amortiguación del aire
     f.vx *= 0.99;
     f.vy *= 0.995;
 
-    // Animación de escala de nacimiento
     if (f.scale < 1) {
       f.scale = Math.min(1, f.scale + 0.12);
     }
 
-    // Colisión con paredes laterales
     if (f.x - f.radius < 6) {
       f.x = 6 + f.radius;
       f.vx = -f.vx * 0.35;
@@ -373,7 +592,6 @@ function updatePhysics() {
       f.vx = -f.vx * 0.35;
     }
 
-    // Colisión con el fondo del frasco
     if (f.y + f.radius > canvas.height - 8) {
       f.y = canvas.height - 8 - f.radius;
       f.vy = -f.vy * 0.22;
@@ -381,7 +599,7 @@ function updatePhysics() {
     }
   });
 
-  // 2. Colisión y Fusión entre frutas (Círculo vs Círculo)
+  // 2. Colisión y Fusión entre frutas
   const toRemove = new Set();
   const toSpawn = [];
 
@@ -398,7 +616,6 @@ function updatePhysics() {
       const minDist = a.radius + b.radius;
 
       if (dist < minDist && dist > 0) {
-        // Separación física para que no se traspasen
         const overlap = (minDist - dist) / 2;
         const nx = dx / dist;
         const ny = dy / dist;
@@ -408,7 +625,6 @@ function updatePhysics() {
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        // Rebote elástico
         const relVel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
         if (relVel < 0) {
           const impulse = relVel * 0.45;
@@ -418,7 +634,6 @@ function updatePhysics() {
           b.vy -= ny * impulse;
         }
 
-        // FUSIÓN SI SON DEL MISMO NIVEL (O COMODÍN)
         const canMerge = (a.level === b.level && a.level < FRUITS.length - 1) || a.isRainbow || b.isRainbow;
 
         if (canMerge) {
@@ -431,26 +646,23 @@ function updatePhysics() {
 
           toSpawn.push({ x: midX, y: midY, level: nextLvl });
 
-          // Sonido, vibración y puntos
           const pts = FRUITS[nextLvl].points;
           addScore(pts);
           playPopSfx(nextLvl);
           triggerHaptic(30);
           spawnMergeParticles(midX, midY, FRUITS[nextLvl].color);
 
-          // Si se fusionó la Sandía Gigante
           if (nextLvl === 10) {
             playFanfareSfx();
             addScore(5000);
-            showToast('🍉 ¡SANDÍA GIGANTE FUSIONADA! (+5,000 pts)');
-            socket.emit('huge_merge', { alias: playerData.alias, fruit: '🍉 Sandía Gigante', score: currentScore });
+            showToast(t('watermelonToast'));
+            socket.emit('huge_merge', { alias: playerData.alias, fruit: '🍉 Giant Watermelon', score: currentScore });
           }
         }
       }
     }
   }
 
-  // Aplicar eliminaciones y nacimientos
   if (toRemove.size > 0) {
     droppedFruits = droppedFruits.filter(f => !toRemove.has(f.id));
     toSpawn.forEach(s => {
@@ -462,7 +674,6 @@ function updatePhysics() {
   // 3. Comprobación de peligro de desbordamiento (Línea Roja)
   let isDanger = false;
   droppedFruits.forEach(f => {
-    // Si la fruta ya se asentó (velocidad baja) y sobrepasa la línea de peligro
     if (f.y - f.radius < DANGER_Y && Math.hypot(f.vx, f.vy) < 1.2 && f.scale >= 1) {
       isDanger = true;
     }
@@ -470,7 +681,7 @@ function updatePhysics() {
 
   if (isDanger) {
     dangerTimer++;
-    if (dangerTimer > 150) { // ~2.5 segundos continuos sobre la línea roja
+    if (dangerTimer > 150) {
       triggerGameOver();
     }
   } else {
@@ -486,7 +697,6 @@ function addScore(pts) {
   }
 }
 
-// Terminar partida y guardar en la base de datos
 async function triggerGameOver() {
   if (isGameOver) return;
   isGameOver = true;
@@ -494,7 +704,6 @@ async function triggerGameOver() {
   goFinalScore.innerText = currentScore;
   modalGameOver.classList.remove('hidden');
 
-  // Enviar récord al servidor para la tabla de posiciones
   try {
     const res = await fetch('/api/game/submit-score', {
       method: 'POST',
@@ -508,24 +717,29 @@ async function triggerGameOver() {
   } catch (e) {}
 }
 
-// Salvar partida con bomba (Rewarded Ad Simulation)
+// Salvar partida con Anuncio Recompensado (High eCPM monetization)
 btnReviveGame.addEventListener('click', () => {
-  initAudio();
-  playPopSfx(5);
-  // Eliminar el 40% superior de frutas
-  droppedFruits.sort((a, b) => a.y - b.y);
-  const countToKill = Math.ceil(droppedFruits.length * 0.4);
-  for (let i = 0; i < countToKill; i++) {
-    if (droppedFruits[i]) {
-      spawnMergeParticles(droppedFruits[i].x, droppedFruits[i].y, '#f59e0b');
-    }
-  }
-  droppedFruits.splice(0, countToKill);
+  AdManager.showRewardedAd(() => {
+    // Recompensa otorgada al ver el anuncio
+    initAudio();
+    playPopSfx(5);
 
-  dangerTimer = 0;
-  isGameOver = false;
-  modalGameOver.classList.add('hidden');
-  showToast('💣 ¡Partida Salvada con Éxito!');
+    droppedFruits.sort((a, b) => a.y - b.y);
+    const countToKill = Math.ceil(droppedFruits.length * 0.4);
+    for (let i = 0; i < countToKill; i++) {
+      if (droppedFruits[i]) {
+        spawnMergeParticles(droppedFruits[i].x, droppedFruits[i].y, '#f59e0b');
+      }
+    }
+    droppedFruits.splice(0, countToKill);
+
+    dangerTimer = 0;
+    isGameOver = false;
+    modalGameOver.classList.add('hidden');
+    showToast(t('savedToast'));
+  }, () => {
+    showToast('Ad was not completed.');
+  });
 });
 
 btnRestartGame.addEventListener('click', () => {
@@ -547,9 +761,9 @@ function resetGame() {
   canDrop = true;
 }
 
-// =========================================================
+// ==========================================
 // POTENCIADORES / POWERUPS
-// =========================================================
+// ==========================================
 btnPowerupShake.addEventListener('click', () => {
   initAudio();
   playDropSfx();
@@ -558,24 +772,24 @@ btnPowerupShake.addEventListener('click', () => {
     f.vy -= Math.random() * 6 + 3;
     f.vx += (Math.random() - 0.5) * 8;
   });
-  showToast('🌀 ¡Frasco Agitado!');
+  showToast(t('shakeToast'));
 });
 
 btnPowerupBomb.addEventListener('click', () => {
   initAudio();
   nextIsBomb = true;
-  showToast('💣 ¡La siguiente fruta es una Bomba!');
+  showToast(t('bombToast'));
 });
 
 btnPowerupRainbow.addEventListener('click', () => {
   initAudio();
   nextIsRainbow = true;
-  showToast('🌈 ¡La siguiente fruta es Comodín!');
+  showToast(t('wildToast'));
 });
 
-// =========================================================
-// SISTEMA DE PARTÍCULAS
-// =========================================================
+// ==========================================
+// PARTÍCULAS
+// ==========================================
 function spawnMergeParticles(x, y, color) {
   for (let i = 0; i < 14; i++) {
     particles.push({
@@ -612,16 +826,16 @@ function updateAndDrawParticles() {
   }
 }
 
-// =========================================================
-// RENDERIZADO PRINCIPAL (CANVAS 60 FPS)
-// =========================================================
+// ==========================================
+// RENDERIZADO
+// ==========================================
 function render() {
   requestAnimationFrame(render);
   updatePhysics();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 1. Línea guía de caída
+  // Línea guía de caída
   if (canDrop && !isGameOver) {
     const fDef = FRUITS[currentFruitLevel];
     ctx.save();
@@ -634,7 +848,6 @@ function render() {
     ctx.stroke();
     ctx.restore();
 
-    // Fruta lista arriba
     ctx.save();
     ctx.translate(dropX, 42);
     ctx.fillStyle = fDef.color;
@@ -652,14 +865,13 @@ function render() {
     ctx.restore();
   }
 
-  // 2. Dibujar frutas caídas
+  // Dibujar frutas
   droppedFruits.forEach(f => {
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(f.rot);
     ctx.scale(f.scale, f.scale);
 
-    // Sombra interior suave
     ctx.fillStyle = f.color;
     ctx.beginPath();
     ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
@@ -669,7 +881,6 @@ function render() {
     ctx.lineWidth = Math.max(2, f.radius * 0.08);
     ctx.stroke();
 
-    // Emoji de la fruta
     ctx.font = `${f.radius * 1.25}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -678,14 +889,13 @@ function render() {
     ctx.restore();
   });
 
-  // 3. Partículas
   updateAndDrawParticles();
 }
 requestAnimationFrame(render);
 
-// =========================================================
+// ==========================================
 // MODAL DE APODO / ALIAS
-// =========================================================
+// ==========================================
 btnEditAlias.addEventListener('click', () => {
   inputNewAlias.value = playerData.alias || '';
   modalAlias.classList.remove('hidden');
@@ -711,14 +921,14 @@ btnSaveAlias.addEventListener('click', async () => {
       playerAliasEl.innerText = playerData.alias;
       localStorage.setItem('fruit_merge_alias', playerData.alias);
       modalAlias.classList.add('hidden');
-      showToast('✏️ Nombre actualizado para el torneo');
+      showToast(t('nameUpdatedToast'));
     }
   } catch (e) {}
 });
 
-// =========================================================
+// ==========================================
 // MODAL DE TABLA DE POSICIONES (LEADERBOARD)
-// =========================================================
+// ==========================================
 async function openLeaderboardModal() {
   modalLeaderboard.classList.remove('hidden');
   try {
@@ -744,7 +954,7 @@ btnCloseLeaderboard.addEventListener('click', () => {
 function renderLeaderboardRows(list) {
   leaderboardTbody.innerHTML = '';
   if (list.length === 0) {
-    leaderboardTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px;">¡Sé el primero en jugar y liderar el torneo!</td></tr>';
+    leaderboardTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px;">Be the first to play and lead the championship!</td></tr>';
     return;
   }
 
@@ -755,9 +965,11 @@ function renderLeaderboardRows(list) {
     else if (idx === 1) medal = '🥈 2';
     else if (idx === 2) medal = '🥉 3';
 
+    const pFlag = idx === 0 ? '🇺🇸' : (idx === 1 ? '🇬🇧' : (idx === 2 ? '🇨🇦' : '🌐'));
+
     tr.innerHTML = `
       <td>${medal}</td>
-      <td><b>${p.alias}</b></td>
+      <td><span>${pFlag}</span> <b>${p.alias}</b></td>
       <td><span style="color:#facc15;">${p.score}</span></td>
       <td>${p.games_played || 1}</td>
     `;
@@ -765,7 +977,6 @@ function renderLeaderboardRows(list) {
   });
 }
 
-// Socket.io actualización en tiempo real del ranking
 socket.on('leaderboard_updated', (newList) => {
   if (!modalLeaderboard.classList.contains('hidden')) {
     renderLeaderboardRows(newList);
@@ -773,12 +984,12 @@ socket.on('leaderboard_updated', (newList) => {
 });
 
 socket.on('announcement', (data) => {
-  showToast(`🍉 ¡${data.alias} acaba de fusionar una ${data.fruit}!`);
+  showToast(`🍉 ${data.alias} merged a ${data.fruit}!`);
 });
 
-// =========================================================
-// MODAL DE ADMINISTRACIÓN (PANEL DE CONCURSOS PRIVADO)
-// =========================================================
+// ==========================================
+// MODAL DE ADMINISTRACIÓN
+// ==========================================
 btnOpenAdmin.addEventListener('click', () => {
   adminLoginView.classList.remove('hidden');
   adminPanelView.classList.add('hidden');
@@ -812,10 +1023,10 @@ btnSubmitPin.addEventListener('click', async () => {
         admDeadline.value = dt.toISOString().slice(0, 16);
       }
     } else {
-      showToast('❌ PIN incorrecto');
+      showToast('❌ Invalid Admin PIN');
     }
   } catch (e) {
-    showToast('❌ Error de conexión');
+    showToast('❌ Connection error');
   }
 });
 
@@ -836,13 +1047,13 @@ btnSaveTournament.addEventListener('click', async () => {
       activeTournament = data.tournament;
       updateTournamentDisplay();
       modalAdmin.classList.add('hidden');
-      showToast('✅ ¡Concurso actualizado para todos los jugadores!');
+      showToast('✅ Tournament updated for all players!');
     }
   } catch (e) {}
 });
 
 btnResetTournament.addEventListener('click', async () => {
-  if (!confirm('¿Estás seguro de reiniciar todas las puntuaciones para empezar un nuevo torneo?')) return;
+  if (!confirm('Are you sure you want to reset all scores and start a new championship?')) return;
   const pin = inputAdminPin.value.trim();
   try {
     const res = await fetch('/api/admin/reset-tournament', {
@@ -853,7 +1064,7 @@ btnResetTournament.addEventListener('click', async () => {
     const data = await res.json();
     if (data.success) {
       modalAdmin.classList.add('hidden');
-      showToast('⚠️ ¡Torneo reiniciado con éxito!');
+      showToast('⚠️ Tournament reset successfully!');
       authPlayer();
     }
   } catch (e) {}
