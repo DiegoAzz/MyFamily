@@ -23,211 +23,349 @@ if (databaseUrl && databaseUrl.startsWith('postgres')) {
   db = new DatabaseSync(dbPath);
 }
 
-// Inicialización de Tablas
+// Inicialización de Tablas para el Concurso y Ranking
 async function initDatabase() {
   if (isPostgres) {
     await db.query(`
-      CREATE TABLE IF NOT EXISTS players (
-        id VARCHAR(50) PRIMARY KEY,
-        display_name VARCHAR(100) NOT NULL,
-        role_title VARCHAR(100) NOT NULL,
-        coins INT DEFAULT 100,
-        energy INT DEFAULT 100,
-        vehicle VARCHAR(50) DEFAULT 'a_pie',
-        x REAL DEFAULT 400,
-        y REAL DEFAULT 350,
-        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS family_vault (
-        id INT PRIMARY KEY,
-        family_coins INT DEFAULT 500,
-        neighborhood_level INT DEFAULT 1
-      );
-
-      CREATE TABLE IF NOT EXISTS missions (
+      CREATE TABLE IF NOT EXISTS contest_players (
         id SERIAL PRIMARY KEY,
+        player_uid VARCHAR(100) UNIQUE NOT NULL,
+        alias VARCHAR(60) NOT NULL,
+        ip_address VARCHAR(60),
+        best_score INT DEFAULT 0,
+        tournament_score INT DEFAULT 0,
+        games_played INT DEFAULT 0,
+        coins INT DEFAULT 100,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS tournaments (
+        id INT PRIMARY KEY,
         title VARCHAR(150) NOT NULL,
-        description TEXT NOT NULL,
-        category VARCHAR(50) DEFAULT 'cooperativa',
-        reward_coins INT DEFAULT 50,
-        assigned_to VARCHAR(50) DEFAULT 'todos',
-        status VARCHAR(50) DEFAULT 'disponible',
-        created_by VARCHAR(50) DEFAULT 'diegoaz'
+        prize_text VARCHAR(200) NOT NULL,
+        end_time TIMESTAMP NOT NULL,
+        active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_config (
+        id INT PRIMARY KEY,
+        admin_pin VARCHAR(50) DEFAULT 'admin123'
       );
     `);
 
-    // Inserciones iniciales
-    await db.query(`
-      INSERT INTO family_vault (id, family_coins, neighborhood_level)
-      VALUES (1, 500, 1)
-      ON CONFLICT (id) DO NOTHING;
-    `);
-
-    // Sembrar personajes
-    const seedPlayers = [
-      { id: 'diegoaz', name: 'Diegoaz (Papá)', role: 'Mentor & Arquitecto' },
-      { id: 'diegoaz_jr', name: 'Diegoaz Jr. (Hijo)', role: 'Ingeniero & Tecnología' },
-      { id: 'vicky_vicky', name: 'Vicky Vicky (Hija)', role: 'Diseñadora & Mascotas' }
-    ];
-
-    for (const p of seedPlayers) {
+    // Sembrar Torneo por defecto si no existe
+    const tRes = await db.query('SELECT COUNT(*) FROM tournaments WHERE id = 1');
+    if (parseInt(tRes.rows[0].count) === 0) {
+      const defaultEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
       await db.query(`
-        INSERT INTO players (id, display_name, role_title)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (id) DO NOTHING;
-      `, [p.id, p.name, p.role]);
+        INSERT INTO tournaments (id, title, prize_text, end_time, active)
+        VALUES (1, '🏆 Gran Torneo de Lanzamiento', '¡Premio Especial en Efectivo para el Puesto #1!', $1, TRUE);
+      `, [defaultEnd.toISOString()]);
     }
 
-    // Sembrar misiones si no existen
-    const mRes = await db.query('SELECT COUNT(*) FROM missions');
-    if (parseInt(mRes.rows[0].count) === 0) {
+    const aRes = await db.query('SELECT COUNT(*) FROM admin_config WHERE id = 1');
+    if (parseInt(aRes.rows[0].count) === 0) {
       await db.query(`
-        INSERT INTO missions (title, description, category, reward_coins, assigned_to) VALUES
-        ('¡Bienvenidos al Barrio Az!', 'Explora la plaza, visita la casa familiar y prueba los controles.', 'cooperativa', 50, 'todos'),
-        ('Recoger reciclaje del Parque', 'Encuentra las 3 botellas en la zona verde y llévalas al contenedor ecológico.', 'didactica', 100, 'vicky_vicky'),
-        ('Reparar el semáforo inteligente', 'Acércate al semáforo de la avenida principal e inspecciona el circuito.', 'didactica', 100, 'diegoaz_jr'),
-        ('Misión del Hogar: Ordenar la habitación', 'Completa tu tarea escolar o tu cuarto en la vida real para canjear tus monedas.', 'hogar', 200, 'todos');
+        INSERT INTO admin_config (id, admin_pin)
+        VALUES (1, 'admin123');
       `);
     }
 
   } else {
-    // Modo SQLite
+    // Modo SQLite persistente
     db.exec(`
-      CREATE TABLE IF NOT EXISTS players (
-        id TEXT PRIMARY KEY,
-        display_name TEXT NOT NULL,
-        role_title TEXT NOT NULL,
-        coins INTEGER DEFAULT 100,
-        energy INTEGER DEFAULT 100,
-        vehicle TEXT DEFAULT 'a_pie',
-        x REAL DEFAULT 400,
-        y REAL DEFAULT 350,
-        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS family_vault (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        family_coins INTEGER DEFAULT 500,
-        neighborhood_level INTEGER DEFAULT 1
-      );
-
-      CREATE TABLE IF NOT EXISTS missions (
+      CREATE TABLE IF NOT EXISTS contest_players (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        player_uid TEXT UNIQUE NOT NULL,
+        alias TEXT NOT NULL,
+        ip_address TEXT,
+        best_score INTEGER DEFAULT 0,
+        tournament_score INTEGER DEFAULT 0,
+        games_played INTEGER DEFAULT 0,
+        coins INTEGER DEFAULT 100,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS tournaments (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
         title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        category TEXT DEFAULT 'cooperativa',
-        reward_coins INTEGER DEFAULT 50,
-        assigned_to TEXT DEFAULT 'todos',
-        status TEXT DEFAULT 'disponible',
-        created_by TEXT DEFAULT 'diegoaz'
+        prize_text TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_config (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        admin_pin TEXT DEFAULT 'admin123'
       );
     `);
 
-    // Insertar fondo familiar inicial
-    db.exec(`INSERT OR IGNORE INTO family_vault (id, family_coins, neighborhood_level) VALUES (1, 500, 1);`);
+    const tRow = db.prepare('SELECT COUNT(*) as cnt FROM tournaments WHERE id = 1').get();
+    if (tRow.cnt === 0) {
+      const defaultEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      db.prepare(`
+        INSERT INTO tournaments (id, title, prize_text, end_time, active)
+        VALUES (1, '🏆 Gran Torneo de Lanzamiento', '¡Premio Especial en Efectivo para el Puesto #1!', ?, 1)
+      `).run(defaultEnd);
+    }
 
-    // Sembrar personajes
-    const insertPlayer = db.prepare(`
-      INSERT OR IGNORE INTO players (id, display_name, role_title)
-      VALUES (?, ?, ?);
-    `);
-    insertPlayer.run('diegoaz', 'Diegoaz (Papá)', 'Mentor & Arquitecto');
-    insertPlayer.run('diegoaz_jr', 'Diegoaz Jr. (Hijo)', 'Ingeniero & Tecnología');
-    insertPlayer.run('vicky_vicky', 'Vicky Vicky (Hija)', 'Diseñadora & Mascotas');
-
-    // Misiones iniciales
-    const countMissions = db.prepare('SELECT COUNT(*) as total FROM missions').get();
-    if (countMissions.total === 0) {
-      const insertMission = db.prepare(`
-        INSERT INTO missions (title, description, category, reward_coins, assigned_to)
-        VALUES (?, ?, ?, ?, ?);
-      `);
-      insertMission.run('¡Bienvenidos al Barrio Az!', 'Explora la plaza, visita la casa familiar y prueba los controles.', 'cooperativa', 50, 'todos');
-      insertMission.run('Recoger reciclaje del Parque', 'Encuentra las 3 botellas en la zona verde y llévalas al contenedor ecológico.', 'didactica', 100, 'vicky_vicky');
-      insertMission.run('Reparar el semáforo inteligente', 'Acércate al semáforo de la avenida principal e inspecciona el circuito.', 'didactica', 100, 'diegoaz_jr');
-      insertMission.run('Misión del Hogar: Ordenar la habitación', 'Completa tu tarea escolar o tu cuarto en la vida real para canjear tus monedas.', 'hogar', 200, 'todos');
+    const aRow = db.prepare('SELECT COUNT(*) as cnt FROM admin_config WHERE id = 1').get();
+    if (aRow.cnt === 0) {
+      db.prepare(`
+        INSERT INTO admin_config (id, admin_pin)
+        VALUES (1, 'admin123')
+      `).run();
     }
   }
 
-  console.log('✅ Base de datos inicializada correctamente con tablas y datos iniciales.');
+  console.log('✅ Base de datos de Torneo y Jugadores inicializada.');
 }
 
-// Helpers unificados
-async function getPlayer(id) {
+// 1. Obtener o crear jugador por su UID (sin registro ni login)
+async function getOrCreatePlayer(uid, ip, defaultAlias) {
   if (isPostgres) {
-    const res = await db.query('SELECT * FROM players WHERE id = $1', [id]);
+    let res = await db.query('SELECT * FROM contest_players WHERE player_uid = $1', [uid]);
+    if (res.rows.length === 0) {
+      await db.query(`
+        INSERT INTO contest_players (player_uid, alias, ip_address)
+        VALUES ($1, $2, $3)
+      `, [uid, defaultAlias, ip]);
+      res = await db.query('SELECT * FROM contest_players WHERE player_uid = $1', [uid]);
+    } else {
+      // Actualizar IP y fecha
+      await db.query(`
+        UPDATE contest_players
+        SET ip_address = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE player_uid = $2
+      `, [ip, uid]);
+    }
     return res.rows[0];
   } else {
-    return db.prepare('SELECT * FROM players WHERE id = ?').get(id);
+    let player = db.prepare('SELECT * FROM contest_players WHERE player_uid = ?').get(uid);
+    if (!player) {
+      db.prepare(`
+        INSERT INTO contest_players (player_uid, alias, ip_address)
+        VALUES (?, ?, ?)
+      `).run(uid, defaultAlias, ip);
+      player = db.prepare('SELECT * FROM contest_players WHERE player_uid = ?').get(uid);
+    } else {
+      db.prepare(`
+        UPDATE contest_players
+        SET ip_address = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE player_uid = ?
+      `).run(ip, uid);
+    }
+    return player;
   }
 }
 
-async function updatePlayerState(id, x, y, coins, vehicle) {
+// 2. Cambiar apodo/alias del jugador
+async function updatePlayerAlias(uid, newAlias) {
+  const cleanAlias = (newAlias || '').trim().slice(0, 30);
+  if (!cleanAlias) return null;
+
   if (isPostgres) {
     await db.query(`
-      UPDATE players
-      SET x = $1, y = $2, coins = COALESCE($3, coins), vehicle = COALESCE($4, vehicle), last_seen = CURRENT_TIMESTAMP
-      WHERE id = $5
-    `, [x, y, coins, vehicle, id]);
+      UPDATE contest_players
+      SET alias = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE player_uid = $2
+    `, [cleanAlias, uid]);
+    const res = await db.query('SELECT * FROM contest_players WHERE player_uid = $1', [uid]);
+    return res.rows[0];
   } else {
     db.prepare(`
-      UPDATE players
-      SET x = ?, y = ?, coins = COALESCE(?, coins), vehicle = COALESCE(?, vehicle), last_seen = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(x, y, coins, vehicle, id);
+      UPDATE contest_players
+      SET alias = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE player_uid = ?
+    `).run(cleanAlias, uid);
+    return db.prepare('SELECT * FROM contest_players WHERE player_uid = ?').get(uid);
   }
 }
 
-async function getMissions() {
+// 3. Registrar puntuación al terminar la partida
+async function submitScore(uid, score) {
+  const numScore = parseInt(score) || 0;
   if (isPostgres) {
-    const res = await db.query('SELECT * FROM missions ORDER BY id ASC');
+    const res = await db.query('SELECT * FROM contest_players WHERE player_uid = $1', [uid]);
+    if (res.rows.length === 0) return null;
+    const player = res.rows[0];
+
+    const newBest = Math.max(player.best_score || 0, numScore);
+    const newTournament = Math.max(player.tournament_score || 0, numScore);
+    const coinsEarned = Math.floor(numScore / 100);
+
+    await db.query(`
+      UPDATE contest_players
+      SET best_score = $1,
+          tournament_score = $2,
+          games_played = games_played + 1,
+          coins = coins + $3,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE player_uid = $4
+    `, [newBest, newTournament, coinsEarned, uid]);
+
+    return {
+      bestScore: newBest,
+      tournamentScore: newTournament,
+      coinsEarned: coinsEarned
+    };
+  } else {
+    const player = db.prepare('SELECT * FROM contest_players WHERE player_uid = ?').get(uid);
+    if (!player) return null;
+
+    const newBest = Math.max(player.best_score || 0, numScore);
+    const newTournament = Math.max(player.tournament_score || 0, numScore);
+    const coinsEarned = Math.floor(numScore / 100);
+
+    db.prepare(`
+      UPDATE contest_players
+      SET best_score = ?,
+          tournament_score = ?,
+          games_played = games_played + 1,
+          coins = coins + ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE player_uid = ?
+    `).run(newBest, newTournament, coinsEarned, uid);
+
+    return {
+      bestScore: newBest,
+      tournamentScore: newTournament,
+      coinsEarned: coinsEarned
+    };
+  }
+}
+
+// 4. Obtener tabla de clasificación (Leaderboard del Torneo)
+async function getLeaderboard(limit = 50) {
+  if (isPostgres) {
+    const res = await db.query(`
+      SELECT alias, tournament_score as score, best_score, games_played, updated_at
+      FROM contest_players
+      WHERE tournament_score > 0
+      ORDER BY tournament_score DESC, updated_at ASC
+      LIMIT $1
+    `, [limit]);
     return res.rows;
   } else {
-    return db.prepare('SELECT * FROM missions ORDER BY id ASC').all();
+    return db.prepare(`
+      SELECT alias, tournament_score as score, best_score, games_played, updated_at
+      FROM contest_players
+      WHERE tournament_score > 0
+      ORDER BY tournament_score DESC, updated_at ASC
+      LIMIT ?
+    `).all(limit);
   }
 }
 
-async function completeMission(missionId, playerId) {
+// 5. Obtener puesto del jugador actual
+async function getPlayerRank(uid) {
   if (isPostgres) {
-    const mRes = await db.query('SELECT * FROM missions WHERE id = $1', [missionId]);
-    if (mRes.rows.length === 0) return null;
-    const mission = mRes.rows[0];
-    await db.query('UPDATE missions SET status = $1 WHERE id = $2', ['completada', missionId]);
-    await db.query('UPDATE players SET coins = coins + $1 WHERE id = $2', [mission.reward_coins, playerId]);
-    return mission;
+    const res = await db.query('SELECT * FROM contest_players WHERE player_uid = $1', [uid]);
+    if (res.rows.length === 0) return { rank: 0, score: 0 };
+    const p = res.rows[0];
+    if (p.tournament_score === 0) return { rank: 0, score: 0 };
+
+    const countRes = await db.query(`
+      SELECT COUNT(*) as rank
+      FROM contest_players
+      WHERE tournament_score > $1
+    `, [p.tournament_score]);
+    return {
+      rank: parseInt(countRes.rows[0].rank) + 1,
+      score: p.tournament_score,
+      bestScore: p.best_score,
+      alias: p.alias
+    };
   } else {
-    const mission = db.prepare('SELECT * FROM missions WHERE id = ?').get(missionId);
-    if (!mission) return null;
-    db.prepare('UPDATE missions SET status = ? WHERE id = ?').run('completada', missionId);
-    db.prepare('UPDATE players SET coins = coins + ? WHERE id = ?').run(mission.reward_coins, playerId);
-    return mission;
+    const p = db.prepare('SELECT * FROM contest_players WHERE player_uid = ?').get(uid);
+    if (!p || p.tournament_score === 0) return { rank: 0, score: 0 };
+
+    const rankRow = db.prepare(`
+      SELECT COUNT(*) as cnt
+      FROM contest_players
+      WHERE tournament_score > ?
+    `).get(p.tournament_score);
+    return {
+      rank: rankRow.cnt + 1,
+      score: p.tournament_score,
+      bestScore: p.best_score,
+      alias: p.alias
+    };
   }
 }
 
-async function getFamilyVault() {
+// 6. Configuración del Torneo
+async function getTournament() {
   if (isPostgres) {
-    const res = await db.query('SELECT * FROM family_vault WHERE id = 1');
+    const res = await db.query('SELECT * FROM tournaments WHERE id = 1');
     return res.rows[0];
   } else {
-    return db.prepare('SELECT * FROM family_vault WHERE id = 1').get();
+    return db.prepare('SELECT * FROM tournaments WHERE id = 1').get();
   }
 }
 
-async function updatePlayerCoins(id, coins) {
+async function updateTournament(title, prizeText, endTimeIso, active = true) {
   if (isPostgres) {
-    await db.query('UPDATE players SET coins = $1, last_seen = CURRENT_TIMESTAMP WHERE id = $2', [coins, id]);
+    await db.query(`
+      UPDATE tournaments
+      SET title = $1, prize_text = $2, end_time = $3, active = $4
+      WHERE id = 1
+    `, [title, prizeText, endTimeIso, active]);
+    const res = await db.query('SELECT * FROM tournaments WHERE id = 1');
+    return res.rows[0];
   } else {
-    db.prepare('UPDATE players SET coins = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?').run(coins, id);
+    db.prepare(`
+      UPDATE tournaments
+      SET title = ?, prize_text = ?, end_time = ?, active = ?
+      WHERE id = 1
+    `).run(title, prizeText, endTimeIso, active ? 1 : 0);
+    return db.prepare('SELECT * FROM tournaments WHERE id = 1').get();
   }
+}
+
+// 7. Reiniciar puntajes del torneo (para empezar un nuevo concurso)
+async function resetTournamentScores() {
+  if (isPostgres) {
+    await db.query('UPDATE contest_players SET tournament_score = 0');
+  } else {
+    db.prepare('UPDATE contest_players SET tournament_score = 0').run();
+  }
+}
+
+// 8. Verificar PIN de Administrador
+async function verifyAdminPin(pin) {
+  if (isPostgres) {
+    const res = await db.query('SELECT admin_pin FROM admin_config WHERE id = 1');
+    return res.rows[0] && res.rows[0].admin_pin === pin;
+  } else {
+    const row = db.prepare('SELECT admin_pin FROM admin_config WHERE id = 1').get();
+    return row && row.admin_pin === pin;
+  }
+}
+
+// Compatibilidad con funciones anteriores
+async function getPlayer(id) {
+  return getOrCreatePlayer(id, '127.0.0.1', 'Jugador');
+}
+async function updatePlayerCoins(id, coins) {
+  return submitScore(id, 0);
 }
 
 module.exports = {
   initDatabase,
+  getOrCreatePlayer,
+  updatePlayerAlias,
+  submitScore,
+  getLeaderboard,
+  getPlayerRank,
+  getTournament,
+  updateTournament,
+  resetTournamentScores,
+  verifyAdminPin,
   getPlayer,
-  updatePlayerState,
-  updatePlayerCoins,
-  getMissions,
-  completeMission,
-  getFamilyVault
+  updatePlayerCoins
 };

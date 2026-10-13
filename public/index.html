@@ -6,137 +6,234 @@
   <meta name="theme-color" content="#1e1b4b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Come-Frutas en Familia: Arena Glotona</title>
+  <title>Fruit Merge 2048: ¡Torneo y Concursos!</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Grandstander:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&family=Grandstander:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- MODAL DE SELECCIÓN DE GLOTÓN FAMILIAR -->
-  <div id="character-select-modal" class="party-modal-overlay">
-    <div class="party-dialog-box">
-      <div class="party-header">
-        <h1 class="bounce-title">🍓 COME-FRUTAS AZ 🍉</h1>
-        <p class="subtitle-party">¡La arena glotona más divertida y fácil de jugar!</p>
-      </div>
+  <!-- CONTENEDOR PRINCIPAL RESPONSIVO -->
+  <div id="app-wrapper">
 
-      <p class="select-hero-prompt">ELIGE TU PERSONAJE:</p>
-
-      <div class="hero-cards-grid">
-        <!-- Diego Junior (4 años) -->
-        <div class="hero-card active" data-id="diegoaz_jr" data-color="#facc15" data-sec="#38bdf8">
-          <div class="hero-avatar-circle">
-            <canvas id="prev-diego-jr" width="80" height="80" class="hero-canvas"></canvas>
-          </div>
-          <span class="hero-name">Diego Jr.</span>
-          <span class="hero-badge badge-jr">⭐ 4 AÑOS</span>
-          <span class="hero-role">Glotón Amarillo</span>
-        </div>
-
-        <!-- Vicky Vicky (10 años) -->
-        <div class="hero-card" data-id="vicky_vicky" data-color="#f43f5e" data-sec="#06b6d4">
-          <div class="hero-avatar-circle">
-            <canvas id="prev-vicky" width="80" height="80" class="hero-canvas"></canvas>
-          </div>
-          <span class="hero-name">Vicky Vicky</span>
-          <span class="hero-badge badge-vicky">🍓 10 AÑOS</span>
-          <span class="hero-role">Cazadora Rosa</span>
-        </div>
-
-        <!-- Diego Papá (46 años) -->
-        <div class="hero-card" data-id="diegoaz" data-color="#10b981" data-sec="#f59e0b">
-          <div class="hero-avatar-circle">
-            <canvas id="prev-diego" width="80" height="80" class="hero-canvas"></canvas>
-          </div>
-          <span class="hero-name">Diego (Papá)</span>
-          <span class="hero-badge badge-dad">👑 GUÍA</span>
-          <span class="hero-role">Glotón Esmeralda</span>
-        </div>
-      </div>
-
-      <div class="how-to-play-card">
-        <span class="how-icon">💡</span>
-        <span class="how-text"><b>¿Cómo se juega?</b> Solo desliza tu dedo por la pantalla hacia las frutas. ¡Come manzanas, fresas y burbujas con números para crecer y ganar monedas!</span>
-      </div>
-
-      <button id="btn-start-party" class="btn-party-action">
-        <span>▶ ¡A COMER FRUTAS EN FAMILIA!</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- PANTALLA PRINCIPAL DEL JUEGO -->
-  <div id="game-container" class="hidden">
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- HUD SUPERIOR ENERGÉTICO Y AMIGABLE -->
-    <header id="party-hud">
-      <!-- Izquierda: Estado del jugador -->
-      <div class="hud-player-pill">
-        <canvas id="hud-avatar-mini" width="36" height="36" class="hud-mini-canvas"></canvas>
-        <div class="hud-player-stats">
-          <span id="hud-player-name" class="hud-title">Diego Jr.</span>
-          <div class="hud-coins-row">
-            <span class="coin-icon">🪙</span>
-            <span id="hud-coins-val" class="coin-num">100</span>
-            <span class="score-tag">⭐ <span id="hud-score-val">0</span> pts</span>
+    <!-- 1. BANNER DEL TORNEO ACTIVO (ORGANIZADO POR EL DUEÑO) -->
+    <header id="tournament-banner" class="tournament-box">
+      <div class="tournament-header-row">
+        <div class="tournament-title-wrap">
+          <span class="trophy-badge">🏆</span>
+          <div class="tournament-texts">
+            <h1 id="tournament-title" class="t-title">Gran Torneo de Lanzamiento</h1>
+            <p id="tournament-prize" class="t-prize">🎁 ¡Premio en Efectivo para el Puesto #1!</p>
           </div>
         </div>
+
+        <button id="btn-open-admin" class="btn-icon-admin" title="Panel de Administración del Concurso">⚙️</button>
       </div>
 
-      <!-- Centro: Reto Didáctico Activo (Con voz y altavoz) -->
-      <div id="didactic-banner" class="hud-challenge-banner">
-        <button id="btn-repeat-voice" class="voice-btn" title="Toca para escuchar en voz alta">
-          <span class="speaker-icon">🔊</span>
-        </button>
-        <div class="challenge-info">
-          <span id="challenge-prompt-text" class="challenge-text">¡Diego Jr., busca el número 3!</span>
-        </div>
-      </div>
-
-      <!-- Derecha: Tabla de posiciones en vivo de la familia -->
-      <div class="hud-leaderboard-box">
-        <span class="lb-title">🏆 FAMILIA AZ</span>
-        <div id="leaderboard-list" class="lb-list">
-          <!-- Jugadores en vivo -->
-        </div>
+      <div class="tournament-countdown-row">
+        <span class="timer-label">⏳ Finaliza en:</span>
+        <span id="tournament-timer" class="countdown-val">06d 23h 59m 50s</span>
+        <button id="btn-open-leaderboard" class="btn-pill-ranking">🏆 Ver Ranking</button>
       </div>
     </header>
 
-    <!-- TOAST DE CELEBRACIÓN AL COMER LA FRUTA CORRECTA -->
-    <div id="party-toast" class="party-toast-box hidden">
-      <span id="toast-title" class="toast-head">🎉 ¡EXCELENTE DIEGO JR.!</span>
-      <span id="toast-sub" class="toast-desc">¡Comiste el número correcto! (+15🪙)</span>
-    </div>
-
-    <!-- JOYSTICK VIRTUAL FLOTANTE PARA CELULAR -->
-    <div id="virtual-joystick-zone">
-      <div id="joystick-base">
-        <div id="joystick-thumb"></div>
-      </div>
-    </div>
-
-    <!-- BOTÓN DE TURBO & REACCIONES -->
-    <div id="party-actions-bottom">
-      <div class="reaction-bubbles">
-        <button class="btn-emoji-bubble" data-emoji="😋">😋</button>
-        <button class="btn-emoji-bubble" data-emoji="🍎">🍎</button>
-        <button class="btn-emoji-bubble" data-emoji="⭐">⭐</button>
-        <button class="btn-emoji-bubble" data-emoji="💖">💖</button>
+    <!-- 2. BARRA DE ESTADO DEL JUGADOR (ZERO FRICTION) -->
+    <section id="player-bar" class="player-bar-box">
+      <div class="player-identity">
+        <span class="avatar-circle">🍉</span>
+        <div class="identity-texts">
+          <div class="alias-row">
+            <span id="player-alias" class="alias-name">Cargando...</span>
+            <button id="btn-edit-alias" class="btn-mini-pencil" title="Cambiar mi apodo">✏️</button>
+          </div>
+          <span id="player-rank-status" class="rank-sub">Puesto #-- en el torneo</span>
+        </div>
       </div>
 
-      <button id="btn-turbo-boost" class="btn-turbo-action" title="Super Turbo">
-        <span class="turbo-icon">⚡</span>
-        <span class="turbo-label">TURBO</span>
-      </button>
+      <div class="score-cards">
+        <div class="score-card current-score">
+          <span class="score-label">PUNTOS</span>
+          <span id="current-score-val" class="score-number">0</span>
+        </div>
+        <div class="score-card best-score">
+          <span class="score-label">RÉCORD</span>
+          <span id="best-score-val" class="score-number">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ÁREA DE JUEGO (FRASCO DE FUSIÓN SUIKA MERGE) -->
+    <main id="game-arena">
+      <!-- Indicador de Próxima Fruta -->
+      <div id="next-fruit-indicator" class="next-fruit-box">
+        <span class="next-label">SIGUIENTE:</span>
+        <span id="next-fruit-emoji" class="next-emoji">🍓</span>
+      </div>
+
+      <!-- Canvas de Física del Juego -->
+      <div id="canvas-container">
+        <canvas id="gameCanvas" width="420" height="580"></canvas>
+        <!-- Línea roja de peligro superior -->
+        <div id="danger-line"></div>
+      </div>
+
+      <!-- Barra de Potenciadores / Monetización -->
+      <footer id="powerups-bar">
+        <button id="btn-powerup-shake" class="btn-powerup" title="Agitador: Mezcla las frutas en el frasco">
+          <span class="p-icon">🌀</span>
+          <span class="p-label">Agitar</span>
+        </button>
+        <button id="btn-powerup-bomb" class="btn-powerup" title="Bomba: Elimina frutas que estorban">
+          <span class="p-icon">💣</span>
+          <span class="p-label">Bomba</span>
+        </button>
+        <button id="btn-powerup-rainbow" class="btn-powerup" title="Comodín: Se fusiona con cualquier fruta">
+          <span class="p-icon">🌈</span>
+          <span class="p-label">Comodín</span>
+        </button>
+      </footer>
+    </main>
+
+    <!-- GUÍA DE EVOLUCIÓN DE FRUTAS -->
+    <div id="fruit-evolution-strip">
+      <span title="Cereza">🍒</span>➔
+      <span title="Fresa">🍓</span>➔
+      <span title="Uva">🍇</span>➔
+      <span title="Limón">🍋</span>➔
+      <span title="Naranja">🍊</span>➔
+      <span title="Manzana">🍎</span>➔
+      <span title="Pera">🍐</span>➔
+      <span title="Melocotón">🍑</span>➔
+      <span title="Piña">🍍</span>➔
+      <span title="Melón">🍈</span>➔
+      <span title="Sandía Gigante" class="glow-target">🍉</span>
     </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODALES FLOTANTES -->
+  <!-- ============================================== -->
+
+  <!-- MODAL DE CAMBIO DE APODO -->
+  <div id="modal-alias" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 class="modal-title">✏️ Elige tu Nombre para el Torneo</h3>
+      <p class="modal-desc">Este es el nombre con el que aparecerás en la tabla de clasificación y te identificarás para el premio:</p>
+      <input type="text" id="input-new-alias" maxlength="25" placeholder="Escribe tu apodo o WhatsApp..." class="text-input-field">
+      <div class="modal-actions">
+        <button id="btn-cancel-alias" class="btn-modal-sec">Cancelar</button>
+        <button id="btn-save-alias" class="btn-modal-pri">Guardar Nombre</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RANKING / TABLA DE POSICIONES -->
+  <div id="modal-leaderboard" class="modal-overlay hidden">
+    <div class="modal-card leaderboard-card">
+      <div class="leaderboard-header">
+        <h3 class="modal-title">🏆 Tabla de Posiciones del Concurso</h3>
+        <button id="btn-close-leaderboard" class="btn-close-modal">✖</button>
+      </div>
+
+      <p class="lb-sub-desc">¡Los mejores jugadores en tiempo real compitiendo por el premio!</p>
+
+      <div class="leaderboard-table-container">
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Puntos</th>
+              <th>Partidas</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tarjeta fija de "Tu Puesto" -->
+      <div id="my-rank-banner" class="my-rank-footer">
+        <div class="my-rank-info">
+          <span class="mr-tag">TU PUESTO ACTUAL</span>
+          <span id="my-rank-number" class="mr-pos">#--</span>
+        </div>
+        <div class="my-rank-score-wrap">
+          <span id="my-rank-score" class="mr-pts">0 pts</span>
+          <span id="my-rank-gap" class="mr-gap">Cargando posición...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE GAME OVER / SALVAR PARTIDA (MONETIZACIÓN) -->
+  <div id="modal-gameover" class="modal-overlay hidden">
+    <div class="modal-card gameover-card">
+      <span class="go-icon">🍉</span>
+      <h3 class="go-title">¡Partida Terminada!</h3>
+      <p class="go-score-txt">Puntos obtenidos: <span id="go-final-score" class="go-highlight">0</span></p>
+
+      <div class="reward-ad-card">
+        <span class="ad-icon">🎬</span>
+        <div class="ad-text-wrap">
+          <span class="ad-bold">¿Salvar tu récord para el Torneo?</span>
+          <span class="ad-sub">Usa una Bomba para despejar el 40% del frasco y continuar</span>
+        </div>
+        <button id="btn-revive-game" class="btn-revive-action">¡Salvar Partida!</button>
+      </div>
+
+      <div class="modal-actions-stacked">
+        <button id="btn-restart-game" class="btn-modal-pri btn-large-restart">▶ Jugar Otra Partida</button>
+        <button id="btn-view-rank-go" class="btn-modal-sec">Ver mi Puesto en el Ranking</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ADMINISTRACIÓN DEL CONCURSO (PANEL PRIVADO PARA TI) -->
+  <div id="modal-admin" class="modal-overlay hidden">
+    <div class="modal-card admin-card">
+      <div class="leaderboard-header">
+        <h3 class="modal-title">⚙️ Panel de Concursos (Administrador)</h3>
+        <button id="btn-close-admin" class="btn-close-modal">✖</button>
+      </div>
+
+      <div id="admin-login-view">
+        <p class="modal-desc">Ingresa el PIN de administrador para configurar o reiniciar los torneos:</p>
+        <input type="password" id="input-admin-pin" placeholder="PIN de Administrador (admin123)" class="text-input-field">
+        <button id="btn-submit-pin" class="btn-modal-pri full-w">Ingresar como Admin</button>
+      </div>
+
+      <div id="admin-panel-view" class="hidden">
+        <label class="form-label">Título del Concurso:</label>
+        <input type="text" id="adm-title" class="text-input-field" placeholder="Ej. Torneo de la Semana">
+
+        <label class="form-label">Texto del Premio:</label>
+        <input type="text" id="adm-prize" class="text-input-field" placeholder="Ej. ¡$50 USD al Puesto #1!">
+
+        <label class="form-label">Fecha Límite del Concurso:</label>
+        <input type="datetime-local" id="adm-deadline" class="text-input-field">
+
+        <button id="btn-save-tournament" class="btn-modal-pri full-w mb-8">💾 Guardar Configuración del Concurso</button>
+
+        <div class="danger-zone">
+          <span class="danger-label">Zona de Peligro:</span>
+          <p class="danger-sub">Reinicia todas las puntuaciones del torneo para iniciar un nuevo concurso oficial:</p>
+          <button id="btn-reset-tournament" class="btn-danger full-w">⚠️ Reiniciar Ranking / Empezar Nuevo Torneo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICACIÓN TOAST GLOBAL -->
+  <div id="toast-banner" class="toast-box hidden">
+    <span id="toast-msg">Mensaje</span>
   </div>
 
   <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Motor del Juego -->
+  <!-- Motor de Física y Fusión Suika Merge -->
   <script src="game.js"></script>
 </body>
 </html>

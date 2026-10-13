@@ -18,278 +18,169 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// ==========================================
-// ESTADO DE LA ARENA COME-FRUTAS EN VIVO
-// ==========================================
-const ARENA_WIDTH = 2600;
-const ARENA_HEIGHT = 1800;
+// Helper para obtener IP real detrás de proxys (Coolify / Traefik / Nginx)
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+         req.socket.remoteAddress ||
+         '127.0.0.1';
+}
 
-const connectedPlayers = {};
-let foodItems = [];
-let nextFoodId = 1;
+// 1. Identificación automática instantánea por UID / IP (sin login)
+app.post('/api/player/auth', async (req, res) => {
+  try {
+    const { uid, alias } = req.body;
+    if (!uid) return res.status(400).json({ error: 'UID requerido' });
 
-const FRUIT_TYPES = [
-  { emoji: '🍎', name: 'Manzana', color: '#ef4444', points: 5, category: 'fruit' },
-  { emoji: '🍌', name: 'Plátano', color: '#facc15', points: 5, category: 'fruit' },
-  { emoji: '🍓', name: 'Fresa', color: '#f43f5e', points: 6, category: 'fruit' },
-  { emoji: '🍉', name: 'Sandía', color: '#10b981', points: 8, category: 'fruit' },
-  { emoji: '🍇', name: 'Uva', color: '#a855f7', points: 6, category: 'fruit' },
-  { emoji: '🍊', name: 'Naranja', color: '#f97316', points: 5, category: 'fruit' },
-  { emoji: '⭐', name: 'Estrella', color: '#fbbf24', points: 15, category: 'gem' },
-  { emoji: '💎', name: 'Diamante', color: '#06b6d4', points: 20, category: 'gem' }
-];
+    const ip = getClientIp(req);
+    const defaultAlias = alias || `Jugador_${Math.floor(1000 + Math.random() * 9000)}`;
 
-// Generar alimentos iniciales distribuidos en la arena
-function spawnInitialFood(count = 90) {
-  for (let i = 0; i < count; i++) {
-    spawnSingleFood();
+    const player = await db.getOrCreatePlayer(uid, ip, defaultAlias);
+    const tournament = await db.getTournament();
+    const leaderboard = await db.getLeaderboard(20);
+    const myRank = await db.getPlayerRank(uid);
+
+    res.json({
+      player,
+      tournament,
+      leaderboard,
+      myRank
+    });
+  } catch (err) {
+    console.error('Error en /api/player/auth:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
-}
-
-function spawnSingleFood() {
-  const fType = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
-  const isNumberBubble = Math.random() < 0.22;
-  const numVal = isNumberBubble ? Math.floor(Math.random() * 5) + 1 : null;
-
-  const item = {
-    id: nextFoodId++,
-    x: Math.floor(Math.random() * (ARENA_WIDTH - 200)) + 100,
-    y: Math.floor(Math.random() * (ARENA_HEIGHT - 200)) + 100,
-    emoji: isNumberBubble ? `${numVal}` : fType.emoji,
-    isNumber: isNumberBubble,
-    numberVal: numVal,
-    color: fType.color,
-    name: isNumberBubble ? `Número ${numVal}` : fType.name,
-    points: fType.points
-  };
-  foodItems.push(item);
-  return item;
-}
-
-// Reto didáctico activo (conteo o matemáticas)
-let activeDidacticChallenge = {
-  id: 'count',
-  target: 3,
-  prompt: '¡Diego Jr., come la burbuja con el número 3!',
-  mathQuestion: null,
-  mathAnswer: null
-};
-
-function generateNewChallenge() {
-  if (Math.random() < 0.5) {
-    // Reto de números para Diego Jr. (1 al 5)
-    const targetNum = Math.floor(Math.random() * 5) + 1;
-    activeDidacticChallenge = {
-      id: 'number',
-      target: targetNum,
-      prompt: `¡Diego Jr., busca y come el número ${targetNum}!`,
-      mathQuestion: null,
-      mathAnswer: null
-    };
-  } else {
-    // Reto de matemáticas para Vicky (10 años)
-    const a = Math.floor(Math.random() * 6) + 2;
-    const b = Math.floor(Math.random() * 5) + 2;
-    const ans = a + b;
-    activeDidacticChallenge = {
-      id: 'math',
-      target: ans,
-      prompt: `¡Pregunta para Vicky! ¿Cuánto es ${a} + ${b}? ¡Come el ${ans}!`,
-      mathQuestion: `${a} + ${b} = ?`,
-      mathAnswer: ans
-    };
-  }
-  io.emit('challenge_updated', activeDidacticChallenge);
-}
-
-// Iniciar alimentos iniciales
-spawnInitialFood(95);
-
-// Cambiar reto cada 45 segundos o cuando se complete
-setInterval(() => {
-  generateNewChallenge();
-}, 45000);
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    game: 'Arena Come-Frutas y Burbujas Familiar',
-    onlinePlayers: Object.keys(connectedPlayers).length,
-    foodCount: foodItems.length
-  });
 });
 
+// 2. Cambiar apodo/alias para la tabla de posiciones
+app.post('/api/player/set-alias', async (req, res) => {
+  try {
+    const { uid, alias } = req.body;
+    if (!uid || !alias) return res.status(400).json({ error: 'UID y Alias requeridos' });
+
+    const updated = await db.updatePlayerAlias(uid, alias);
+    const leaderboard = await db.getLeaderboard(20);
+
+    // Notificar a todos por Socket.io que se actualizó el ranking
+    io.emit('leaderboard_updated', leaderboard);
+
+    res.json({ player: updated, leaderboard });
+  } catch (err) {
+    res.status(500).json({ error: 'Error actualizando alias' });
+  }
+});
+
+// 3. Enviar puntuación al terminar la partida
+app.post('/api/game/submit-score', async (req, res) => {
+  try {
+    const { uid, score } = req.body;
+    if (!uid || score === undefined) return res.status(400).json({ error: 'Datos inválidos' });
+
+    const result = await db.submitScore(uid, score);
+    const leaderboard = await db.getLeaderboard(20);
+    const myRank = await db.getPlayerRank(uid);
+
+    // Si es un puntaje alto en el top, emitir actualización
+    io.emit('leaderboard_updated', leaderboard);
+
+    res.json({ result, leaderboard, myRank });
+  } catch (err) {
+    res.status(500).json({ error: 'Error guardando puntuación' });
+  }
+});
+
+// 4. Obtener tabla de clasificación
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const leaderboard = await db.getLeaderboard(50);
+    res.json({ leaderboard });
+  } catch (err) {
+    res.status(500).json({ error: 'Error cargando ranking' });
+  }
+});
+
+// 5. Obtener datos del Torneo
+app.get('/api/tournament', async (req, res) => {
+  try {
+    const tournament = await db.getTournament();
+    res.json({ tournament });
+  } catch (err) {
+    res.status(500).json({ error: 'Error cargando torneo' });
+  }
+});
+
+// 6. Panel de Administración (PIN de seguridad)
+app.post('/api/admin/verify', async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const isValid = await db.verifyAdminPin(pin);
+    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
+
+    const tournament = await db.getTournament();
+    res.json({ success: true, tournament });
+  } catch (err) {
+    res.status(500).json({ error: 'Error de verificación' });
+  }
+});
+
+app.post('/api/admin/update-tournament', async (req, res) => {
+  try {
+    const { pin, title, prizeText, endTime, active } = req.body;
+    const isValid = await db.verifyAdminPin(pin);
+    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
+
+    const updatedTournament = await db.updateTournament(title, prizeText, endTime, active);
+    io.emit('tournament_updated', updatedTournament);
+
+    res.json({ success: true, tournament: updatedTournament });
+  } catch (err) {
+    res.status(500).json({ error: 'Error actualizando torneo' });
+  }
+});
+
+app.post('/api/admin/reset-tournament', async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const isValid = await db.verifyAdminPin(pin);
+    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
+
+    await db.resetTournamentScores();
+    const leaderboard = await db.getLeaderboard(20);
+    io.emit('leaderboard_updated', leaderboard);
+
+    res.json({ success: true, message: 'Torneo reiniciado con éxito' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error reiniciando torneo' });
+  }
+});
+
+// ==========================================
+// SOCKET.IO PARA JUGADORES EN LÍNEA Y NOTIFICACIONES
+// ==========================================
+let onlineCount = 0;
+
 io.on('connection', (socket) => {
-  console.log(`⚡ Conectado: ${socket.id}`);
+  onlineCount++;
+  io.emit('online_count', onlineCount);
 
-  socket.on('join_game', async (data) => {
-    const characterId = data.characterId || 'diegoaz_jr';
-    const playerDb = await db.getPlayer(characterId);
-
-    // Ajuste de colores y roles
-    let defaultColor = '#facc15'; // Amarillo para Diego Jr.
-    let defaultSecondary = '#38bdf8';
-    let displayName = 'Diegoaz Jr.';
-    let roleTitle = 'Pequeño Glotón (4 años)';
-
-    if (characterId === 'vicky_vicky') {
-      defaultColor = '#f43f5e'; // Rosa brillante para Vicky
-      defaultSecondary = '#06b6d4';
-      displayName = 'Vicky Vicky';
-      roleTitle = 'Cazadora de Frutas (10 años)';
-    } else if (characterId === 'diegoaz') {
-      defaultColor = '#10b981'; // Verde esmeralda para Papá
-      defaultSecondary = '#f59e0b';
-      displayName = 'Diegoaz (Papá)';
-      roleTitle = 'Guía de la Familia';
-    }
-
-    if (playerDb) {
-      displayName = playerDb.display_name || displayName;
-      roleTitle = playerDb.role_title || roleTitle;
-    }
-
-    const playerData = {
-      socketId: socket.id,
-      id: characterId,
-      name: displayName,
-      role: roleTitle,
-      coins: playerDb ? playerDb.coins : 100,
-      color: defaultColor,
-      secondaryColor: defaultSecondary,
-      x: ARENA_WIDTH / 2 + (Math.random() - 0.5) * 400,
-      y: ARENA_HEIGHT / 2 + (Math.random() - 0.5) * 400,
-      size: 48, // radio inicial
-      score: 0,
-      angle: 0,
-      mouthOpen: 0
-    };
-
-    connectedPlayers[socket.id] = playerData;
-
-    socket.emit('init_state', {
-      self: playerData,
-      players: connectedPlayers,
-      foods: foodItems,
-      challenge: activeDidacticChallenge,
-      arena: { width: ARENA_WIDTH, height: ARENA_HEIGHT }
+  // Cuando un jugador fusiona una Sandía Gigante o hace un combo épico
+  socket.on('huge_merge', (data) => {
+    io.emit('announcement', {
+      alias: data.alias || 'Un jugador',
+      fruit: data.fruit || '🍉 Sandía',
+      score: data.score
     });
-
-    socket.broadcast.emit('player_joined', playerData);
-    console.log(`🍓 [ARENA] ${playerData.name} entró a la arena come-frutas.`);
-  });
-
-  // Movimiento fluido del jugador
-  socket.on('player_move', (m) => {
-    const p = connectedPlayers[socket.id];
-    if (p) {
-      p.x = m.x;
-      p.y = m.y;
-      p.angle = m.angle || 0;
-      p.mouthOpen = m.mouthOpen || 0;
-
-      socket.broadcast.emit('player_moved', {
-        socketId: socket.id,
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        x: p.x,
-        y: p.y,
-        size: p.size,
-        angle: p.angle,
-        mouthOpen: p.mouthOpen,
-        score: p.score
-      });
-    }
-  });
-
-  // Comer fruta / burbuja
-  socket.on('eat_food', async (foodId) => {
-    const p = connectedPlayers[socket.id];
-    const fIndex = foodItems.findIndex(f => f.id === foodId);
-    if (p && fIndex !== -1) {
-      const food = foodItems[fIndex];
-      foodItems.splice(fIndex, 1);
-
-      p.score += food.points;
-      // Crecimiento suave
-      if (p.size < 95) {
-        p.size += 0.35;
-      }
-      p.coins += 1;
-
-      // Recompensa en DB
-      await db.updatePlayerCoins(p.id, p.coins);
-
-      // Comprobar si completó el reto didáctico activo
-      let completedChallenge = false;
-      if (food.isNumber && food.numberVal === activeDidacticChallenge.target) {
-        completedChallenge = true;
-        p.score += 50;
-        p.coins += 15;
-        await db.updatePlayerCoins(p.id, p.coins);
-      }
-
-      // Notificar a todos que la fruta fue comida
-      io.emit('food_eaten', {
-        foodId: food.id,
-        eaterSocketId: socket.id,
-        eaterId: p.id,
-        eaterName: p.name,
-        eaterSize: p.size,
-        eaterScore: p.score,
-        eaterCoins: p.coins,
-        completedChallenge: completedChallenge,
-        challengeTarget: activeDidacticChallenge.target
-      });
-
-      // Si completó el reto, generar uno nuevo inmediatamente
-      if (completedChallenge) {
-        setTimeout(generateNewChallenge, 2500);
-      }
-
-      // Reponer fruta nueva para mantener la arena llena
-      const newFood = spawnSingleFood();
-      io.emit('new_food_spawned', newFood);
-    }
-  });
-
-  // Rebote amistoso entre jugadores
-  socket.on('player_bump', (bumpData) => {
-    socket.broadcast.emit('players_bumped', {
-      p1: socket.id,
-      p2: bumpData.targetSocketId,
-      x: bumpData.x,
-      y: bumpData.y
-    });
-  });
-
-  // Reacciones de emojis
-  socket.on('send_reaction', (emoji) => {
-    const p = connectedPlayers[socket.id];
-    if (p && emoji) {
-      io.emit('reaction_received', {
-        socketId: socket.id,
-        name: p.name,
-        emoji: emoji
-      });
-    }
   });
 
   socket.on('disconnect', () => {
-    const p = connectedPlayers[socket.id];
-    if (p) {
-      console.log(`👋 [ARENA] ${p.name} salió.`);
-      delete connectedPlayers[socket.id];
-      io.emit('player_left', { socketId: socket.id, id: p.id, name: p.name });
-    }
+    onlineCount = Math.max(0, onlineCount - 1);
+    io.emit('online_count', onlineCount);
   });
 });
 
 async function start() {
   await db.initDatabase();
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🍓 SERVIDOR ARENA COME-FRUTAS FAMILIAR ACTIVO EN PUERTO ${PORT}`);
+    console.log(`🍉 SERVIDOR DE TORNEO SUIKA MERGE ACTIVO EN PUERTO ${PORT}`);
   });
 }
 

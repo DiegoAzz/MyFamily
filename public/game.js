@@ -1,6 +1,6 @@
 // =========================================================
-// COME-FRUTAS EN FAMILIA: ARENA GLOTONA - CLIENT ENGINE
-// Fácil, Interactivo, Tierno, Con Voz y Multijugador en Vivo
+// FRUIT MERGE 2048: SUIKA TOURNAMENT - CLIENT GAME ENGINE
+// Física 2D, Identificación Automática, Torneos y Ranking en Vivo
 // =========================================================
 
 const socket = io({
@@ -9,621 +9,582 @@ const socket = io({
   reconnectionAttempts: 30
 });
 
-// Canvas
+// Canvas & Dimensiones
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// DOM Elements
-const selectModal = document.getElementById('character-select-modal');
-const gameContainer = document.getElementById('game-container');
-const btnStartParty = document.getElementById('btn-start-party');
-const heroCards = document.querySelectorAll('.hero-card');
+// Elementos DOM
+const tournamentTitle = document.getElementById('tournament-title');
+const tournamentPrize = document.getElementById('tournament-prize');
+const tournamentTimer = document.getElementById('tournament-timer');
+const btnOpenLeaderboard = document.getElementById('btn-open-leaderboard');
+const btnOpenAdmin = document.getElementById('btn-open-admin');
 
-const hudPlayerName = document.getElementById('hud-player-name');
-const hudCoinsVal = document.getElementById('hud-coins-val');
-const hudScoreVal = document.getElementById('hud-score-val');
-const hudAvatarMini = document.getElementById('hud-avatar-mini');
+const playerAliasEl = document.getElementById('player-alias');
+const playerRankStatus = document.getElementById('player-rank-status');
+const btnEditAlias = document.getElementById('btn-edit-alias');
+const currentScoreVal = document.getElementById('current-score-val');
+const bestScoreVal = document.getElementById('best-score-val');
+const nextFruitEmoji = document.getElementById('next-fruit-emoji');
 
-const didacticBanner = document.getElementById('didactic-banner');
-const btnRepeatVoice = document.getElementById('btn-repeat-voice');
-const challengePromptText = document.getElementById('challenge-prompt-text');
-const leaderboardList = document.getElementById('leaderboard-list');
+const btnPowerupShake = document.getElementById('btn-powerup-shake');
+const btnPowerupBomb = document.getElementById('btn-powerup-bomb');
+const btnPowerupRainbow = document.getElementById('btn-powerup-rainbow');
 
-const partyToast = document.getElementById('party-toast');
-const toastTitle = document.getElementById('toast-title');
-const toastDesc = document.getElementById('toast-desc');
+// Modales
+const modalAlias = document.getElementById('modal-alias');
+const inputNewAlias = document.getElementById('input-new-alias');
+const btnSaveAlias = document.getElementById('btn-save-alias');
+const btnCancelAlias = document.getElementById('btn-cancel-alias');
 
-const btnTurboBoost = document.getElementById('btn-turbo-boost');
-const joystickThumb = document.getElementById('joystick-thumb');
+const modalLeaderboard = document.getElementById('modal-leaderboard');
+const btnCloseLeaderboard = document.getElementById('btn-close-leaderboard');
+const leaderboardTbody = document.getElementById('leaderboard-tbody');
+const myRankNumber = document.getElementById('my-rank-number');
+const myRankScore = document.getElementById('my-rank-score');
+const myRankGap = document.getElementById('my-rank-gap');
+
+const modalGameOver = document.getElementById('modal-gameover');
+const goFinalScore = document.getElementById('go-final-score');
+const btnReviveGame = document.getElementById('btn-revive-game');
+const btnRestartGame = document.getElementById('btn-restart-game');
+const btnViewRankGo = document.getElementById('btn-view-rank-go');
+
+const modalAdmin = document.getElementById('modal-admin');
+const btnCloseAdmin = document.getElementById('btn-close-admin');
+const adminLoginView = document.getElementById('admin-login-view');
+const adminPanelView = document.getElementById('admin-panel-view');
+const inputAdminPin = document.getElementById('input-admin-pin');
+const btnSubmitPin = document.getElementById('btn-submit-pin');
+const admTitle = document.getElementById('adm-title');
+const admPrize = document.getElementById('adm-prize');
+const admDeadline = document.getElementById('adm-deadline');
+const btnSaveTournament = document.getElementById('btn-save-tournament');
+const btnResetTournament = document.getElementById('btn-reset-tournament');
+
+const toastBanner = document.getElementById('toast-banner');
+const toastMsg = document.getElementById('toast-msg');
 
 // =========================================================
-// SISTEMA DE AUDIO (EFECTOS SINTETIZADOS Y MÚSICA MARIMBA)
+// DEFINICIÓN DE LAS 11 FRUTAS Y EVOLUCIÓN (SUIKA MERGE)
+// =========================================================
+const FRUITS = [
+  { level: 0, emoji: '🍒', name: 'Cereza', radius: 16, color: '#dc2626', points: 2 },
+  { level: 1, emoji: '🍓', name: 'Fresa', radius: 23, color: '#f43f5e', points: 4 },
+  { level: 2, emoji: '🍇', name: 'Uva', radius: 31, color: '#a855f7', points: 8 },
+  { level: 3, emoji: '🍋', name: 'Limón', radius: 39, color: '#facc15', points: 16 },
+  { level: 4, emoji: '🍊', name: 'Naranja', radius: 48, color: '#f97316', points: 32 },
+  { level: 5, emoji: '🍎', name: 'Manzana', radius: 58, color: '#ef4444', points: 64 },
+  { level: 6, emoji: '🍐', name: 'Pera', radius: 68, color: '#84cc16', points: 128 },
+  { level: 7, emoji: '🍑', name: 'Melocotón', radius: 80, color: '#fb923c', points: 256 },
+  { level: 8, emoji: '🍍', name: 'Piña', radius: 93, color: '#eab308', points: 512 },
+  { level: 9, emoji: '🍈', name: 'Melón', radius: 106, color: '#10b981', points: 1024 },
+  { level: 10, emoji: '🍉', name: 'Sandía Gigante', radius: 124, color: '#047857', points: 2048 }
+];
+
+// =========================================================
+// AUDIO SINTETIZADO CON WEB AUDIO API
 // =========================================================
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-let musicInterval = null;
-let musicStep = 0;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new AudioCtx();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-function playSfx(type) {
+function playPopSfx(level = 0) {
   try {
     initAudio();
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    osc.connect(gain); gain.connect(audioCtx.destination);
 
-    if (type === 'eat') {
-      // Mordisco pop dulce
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(320, now);
-      osc.frequency.exponentialRampToValueAtTime(740, now + 0.08);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now); osc.stop(now + 0.1);
-    } else if (type === 'boing') {
-      // Rebote cómico entre jugadores
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.linearRampToValueAtTime(380, now + 0.12);
-      osc.frequency.linearRampToValueAtTime(220, now + 0.22);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
-    } else if (type === 'correct') {
-      // Fanfarria alegre de acierto
-      [523, 659, 783, 1046].forEach((f, idx) => {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.type = 'triangle';
-        o.frequency.setValueAtTime(f, now + idx * 0.07);
-        g.gain.setValueAtTime(0.2, now + idx * 0.07);
-        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.24);
-        o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.24);
-      });
-    } else if (type === 'turbo') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(350, now);
-      osc.frequency.exponentialRampToValueAtTime(650, now + 0.2);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
-    }
+    // Frecuencia armónica que sube con cada nivel de fruta
+    const baseFreq = 260 + level * 65;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.6, now + 0.08);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    osc.start(now); osc.stop(now + 0.12);
   } catch (e) {}
 }
 
-// Melodía suave y alegre de xilófono / marimba para niños
-function startCheerfulMusic() {
-  if (musicInterval) clearInterval(musicInterval);
-  const notes = [523, 587, 659, 698, 783, 880, 783, 659, 587, 659, 783, 880, 1046, 880, 783, 659];
-  musicInterval = setInterval(() => {
-    if (!audioCtx) return;
-    try {
-      const now = audioCtx.currentTime;
-      const freq = notes[musicStep % notes.length];
-      musicStep++;
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.04, now);
-      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
-      osc.start(now); osc.stop(now + 0.22);
-    } catch (e) {}
-  }, 320);
+function playDropSfx() {
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+    osc.start(now); osc.stop(now + 0.09);
+  } catch (e) {}
 }
 
-// Vibración háptica en móvil
+function playFanfareSfx() {
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    [523, 659, 783, 1046, 1318].forEach((f, idx) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(f, now + idx * 0.07);
+      g.gain.setValueAtTime(0.2, now + idx * 0.07);
+      g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.25);
+      o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.25);
+    });
+  } catch (e) {}
+}
+
 function triggerHaptic(ms = 25) {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
     try { navigator.vibrate(ms); } catch (e) {}
   }
 }
 
-function triggerShake() {
-  if (gameContainer) {
-    gameContainer.classList.remove('screen-shake');
-    void gameContainer.offsetWidth;
-    gameContainer.classList.add('screen-shake');
-    setTimeout(() => { gameContainer.classList.remove('screen-shake'); }, 220);
-  }
-}
-
 // =========================================================
-// SISTEMA DE VOZ DIDÁCTICA (TEXT-TO-SPEECH)
+// GESTIÓN DE JUGADOR Y IDENTIFICACIÓN (ZERO FRICTION)
 // =========================================================
-let currentVoicePrompt = '¡Come frutas y burbujas con números para crecer!';
-let spanishVoices = [];
-
-function loadVoices() {
-  if ('speechSynthesis' in window) {
-    spanishVoices = window.speechSynthesis.getVoices().filter(v =>
-      v.lang && (v.lang.toLowerCase().startsWith('es') || v.lang.includes('ES'))
-    );
-  }
-}
-if ('speechSynthesis' in window) {
-  loadVoices();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-  }
+let playerUID = localStorage.getItem('fruit_merge_uid');
+if (!playerUID) {
+  playerUID = 'user_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+  localStorage.setItem('fruit_merge_uid', playerUID);
 }
 
-function speak(text, pitch = 1.18, rate = 0.95) {
-  currentVoicePrompt = text;
-  if (!('speechSynthesis' in window)) return;
+let playerData = {
+  alias: 'Jugador...',
+  bestScore: 0,
+  tournamentScore: 0,
+  coins: 100
+};
+
+let activeTournament = null;
+let currentScore = 0;
+let isGameOver = false;
+
+// Cargar o autenticar jugador en el servidor
+async function authPlayer() {
   try {
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'es-ES';
-    utter.pitch = pitch;
-    utter.rate = rate;
+    const savedAlias = localStorage.getItem('fruit_merge_alias') || '';
+    const res = await fetch('/api/player/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: playerUID, alias: savedAlias })
+    });
+    const data = await res.json();
+    if (data.player) {
+      playerData = data.player;
+      playerAliasEl.innerText = playerData.alias;
+      bestScoreVal.innerText = playerData.best_score || 0;
+      localStorage.setItem('fruit_merge_alias', playerData.alias);
 
-    if (!spanishVoices.length) loadVoices();
-    if (spanishVoices.length > 0) {
-      const friendly = spanishVoices.find(v => /sabina|monica|paulina|lucia|laura|helena|spanish/i.test(v.name)) || spanishVoices[0];
-      if (friendly) utter.voice = friendly;
+      if (data.myRank) {
+        updateMyRankDisplay(data.myRank);
+      }
+    }
+    if (data.tournament) {
+      activeTournament = data.tournament;
+      updateTournamentDisplay();
+    }
+  } catch (err) {
+    console.error('Error autenticando jugador:', err);
+  }
+}
+authPlayer();
+
+function updateMyRankDisplay(rankInfo) {
+  if (rankInfo && rankInfo.rank > 0) {
+    playerRankStatus.innerText = `Puesto #${rankInfo.rank} en el Torneo`;
+    myRankNumber.innerText = `#${rankInfo.rank}`;
+    myRankScore.innerText = `${rankInfo.score} pts`;
+    myRankGap.innerText = rankInfo.rank === 1 ? '🥇 ¡Vas liderando el concurso!' : '¡Sigue sumando puntos para el #1!';
+  } else {
+    playerRankStatus.innerText = `¡Juega para clasificar en el Torneo!`;
+    myRankNumber.innerText = `#--`;
+    myRankScore.innerText = `0 pts`;
+    myRankGap.innerText = `¡Haz tu primera partida para clasificar!`;
+  }
+}
+
+function updateTournamentDisplay() {
+  if (!activeTournament) return;
+  tournamentTitle.innerText = activeTournament.title;
+  tournamentPrize.innerText = `🎁 ${activeTournament.prize_text}`;
+}
+
+// Reloj de cuenta regresiva del torneo
+setInterval(() => {
+  if (!activeTournament || !activeTournament.end_time) return;
+  const end = new Date(activeTournament.end_time).getTime();
+  const now = Date.now();
+  const diff = Math.max(0, end - now);
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  tournamentTimer.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}, 1000);
+
+// =========================================================
+// MOTOR FÍSICO 2D DE SUIKA MERGE
+// =========================================================
+const GRAVITY = 0.38;
+const DANGER_Y = 70; // Línea roja de peligro
+let dangerTimer = 0;
+
+let droppedFruits = [];
+let particles = [];
+
+// Fruta que está lista para soltarse en la parte superior
+let dropX = canvas.width / 2;
+let currentFruitLevel = Math.floor(Math.random() * 3); // Comienza con frutas pequeñas 0, 1 o 2
+let nextFruitLevel = Math.floor(Math.random() * 3);
+let canDrop = true;
+let dropCooldown = 0;
+
+// Estado de potenciadores
+let nextIsBomb = false;
+let nextIsRainbow = false;
+
+function updateNextIndicator() {
+  nextFruitEmoji.innerText = FRUITS[nextFruitLevel].emoji;
+}
+updateNextIndicator();
+
+// Crear una nueva fruta física
+function createFruitBody(x, y, level, vx = 0, vy = 0) {
+  const fDef = FRUITS[level];
+  return {
+    id: Math.random().toString(36).substring(2),
+    x: x,
+    y: y,
+    vx: vx,
+    vy: vy,
+    radius: fDef.radius,
+    level: level,
+    emoji: fDef.emoji,
+    color: fDef.color,
+    points: fDef.points,
+    rot: Math.random() * Math.PI,
+    vrot: (Math.random() - 0.5) * 0.05,
+    isMerging: false,
+    scale: 0.2 // Animación de aparición
+  };
+}
+
+// Soltar fruta actual
+function dropCurrentFruit() {
+  if (!canDrop || isGameOver) return;
+  initAudio();
+  playDropSfx();
+
+  const fDef = FRUITS[currentFruitLevel];
+  const clampedX = Math.max(fDef.radius + 6, Math.min(canvas.width - fDef.radius - 6, dropX));
+
+  const fruit = createFruitBody(clampedX, 45, currentFruitLevel, 0, 1.5);
+  fruit.isBomb = nextIsBomb;
+  fruit.isRainbow = nextIsRainbow;
+  nextIsBomb = false;
+  nextIsRainbow = false;
+
+  droppedFruits.push(fruit);
+
+  canDrop = false;
+  dropCooldown = 32; // ~0.5s cooldown antes de la siguiente
+
+  currentFruitLevel = nextFruitLevel;
+  nextFruitLevel = Math.floor(Math.random() * 3);
+  updateNextIndicator();
+}
+
+// Manejo de eventos táctiles y de ratón para apuntar la fruta
+function handlePointerInput(clientX) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  dropX = (clientX - rect.left) * scaleX;
+
+  const currentRadius = FRUITS[currentFruitLevel].radius;
+  dropX = Math.max(currentRadius + 6, Math.min(canvas.width - currentRadius - 6, dropX));
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  handlePointerInput(e.clientX);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 0) {
+    handlePointerInput(e.touches[0].clientX);
+  }
+}, { passive: true });
+
+canvas.addEventListener('mouseup', () => {
+  dropCurrentFruit();
+});
+
+canvas.addEventListener('touchend', (e) => {
+  dropCurrentFruit();
+});
+
+// =========================================================
+// BUCLES DE FÍSICA Y COLISIONES
+// =========================================================
+function updatePhysics() {
+  if (dropCooldown > 0) {
+    dropCooldown--;
+    if (dropCooldown <= 0) canDrop = true;
+  }
+
+  // 1. Integración de movimiento y gravedad
+  droppedFruits.forEach(f => {
+    f.vy += GRAVITY;
+    f.x += f.vx;
+    f.y += f.vy;
+    f.rot += f.vrot;
+
+    // Fricción y amortiguación del aire
+    f.vx *= 0.99;
+    f.vy *= 0.995;
+
+    // Animación de escala de nacimiento
+    if (f.scale < 1) {
+      f.scale = Math.min(1, f.scale + 0.12);
     }
 
-    const speaker = document.querySelector('.speaker-icon');
-    if (speaker) speaker.classList.add('talking');
-    utter.onend = () => { if (speaker) speaker.classList.remove('talking'); };
-    utter.onerror = () => { if (speaker) speaker.classList.remove('talking'); };
+    // Colisión con paredes laterales
+    if (f.x - f.radius < 6) {
+      f.x = 6 + f.radius;
+      f.vx = -f.vx * 0.35;
+    }
+    if (f.x + f.radius > canvas.width - 6) {
+      f.x = canvas.width - 6 - f.radius;
+      f.vx = -f.vx * 0.35;
+    }
 
-    window.speechSynthesis.speak(utter);
+    // Colisión con el fondo del frasco
+    if (f.y + f.radius > canvas.height - 8) {
+      f.y = canvas.height - 8 - f.radius;
+      f.vy = -f.vy * 0.22;
+      f.vx *= 0.92;
+    }
+  });
+
+  // 2. Colisión y Fusión entre frutas (Círculo vs Círculo)
+  const toRemove = new Set();
+  const toSpawn = [];
+
+  for (let i = 0; i < droppedFruits.length; i++) {
+    for (let j = i + 1; j < droppedFruits.length; j++) {
+      const a = droppedFruits[i];
+      const b = droppedFruits[j];
+
+      if (toRemove.has(a.id) || toRemove.has(b.id)) continue;
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      const minDist = a.radius + b.radius;
+
+      if (dist < minDist && dist > 0) {
+        // Separación física para que no se traspasen
+        const overlap = (minDist - dist) / 2;
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+
+        // Rebote elástico
+        const relVel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (relVel < 0) {
+          const impulse = relVel * 0.45;
+          a.vx += nx * impulse;
+          a.vy += ny * impulse;
+          b.vx -= nx * impulse;
+          b.vy -= ny * impulse;
+        }
+
+        // FUSIÓN SI SON DEL MISMO NIVEL (O COMODÍN)
+        const canMerge = (a.level === b.level && a.level < FRUITS.length - 1) || a.isRainbow || b.isRainbow;
+
+        if (canMerge) {
+          toRemove.add(a.id);
+          toRemove.add(b.id);
+
+          const nextLvl = Math.min(FRUITS.length - 1, Math.max(a.level, b.level) + 1);
+          const midX = (a.x + b.x) / 2;
+          const midY = (a.y + b.y) / 2;
+
+          toSpawn.push({ x: midX, y: midY, level: nextLvl });
+
+          // Sonido, vibración y puntos
+          const pts = FRUITS[nextLvl].points;
+          addScore(pts);
+          playPopSfx(nextLvl);
+          triggerHaptic(30);
+          spawnMergeParticles(midX, midY, FRUITS[nextLvl].color);
+
+          // Si se fusionó la Sandía Gigante
+          if (nextLvl === 10) {
+            playFanfareSfx();
+            addScore(5000);
+            showToast('🍉 ¡SANDÍA GIGANTE FUSIONADA! (+5,000 pts)');
+            socket.emit('huge_merge', { alias: playerData.alias, fruit: '🍉 Sandía Gigante', score: currentScore });
+          }
+        }
+      }
+    }
+  }
+
+  // Aplicar eliminaciones y nacimientos
+  if (toRemove.size > 0) {
+    droppedFruits = droppedFruits.filter(f => !toRemove.has(f.id));
+    toSpawn.forEach(s => {
+      const newF = createFruitBody(s.x, s.y, s.level, (Math.random() - 0.5) * 1.5, -1.8);
+      droppedFruits.push(newF);
+    });
+  }
+
+  // 3. Comprobación de peligro de desbordamiento (Línea Roja)
+  let isDanger = false;
+  droppedFruits.forEach(f => {
+    // Si la fruta ya se asentó (velocidad baja) y sobrepasa la línea de peligro
+    if (f.y - f.radius < DANGER_Y && Math.hypot(f.vx, f.vy) < 1.2 && f.scale >= 1) {
+      isDanger = true;
+    }
+  });
+
+  if (isDanger) {
+    dangerTimer++;
+    if (dangerTimer > 150) { // ~2.5 segundos continuos sobre la línea roja
+      triggerGameOver();
+    }
+  } else {
+    dangerTimer = Math.max(0, dangerTimer - 2);
+  }
+}
+
+function addScore(pts) {
+  currentScore += pts;
+  currentScoreVal.innerText = currentScore;
+  if (currentScore > (playerData.best_score || 0)) {
+    bestScoreVal.innerText = currentScore;
+  }
+}
+
+// Terminar partida y guardar en la base de datos
+async function triggerGameOver() {
+  if (isGameOver) return;
+  isGameOver = true;
+
+  goFinalScore.innerText = currentScore;
+  modalGameOver.classList.remove('hidden');
+
+  // Enviar récord al servidor para la tabla de posiciones
+  try {
+    const res = await fetch('/api/game/submit-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: playerUID, score: currentScore })
+    });
+    const data = await res.json();
+    if (data.myRank) {
+      updateMyRankDisplay(data.myRank);
+    }
   } catch (e) {}
 }
 
-btnRepeatVoice.addEventListener('click', () => {
-  speak(currentVoicePrompt);
-});
-
-// =========================================================
-// PERSONAJES Y ESTADO
-// =========================================================
-let selectedHeroId = 'diegoaz_jr';
-
-const HERO_DATA = {
-  diegoaz_jr: {
-    id: 'diegoaz_jr',
-    name: 'Diego Jr.',
-    role: 'Glotón Amarillo (4 años)',
-    primaryColor: '#facc15',
-    secondaryColor: '#38bdf8',
-    cheekColor: '#f87171',
-    faceStyle: 'jr_cute'
-  },
-  vicky_vicky: {
-    id: 'vicky_vicky',
-    name: 'Vicky Vicky',
-    role: 'Cazadora Rosa (10 años)',
-    primaryColor: '#f43f5e',
-    secondaryColor: '#06b6d4',
-    cheekColor: '#fda4af',
-    faceStyle: 'vicky_star'
-  },
-  diegoaz: {
-    id: 'diegoaz',
-    name: 'Diego (Papá)',
-    role: 'Glotón Esmeralda (Papá)',
-    primaryColor: '#10b981',
-    secondaryColor: '#f59e0b',
-    cheekColor: '#34d399',
-    faceStyle: 'dad_glasses'
-  }
-};
-
-let myPlayer = {
-  x: 1200,
-  y: 900,
-  vx: 0,
-  vy: 0,
-  speed: 4.8,
-  baseSpeed: 4.8,
-  turboSpeed: 8.5,
-  isTurbo: false,
-  size: 48,
-  angle: 0,
-  mouthOpen: 0,
-  score: 0,
-  coins: 100,
-  bubblesTrail: []
-};
-
-let otherPlayers = {};
-let foodItems = [];
-let particles = [];
-let ARENA_W = 2600;
-let ARENA_H = 1800;
-
-// Renderizar avatares en la selección
-function renderPreviewCanvases() {
-  ['diegoaz_jr', 'vicky_vicky', 'diegoaz'].forEach(id => {
-    const el = document.getElementById(id === 'diegoaz_jr' ? 'prev-diego-jr' : (id === 'vicky_vicky' ? 'prev-vicky' : 'prev-diego'));
-    if (el) {
-      const c = el.getContext('2d');
-      c.clearRect(0, 0, 80, 80);
-      drawGlotonAvatar(c, 40, 40, 32, HERO_DATA[id], 0, 0.4);
-    }
-  });
-}
-renderPreviewCanvases();
-
-heroCards.forEach(card => {
-  card.addEventListener('click', () => {
-    heroCards.forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-    selectedHeroId = card.getAttribute('data-id');
-    initAudio();
-    playSfx('eat');
-  });
-});
-
-btnStartParty.addEventListener('click', () => {
+// Salvar partida con bomba (Rewarded Ad Simulation)
+btnReviveGame.addEventListener('click', () => {
   initAudio();
-  playSfx('correct');
-  startCheerfulMusic();
-
-  const hero = HERO_DATA[selectedHeroId];
-  hudPlayerName.innerText = hero.name;
-
-  // Renderizar mini avatar en el HUD
-  const hctx = hudAvatarMini.getContext('2d');
-  hctx.clearRect(0, 0, 36, 36);
-  drawGlotonAvatar(hctx, 18, 18, 15, hero, 0, 0);
-
-  selectModal.classList.add('hidden');
-  gameContainer.classList.remove('hidden');
-  resizeCanvas();
-
-  socket.emit('join_game', { characterId: selectedHeroId });
-
-  if (selectedHeroId === 'diegoaz_jr') {
-    speak('¡Hola Diego Junior! Mueve tu dedito para comer frutas y burbujas.');
-  } else {
-    speak('¡A comer frutas en familia!');
+  playPopSfx(5);
+  // Eliminar el 40% superior de frutas
+  droppedFruits.sort((a, b) => a.y - b.y);
+  const countToKill = Math.ceil(droppedFruits.length * 0.4);
+  for (let i = 0; i < countToKill; i++) {
+    if (droppedFruits[i]) {
+      spawnMergeParticles(droppedFruits[i].x, droppedFruits[i].y, '#f59e0b');
+    }
   }
+  droppedFruits.splice(0, countToKill);
+
+  dangerTimer = 0;
+  isGameOver = false;
+  modalGameOver.classList.add('hidden');
+  showToast('💣 ¡Partida Salvada con Éxito!');
 });
 
-// =========================================================
-// RENDERIZADO DEL AVATAR GLOTÓN CON EXPRESIONES TIERNAS
-// =========================================================
-function drawGlotonAvatar(pctx, x, y, radius, hero, angle = 0, mouthAmount = 0) {
-  pctx.save();
-  pctx.translate(x, y);
-  pctx.rotate(angle);
+btnRestartGame.addEventListener('click', () => {
+  modalGameOver.classList.add('hidden');
+  resetGame();
+});
 
-  // Sombra suave en el suelo
-  pctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-  pctx.beginPath();
-  pctx.arc(0, radius * 0.15, radius * 1.05, 0, Math.PI * 2);
-  pctx.fill();
+btnViewRankGo.addEventListener('click', () => {
+  modalGameOver.classList.add('hidden');
+  openLeaderboardModal();
+});
 
-  // Cuerpo circular suave
-  const bodyGrad = pctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
-  bodyGrad.addColorStop(0, '#ffffff');
-  bodyGrad.addColorStop(0.35, hero.primaryColor);
-  bodyGrad.addColorStop(1, hero.secondaryColor || hero.primaryColor);
-
-  pctx.fillStyle = bodyGrad;
-  pctx.beginPath();
-  pctx.arc(0, 0, radius, 0, Math.PI * 2);
-  pctx.fill();
-
-  pctx.strokeStyle = '#ffffff';
-  pctx.lineWidth = Math.max(2, radius * 0.08);
-  pctx.stroke();
-
-  // Mejillas sonrosadas tiernas
-  pctx.fillStyle = hero.cheekColor || '#f87171';
-  pctx.beginPath();
-  pctx.arc(-radius * 0.5, radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-  pctx.arc(radius * 0.5, radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-  pctx.fill();
-
-  // Ojos grandes animados y expresivos
-  const eyeOffsetX = radius * 0.3;
-  const eyeOffsetY = -radius * 0.2;
-  const eyeRadius = radius * 0.22;
-
-  // Blanco de los ojos
-  pctx.fillStyle = '#ffffff';
-  pctx.beginPath();
-  pctx.arc(-eyeOffsetX, eyeOffsetY, eyeRadius, 0, Math.PI * 2);
-  pctx.arc(eyeOffsetX, eyeOffsetY, eyeRadius, 0, Math.PI * 2);
-  pctx.fill();
-
-  // Pupilas brillantes
-  pctx.fillStyle = '#0f172a';
-  pctx.beginPath();
-  pctx.arc(-eyeOffsetX + 1.5, eyeOffsetY, eyeRadius * 0.65, 0, Math.PI * 2);
-  pctx.arc(eyeOffsetX + 1.5, eyeOffsetY, eyeRadius * 0.65, 0, Math.PI * 2);
-  pctx.fill();
-
-  // Brillo en los ojos
-  pctx.fillStyle = '#ffffff';
-  pctx.beginPath();
-  pctx.arc(-eyeOffsetX + 2.5, eyeOffsetY - 1.5, eyeRadius * 0.25, 0, Math.PI * 2);
-  pctx.arc(eyeOffsetX + 2.5, eyeOffsetY - 1.5, eyeRadius * 0.25, 0, Math.PI * 2);
-  pctx.fill();
-
-  // Boca que se abre para comer (Nom Nom)
-  if (mouthAmount > 0.05) {
-    pctx.fillStyle = '#881337';
-    pctx.beginPath();
-    pctx.arc(0, radius * 0.28, radius * (0.2 + mouthAmount * 0.35), 0, Math.PI);
-    pctx.fill();
-
-    // Lengüita tierna
-    pctx.fillStyle = '#fb7185';
-    pctx.beginPath();
-    pctx.arc(0, radius * 0.45, radius * 0.16, 0, Math.PI);
-    pctx.fill();
-  } else {
-    // Sonrisita feliz
-    pctx.strokeStyle = '#0f172a';
-    pctx.lineWidth = Math.max(2, radius * 0.08);
-    pctx.beginPath();
-    pctx.arc(0, radius * 0.25, radius * 0.25, 0.1 * Math.PI, 0.9 * Math.PI);
-    pctx.stroke();
-  }
-
-  // Detalles únicos de cada personaje
-  if (hero.faceStyle === 'jr_cute') {
-    // Coronita o antenita tierna de Diego Jr.
-    pctx.fillStyle = '#fde047';
-    pctx.beginPath();
-    pctx.moveTo(-radius * 0.3, -radius * 0.85);
-    pctx.lineTo(-radius * 0.15, -radius * 1.15);
-    pctx.lineTo(0, -radius * 0.95);
-    pctx.lineTo(radius * 0.15, -radius * 1.15);
-    pctx.lineTo(radius * 0.3, -radius * 0.85);
-    pctx.closePath();
-    pctx.fill();
-    pctx.strokeStyle = '#ca8a04';
-    pctx.lineWidth = 1.5;
-    pctx.stroke();
-  } else if (hero.faceStyle === 'vicky_star') {
-    // Lazito de Vicky
-    pctx.fillStyle = '#ec4899';
-    pctx.beginPath();
-    pctx.arc(radius * 0.45, -radius * 0.7, radius * 0.22, 0, Math.PI * 2);
-    pctx.fill();
-    pctx.fillStyle = '#ffffff';
-    pctx.beginPath();
-    pctx.arc(radius * 0.45, -radius * 0.7, radius * 0.08, 0, Math.PI * 2);
-    pctx.fill();
-  } else if (hero.faceStyle === 'dad_glasses') {
-    // Gafas y bigotito de Diego Papá
-    pctx.strokeStyle = '#1e293b';
-    pctx.lineWidth = 2.5;
-    pctx.strokeRect(-eyeOffsetX - eyeRadius * 0.9, eyeOffsetY - eyeRadius * 0.9, eyeRadius * 1.8, eyeRadius * 1.8);
-    pctx.strokeRect(eyeOffsetX - eyeRadius * 0.9, eyeOffsetY - eyeRadius * 0.9, eyeRadius * 1.8, eyeRadius * 1.8);
-    pctx.beginPath();
-    pctx.moveTo(-eyeOffsetX + eyeRadius * 0.9, eyeOffsetY);
-    pctx.lineTo(eyeOffsetX - eyeRadius * 0.9, eyeOffsetY);
-    pctx.stroke();
-  }
-
-  pctx.restore();
+function resetGame() {
+  droppedFruits = [];
+  currentScore = 0;
+  currentScoreVal.innerText = '0';
+  dangerTimer = 0;
+  isGameOver = false;
+  canDrop = true;
 }
 
 // =========================================================
-// CONTROLES TÁCTILES Y DE RATÓN INTUITIVOS
+// POTENCIADORES / POWERUPS
 // =========================================================
-let pointerTarget = { x: 1200, y: 900, active: false };
-let joystickActive = false;
-let joystickCenter = { x: 0, y: 0 };
-
-function handlePointerMove(clientX, clientY) {
-  // Convertir coordenadas de pantalla a coordenadas del mundo de juego
-  const rect = canvas.getBoundingClientRect();
-  const screenX = clientX - rect.left;
-  const screenY = clientY - rect.top;
-
-  const camX = myPlayer.x - canvas.width / 2;
-  const camY = myPlayer.y - canvas.height / 2;
-
-  pointerTarget.x = screenX + camX;
-  pointerTarget.y = screenY + camY;
-  pointerTarget.active = true;
-}
-
-window.addEventListener('mousemove', (e) => {
-  handlePointerMove(e.clientX, e.clientY);
-});
-
-window.addEventListener('touchmove', (e) => {
-  if (e.touches.length > 0) {
-    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-  }
-}, { passive: true });
-
-window.addEventListener('touchstart', (e) => {
-  if (e.touches.length > 0) {
-    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-  }
-}, { passive: true });
-
-// Control con teclado en PC (WASD / Flechas)
-const keys = { up: false, down: false, left: false, right: false };
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
-  if (e.code === 'Space') activateTurbo();
-});
-window.addEventListener('keyup', (e) => {
-  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
-});
-
-// Botón Turbo
-function activateTurbo() {
-  if (myPlayer.isTurbo) return;
-  myPlayer.isTurbo = true;
-  myPlayer.speed = myPlayer.turboSpeed;
-  playSfx('turbo');
+btnPowerupShake.addEventListener('click', () => {
+  initAudio();
+  playDropSfx();
   triggerHaptic(40);
-  triggerShake();
-  setTimeout(() => {
-    myPlayer.speed = myPlayer.baseSpeed;
-    myPlayer.isTurbo = false;
-  }, 3000);
-}
-
-btnTurboBoost.addEventListener('click', activateTurbo);
-
-// =========================================================
-// FÍSICAS Y MOVIMIENTO DEL GLOTÓN
-// =========================================================
-function updateMyPlayer() {
-  let moveX = 0;
-  let moveY = 0;
-
-  if (keys.up || keys.down || keys.left || keys.right) {
-    if (keys.up) moveY -= 1;
-    if (keys.down) moveY += 1;
-    if (keys.left) moveX -= 1;
-    if (keys.right) moveX += 1;
-  } else if (pointerTarget.active) {
-    const dx = pointerTarget.x - myPlayer.x;
-    const dy = pointerTarget.y - myPlayer.y;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist > 15) {
-      moveX = dx / dist;
-      moveY = dy / dist;
-      // Apertura de boca cuando se mueve hacia comida
-      myPlayer.mouthOpen = Math.min(1, dist / 80);
-    } else {
-      myPlayer.mouthOpen = 0;
-    }
-  }
-
-  // Normalizar vector de movimiento
-  const length = Math.hypot(moveX, moveY);
-  if (length > 0) {
-    moveX /= length;
-    moveY /= length;
-    myPlayer.angle = Math.atan2(moveY, moveX);
-  }
-
-  // Fricción suave
-  myPlayer.vx = myPlayer.vx * 0.75 + moveX * myPlayer.speed * 0.25;
-  myPlayer.vy = myPlayer.vy * 0.75 + moveY * myPlayer.speed * 0.25;
-
-  myPlayer.x += myPlayer.vx;
-  myPlayer.y += myPlayer.vy;
-
-  // Límites de la arena con rebote elástico
-  const margin = myPlayer.size;
-  if (myPlayer.x < margin) { myPlayer.x = margin; myPlayer.vx *= -0.5; }
-  if (myPlayer.x > ARENA_W - margin) { myPlayer.x = ARENA_W - margin; myPlayer.vx *= -0.5; }
-  if (myPlayer.y < margin) { myPlayer.y = margin; myPlayer.vy *= -0.5; }
-  if (myPlayer.y > ARENA_H - margin) { myPlayer.y = ARENA_H - margin; myPlayer.vy *= -0.5; }
-
-  // Estela de burbujitas que te siguen
-  if (Math.hypot(myPlayer.vx, myPlayer.vy) > 1.2 && Math.random() < 0.35) {
-    spawnBubbleParticle(myPlayer.x, myPlayer.y, HERO_DATA[selectedHeroId].primaryColor);
-  }
-
-  // 1. Detección de colisión con Frutas y Burbujas
-  for (let i = foodItems.length - 1; i >= 0; i--) {
-    const food = foodItems[i];
-    const dist = Math.hypot(myPlayer.x - food.x, myPlayer.y - food.y);
-
-    if (dist < myPlayer.size + 14) {
-      // Comer fruta
-      socket.emit('eat_food', food.id);
-      playSfx('eat');
-      triggerHaptic(25);
-      spawnEatParticles(food.x, food.y, food.color);
-      foodItems.splice(i, 1);
-      break;
-    }
-  }
-
-  // 2. Colisión y rebote amigable con otros jugadores (Boing!)
-  Object.values(otherPlayers).forEach(other => {
-    const distP = Math.hypot(myPlayer.x - other.x, myPlayer.y - other.y);
-    const minDist = myPlayer.size + (other.size || 48);
-
-    if (distP < minDist && distP > 0) {
-      // Rebotar ambos en direcciones opuestas
-      const angleBump = Math.atan2(myPlayer.y - other.y, myPlayer.x - other.x);
-      myPlayer.vx += Math.cos(angleBump) * 6;
-      myPlayer.vy += Math.sin(angleBump) * 6;
-
-      playSfx('boing');
-      triggerHaptic(40);
-      triggerShake();
-      spawnConfetti(myPlayer.x, myPlayer.y);
-
-      socket.emit('player_bump', { targetSocketId: other.socketId, x: myPlayer.x, y: myPlayer.y });
-    }
+  droppedFruits.forEach(f => {
+    f.vy -= Math.random() * 6 + 3;
+    f.vx += (Math.random() - 0.5) * 8;
   });
+  showToast('🌀 ¡Frasco Agitado!');
+});
 
-  // Notificar posición al servidor
-  socket.emit('player_move', {
-    x: myPlayer.x,
-    y: myPlayer.y,
-    angle: myPlayer.angle,
-    mouthOpen: myPlayer.mouthOpen
-  });
-}
+btnPowerupBomb.addEventListener('click', () => {
+  initAudio();
+  nextIsBomb = true;
+  showToast('💣 ¡La siguiente fruta es una Bomba!');
+});
+
+btnPowerupRainbow.addEventListener('click', () => {
+  initAudio();
+  nextIsRainbow = true;
+  showToast('🌈 ¡La siguiente fruta es Comodín!');
+});
 
 // =========================================================
-// SISTEMA DE PARTÍCULAS Y CONFETI
+// SISTEMA DE PARTÍCULAS
 // =========================================================
-function spawnEatParticles(x, y, color) {
-  for (let i = 0; i < 8; i++) {
+function spawnMergeParticles(x, y, color) {
+  for (let i = 0; i < 14; i++) {
     particles.push({
       x: x,
       y: y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
+      vx: (Math.random() - 0.5) * 7,
+      vy: (Math.random() - 0.5) * 7,
       size: Math.random() * 5 + 3,
       color: color,
-      alpha: 1
-    });
-  }
-}
-
-function spawnBubbleParticle(x, y, color) {
-  particles.push({
-    x: x - Math.cos(myPlayer.angle) * myPlayer.size * 0.7,
-    y: y - Math.sin(myPlayer.angle) * myPlayer.size * 0.7,
-    vx: (Math.random() - 0.5) * 1.5,
-    vy: (Math.random() - 0.5) * 1.5,
-    size: Math.random() * 8 + 4,
-    color: color,
-    alpha: 0.65,
-    isBubble: true
-  });
-}
-
-function spawnConfetti(x, y) {
-  const colors = ['#facc15', '#f43f5e', '#10b981', '#38bdf8', '#fbbf24'];
-  for (let i = 0; i < 20; i++) {
-    particles.push({
-      x: x,
-      y: y,
-      vx: (Math.random() - 0.5) * 10,
-      vy: (Math.random() - 0.5) * 10,
-      size: Math.random() * 6 + 4,
-      color: colors[Math.floor(Math.random() * colors.length)],
       alpha: 1
     });
   }
@@ -634,7 +595,7 @@ function updateAndDrawParticles() {
     const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.alpha -= 0.025;
+    p.alpha -= 0.035;
 
     if (p.alpha <= 0) {
       particles.splice(i, 1);
@@ -644,289 +605,265 @@ function updateAndDrawParticles() {
     ctx.save();
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = p.color;
-
-    if (p.isBubble) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.fill();
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 }
 
 // =========================================================
-// RENDERIZADO DEL JUEGO (CANVAS 60 FPS)
+// RENDERIZADO PRINCIPAL (CANVAS 60 FPS)
 // =========================================================
-let bgGridOffset = 0;
+function render() {
+  requestAnimationFrame(render);
+  updatePhysics();
 
-function drawGame() {
-  requestAnimationFrame(drawGame);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const w = canvas.width;
-  const h = canvas.height;
-
-  updateMyPlayer();
-
-  // Cámara suave que sigue al jugador
-  const camX = myPlayer.x - w / 2;
-  const camY = myPlayer.y - h / 2;
-
-  ctx.save();
-  ctx.translate(-camX, -camY);
-
-  // 1. FONDO DE LA ARENA (Cuadrícula colorida y límites)
-  ctx.fillStyle = '#1e1b4b';
-  ctx.fillRect(0, 0, ARENA_W, ARENA_H);
-
-  // Cuadrícula suave y tierna
-  ctx.strokeStyle = 'rgba(139, 92, 246, 0.12)';
-  ctx.lineWidth = 2;
-  for (let x = 0; x <= ARENA_W; x += 60) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, ARENA_H);
-    ctx.stroke();
-  }
-  for (let y = 0; y <= ARENA_H; y += 60) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(ARENA_W, y);
-    ctx.stroke();
-  }
-
-  // Bordes luminosos de la arena
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(0, 0, ARENA_W, ARENA_H);
-
-  // 2. DIBUJAR TODAS LAS FRUTAS Y BURBUJAS
-  const now = Date.now() / 300;
-  foodItems.forEach(food => {
-    // Solo dibujar si está cerca de la pantalla para máximo rendimiento
-    if (food.x < camX - 60 || food.x > camX + w + 60 || food.y < camY - 60 || food.y > camY + h + 60) return;
-
-    const floatY = food.y + Math.sin(now + food.id) * 4;
-
+  // 1. Línea guía de caída
+  if (canDrop && !isGameOver) {
+    const fDef = FRUITS[currentFruitLevel];
     ctx.save();
-    if (food.isNumber) {
-      // BURBUJA CON NÚMERO (1, 2, 3, 4, 5)
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
-      ctx.beginPath();
-      ctx.arc(food.x, floatY, 24, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = '#facc15';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      ctx.fillStyle = '#fef08a';
-      ctx.font = 'bold 22px "Grandstander", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(food.numberVal, food.x, floatY);
-    } else {
-      // FRUTA CLÁSICA CON SOMBRA
-      ctx.font = '28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(food.emoji, food.x, floatY);
-    }
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(dropX, 55);
+    ctx.lineTo(dropX, canvas.height - 10);
+    ctx.stroke();
     ctx.restore();
-  });
 
-  // 3. DIBUJAR OTROS JUGADORES EN VIVO
-  Object.values(otherPlayers).forEach(other => {
-    const hero = HERO_DATA[other.id] || HERO_DATA.diegoaz;
-    drawGlotonAvatar(ctx, other.x, other.y, other.size || 48, hero, other.angle || 0, other.mouthOpen || 0);
-
-    // Nombre flotante
+    // Fruta lista arriba
     ctx.save();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px "Grandstander", sans-serif';
+    ctx.translate(dropX, 42);
+    ctx.fillStyle = fDef.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, fDef.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = `${fDef.radius * 1.3}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(other.name, other.x, other.y - (other.size || 48) - 10);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fDef.emoji, 0, 2);
+    ctx.restore();
+  }
+
+  // 2. Dibujar frutas caídas
+  droppedFruits.forEach(f => {
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    ctx.scale(f.scale, f.scale);
+
+    // Sombra interior suave
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(2, f.radius * 0.08);
+    ctx.stroke();
+
+    // Emoji de la fruta
+    ctx.font = `${f.radius * 1.25}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.emoji, 0, 2);
+
     ctx.restore();
   });
 
-  // 4. DIBUJAR MI JUGADOR
-  const myHero = HERO_DATA[selectedHeroId];
-  drawGlotonAvatar(ctx, myPlayer.x, myPlayer.y, myPlayer.size, myHero, myPlayer.angle, myPlayer.mouthOpen);
-
-  // Mi nombre flotante
-  ctx.save();
-  ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 13px "Grandstander", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(myHero.name, myPlayer.x, myPlayer.y - myPlayer.size - 10);
-  ctx.restore();
-
-  // 5. PARTÍCULAS Y CONFETI
+  // 3. Partículas
   updateAndDrawParticles();
-
-  ctx.restore();
 }
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
+requestAnimationFrame(render);
 
 // =========================================================
-// EVENTOS MULTIJUGADOR SOCKET.IO
+// MODAL DE APODO / ALIAS
 // =========================================================
-socket.on('init_state', (data) => {
-  if (data.arena) {
-    ARENA_W = data.arena.width;
-    ARENA_H = data.arena.height;
-  }
-  if (data.foods) {
-    foodItems = data.foods;
-  }
-  if (data.players) {
-    Object.keys(data.players).forEach(sId => {
-      if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
+btnEditAlias.addEventListener('click', () => {
+  inputNewAlias.value = playerData.alias || '';
+  modalAlias.classList.remove('hidden');
+});
+
+btnCancelAlias.addEventListener('click', () => {
+  modalAlias.classList.add('hidden');
+});
+
+btnSaveAlias.addEventListener('click', async () => {
+  const newName = inputNewAlias.value.trim();
+  if (!newName) return;
+
+  try {
+    const res = await fetch('/api/player/set-alias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: playerUID, alias: newName })
     });
-    updateLeaderboard();
-  }
-  if (data.challenge) {
-    setChallenge(data.challenge);
-  }
-});
-
-socket.on('player_joined', (p) => {
-  if (p.socketId !== socket.id) {
-    otherPlayers[p.socketId] = p;
-    updateLeaderboard();
-  }
-});
-
-socket.on('player_moved', (p) => {
-  if (p.socketId !== socket.id && otherPlayers[p.socketId]) {
-    otherPlayers[p.socketId].x = p.x;
-    otherPlayers[p.socketId].y = p.y;
-    otherPlayers[p.socketId].size = p.size;
-    otherPlayers[p.socketId].angle = p.angle;
-    otherPlayers[p.socketId].mouthOpen = p.mouthOpen;
-    otherPlayers[p.socketId].score = p.score;
-  }
-});
-
-socket.on('food_eaten', (data) => {
-  // Eliminar fruta comida localmente
-  const idx = foodItems.findIndex(f => f.id === data.foodId);
-  if (idx !== -1) foodItems.splice(idx, 1);
-
-  if (data.eaterSocketId === socket.id) {
-    myPlayer.size = data.eaterSize;
-    myPlayer.score = data.eaterScore;
-    myPlayer.coins = data.eaterCoins;
-    hudCoinsVal.innerText = myPlayer.coins;
-    hudScoreVal.innerText = myPlayer.score;
-
-    if (data.completedChallenge) {
-      playSfx('correct');
-      triggerShake();
-      showToast('🎉 ¡EXCELENTE!', `¡Completaste el reto! (+15🪙)`);
-      speak(`¡Excelente ${data.eaterName}! ¡Ganaste quince monedas!`);
+    const data = await res.json();
+    if (data.player) {
+      playerData = data.player;
+      playerAliasEl.innerText = playerData.alias;
+      localStorage.setItem('fruit_merge_alias', playerData.alias);
+      modalAlias.classList.add('hidden');
+      showToast('✏️ Nombre actualizado para el torneo');
     }
-  } else if (otherPlayers[data.eaterSocketId]) {
-    otherPlayers[data.eaterSocketId].size = data.eaterSize;
-    otherPlayers[data.eaterSocketId].score = data.eaterScore;
-  }
-
-  updateLeaderboard();
+  } catch (e) {}
 });
 
-socket.on('new_food_spawned', (newFood) => {
-  foodItems.push(newFood);
-});
+// =========================================================
+// MODAL DE TABLA DE POSICIONES (LEADERBOARD)
+// =========================================================
+async function openLeaderboardModal() {
+  modalLeaderboard.classList.remove('hidden');
+  try {
+    const res = await fetch('/api/leaderboard');
+    const data = await res.json();
+    renderLeaderboardRows(data.leaderboard || []);
 
-socket.on('challenge_updated', (challenge) => {
-  setChallenge(challenge);
-});
-
-socket.on('players_bumped', (data) => {
-  if (data.p2 === socket.id) {
-    playSfx('boing');
-    triggerHaptic(40);
-    triggerShake();
-    spawnConfetti(myPlayer.x, myPlayer.y);
-  }
-});
-
-socket.on('reaction_received', (data) => {
-  showFloatingReaction(data.emoji, data.name);
-});
-
-socket.on('player_left', (data) => {
-  delete otherPlayers[data.socketId];
-  updateLeaderboard();
-});
-
-function setChallenge(ch) {
-  challengePromptText.innerText = ch.prompt;
-  speak(ch.prompt);
+    const rankRes = await fetch(`/api/player/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: playerUID })
+    });
+    const rData = await rankRes.json();
+    if (rData.myRank) updateMyRankDisplay(rData.myRank);
+  } catch (e) {}
 }
 
-function updateLeaderboard() {
-  if (!leaderboardList) return;
-  const all = [
-    { name: HERO_DATA[selectedHeroId].name, score: myPlayer.score, isSelf: true },
-    ...Object.values(otherPlayers).map(p => ({ name: p.name, score: p.score || 0, isSelf: false }))
-  ];
+btnOpenLeaderboard.addEventListener('click', openLeaderboardModal);
+btnCloseLeaderboard.addEventListener('click', () => {
+  modalLeaderboard.classList.add('hidden');
+});
 
-  all.sort((a, b) => b.score - a.score);
+function renderLeaderboardRows(list) {
+  leaderboardTbody.innerHTML = '';
+  if (list.length === 0) {
+    leaderboardTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px;">¡Sé el primero en jugar y liderar el torneo!</td></tr>';
+    return;
+  }
 
-  leaderboardList.innerHTML = '';
-  all.forEach(p => {
-    const item = document.createElement('div');
-    item.className = `lb-item ${p.isSelf ? 'self' : ''}`;
-    item.innerHTML = `<span>${p.name}</span><span>${p.score} pts</span>`;
-    leaderboardList.appendChild(item);
+  list.forEach((p, idx) => {
+    const tr = document.createElement('tr');
+    let medal = `${idx + 1}`;
+    if (idx === 0) medal = '🥇 1';
+    else if (idx === 1) medal = '🥈 2';
+    else if (idx === 2) medal = '🥉 3';
+
+    tr.innerHTML = `
+      <td>${medal}</td>
+      <td><b>${p.alias}</b></td>
+      <td><span style="color:#facc15;">${p.score}</span></td>
+      <td>${p.games_played || 1}</td>
+    `;
+    leaderboardTbody.appendChild(tr);
   });
 }
 
-function showToast(head, desc) {
-  toastTitle.innerText = head;
-  toastDesc.innerText = desc;
-  partyToast.classList.remove('hidden');
+// Socket.io actualización en tiempo real del ranking
+socket.on('leaderboard_updated', (newList) => {
+  if (!modalLeaderboard.classList.contains('hidden')) {
+    renderLeaderboardRows(newList);
+  }
+});
+
+socket.on('announcement', (data) => {
+  showToast(`🍉 ¡${data.alias} acaba de fusionar una ${data.fruit}!`);
+});
+
+// =========================================================
+// MODAL DE ADMINISTRACIÓN (PANEL DE CONCURSOS PRIVADO)
+// =========================================================
+btnOpenAdmin.addEventListener('click', () => {
+  adminLoginView.classList.remove('hidden');
+  adminPanelView.classList.add('hidden');
+  inputAdminPin.value = '';
+  modalAdmin.classList.remove('hidden');
+});
+
+btnCloseAdmin.addEventListener('click', () => {
+  modalAdmin.classList.add('hidden');
+});
+
+btnSubmitPin.addEventListener('click', async () => {
+  const pin = inputAdminPin.value.trim();
+  if (!pin) return;
+
+  try {
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminLoginView.classList.add('hidden');
+      adminPanelView.classList.remove('hidden');
+
+      if (data.tournament) {
+        admTitle.value = data.tournament.title;
+        admPrize.value = data.tournament.prize_text;
+        const dt = new Date(data.tournament.end_time);
+        admDeadline.value = dt.toISOString().slice(0, 16);
+      }
+    } else {
+      showToast('❌ PIN incorrecto');
+    }
+  } catch (e) {
+    showToast('❌ Error de conexión');
+  }
+});
+
+btnSaveTournament.addEventListener('click', async () => {
+  const pin = inputAdminPin.value.trim();
+  const title = admTitle.value.trim();
+  const prize = admPrize.value.trim();
+  const deadline = admDeadline.value ? new Date(admDeadline.value).toISOString() : new Date().toISOString();
+
+  try {
+    const res = await fetch('/api/admin/update-tournament', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin, title, prizeText: prize, endTime: deadline, active: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      activeTournament = data.tournament;
+      updateTournamentDisplay();
+      modalAdmin.classList.add('hidden');
+      showToast('✅ ¡Concurso actualizado para todos los jugadores!');
+    }
+  } catch (e) {}
+});
+
+btnResetTournament.addEventListener('click', async () => {
+  if (!confirm('¿Estás seguro de reiniciar todas las puntuaciones para empezar un nuevo torneo?')) return;
+  const pin = inputAdminPin.value.trim();
+  try {
+    const res = await fetch('/api/admin/reset-tournament', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    const data = await res.json();
+    if (data.success) {
+      modalAdmin.classList.add('hidden');
+      showToast('⚠️ ¡Torneo reiniciado con éxito!');
+      authPlayer();
+    }
+  } catch (e) {}
+});
+
+function showToast(msg) {
+  toastMsg.innerText = msg;
+  toastBanner.classList.remove('hidden');
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => {
-    partyToast.classList.add('hidden');
-  }, 2800);
+    toastBanner.classList.add('hidden');
+  }, 3200);
 }
-
-function showFloatingReaction(emoji, name) {
-  const div = document.createElement('div');
-  div.style.position = 'absolute';
-  div.style.left = `${Math.random() * 50 + 25}%`;
-  div.style.bottom = '110px';
-  div.style.fontSize = '34px';
-  div.style.pointerEvents = 'none';
-  div.style.zIndex = '90';
-  div.style.animation = 'toastPopIn 0.3s ease-out';
-  div.innerText = `${emoji}`;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 1200);
-}
-
-// Botones de emojis
-document.querySelectorAll('.btn-emoji-bubble').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const emoji = btn.getAttribute('data-emoji');
-    socket.emit('send_reaction', emoji);
-    showFloatingReaction(emoji, 'Tú');
-  });
-});
-
-// Arrancar bucle
-requestAnimationFrame(drawGame);
