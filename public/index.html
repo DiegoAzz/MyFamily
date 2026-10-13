@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>El Barrio Az - RPG Familiar Multijugador</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- PANTALLA DE SELECCIÓN DE PERSONAJE -->
+  <div id="character-select-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="header-retro">
+        <h1>🏙️ EL BARRIO AZ</h1>
+        <p class="subtitle">RPG Multijugador Familiar Cooperativo</p>
+      </div>
+
+      <p class="select-instruction">¡Elige a tu personaje para entrar al barrio!</p>
+
+      <div class="character-grid">
+        <!-- Diegoaz (Papá) -->
+        <div class="char-card active" data-char="diegoaz">
+          <div class="avatar-preview papa-avatar">
+            <div class="char-badge">👔 PAPÁ</div>
+            <div class="pixel-avatar papa-art"></div>
+          </div>
+          <h3>Diegoaz</h3>
+          <span class="role-pill">🛠️ Mentor & Constructor</span>
+          <p class="char-desc">Lidera los proyectos familiares, cuida las finanzas y organiza el barrio.</p>
+        </div>
+
+        <!-- Diegoaz Jr. (Hijo) -->
+        <div class="char-card" data-char="diegoaz_jr">
+          <div class="avatar-preview junior-avatar">
+            <div class="char-badge">⚡ HIJO</div>
+            <div class="pixel-avatar junior-art"></div>
+          </div>
+          <h3>Diegoaz Jr.</h3>
+          <span class="role-pill">🛹 Ingeniero & Tech</span>
+          <p class="char-desc">Experto en tecnología, circuitos de energía y movilidad ultra veloz.</p>
+        </div>
+
+        <!-- Vicky Vicky (Hija) -->
+        <div class="char-card" data-char="vicky_vicky">
+          <div class="avatar-preview vicky-avatar">
+            <div class="char-badge">🌸 HIJA</div>
+            <div class="pixel-avatar vicky-art"></div>
+          </div>
+          <h3>Vicky Vicky</h3>
+          <span class="role-pill">🎨 Diseñadora & Mascotas</span>
+          <p class="char-desc">Cuida de la naturaleza del parque, rescata mascotas y decora la ciudad.</p>
+        </div>
+      </div>
+
+      <div class="action-footer">
+        <button id="btn-start-game" class="btn-retro-primary">
+          🎮 ¡ENTRAR AL BARRIO!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA PRINCIPAL DEL JUEGO -->
+  <div id="game-container" class="hidden">
+    <!-- BARRA SUPERIOR (HUD) -->
+    <header id="game-hud">
+      <div class="hud-left">
+        <div class="stat-pill coins-pill">
+          <span class="icon">🪙</span>
+          <span id="player-coins-val">100</span>
+          <span class="label">CityCoins</span>
+        </div>
+        <div class="stat-pill vault-pill" title="Ahorro común de la familia">
+          <span class="icon">🏦</span>
+          <span id="family-vault-val">500</span>
+          <span class="label">Bóveda Familiar</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <span id="active-user-badge" class="user-badge">Cargando...</span>
+      </div>
+
+      <div class="hud-right">
+        <button id="btn-toggle-missions" class="hud-btn" title="Ver misiones y tareas">
+          📋 Misiones <span id="pending-missions-badge" class="badge-count">3</span>
+        </button>
+        <button id="btn-toggle-vehicles" class="hud-btn" title="Cambiar transporte">
+          🚲 Transporte
+        </button>
+      </div>
+    </header>
+
+    <!-- LIENZO DEL JUEGO -->
+    <div id="canvas-wrapper">
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+
+      <!-- INDICADOR DE INTERACCIÓN -->
+      <div id="interaction-prompt" class="interaction-bubble hidden">
+        <span class="key-badge">E</span> <span id="prompt-text">Interactuar</span>
+      </div>
+    </div>
+
+    <!-- CONTROLES TÁCTILES PARA MÓVIL/TABLET -->
+    <div id="touch-controls">
+      <div id="dpad">
+        <button class="dpad-btn up" data-dir="up">▲</button>
+        <div class="dpad-horizontal">
+          <button class="dpad-btn left" data-dir="left">◀</button>
+          <button class="dpad-btn right" data-dir="right">▶</button>
+        </div>
+        <button class="dpad-btn down" data-dir="down">▼</button>
+      </div>
+      <button id="touch-action-btn" class="action-btn">INTERACTUAR [E]</button>
+    </div>
+
+    <!-- BARRA DE CHAT Y EMOJIS RÁPIDOS -->
+    <footer id="chat-hud">
+      <div class="quick-emojis">
+        <button class="emoji-btn" data-emoji="👋">👋</button>
+        <button class="emoji-btn" data-emoji="❤️">❤️</button>
+        <button class="emoji-btn" data-emoji="🚀">🚀</button>
+        <button class="emoji-btn" data-emoji="🍕">🍕</button>
+        <button class="emoji-btn" data-emoji="💡">💡</button>
+        <button class="emoji-btn" data-emoji="🏆">🏆</button>
+      </div>
+      <form id="chat-form" class="chat-bar">
+        <input type="text" id="chat-input" placeholder="Escribe un mensaje a la familia..." maxlength="80" autocomplete="off">
+        <button type="submit" class="btn-chat-send">Enviar</button>
+      </form>
+    </footer>
+
+    <!-- MODAL DE MISIONES / TAREAS DEL HOGAR -->
+    <div id="missions-modal" class="modal-overlay hidden">
+      <div class="modal-card small-modal">
+        <div class="modal-title-row">
+          <h2>📋 Tablón de Misiones del Barrio</h2>
+          <button id="btn-close-missions" class="close-btn">✖</button>
+        </div>
+        <p class="modal-desc">Completa tareas didácticas y del hogar para ganar monedas y mejorar el barrio.</p>
+        
+        <div id="missions-list" class="missions-container">
+          <!-- Se inyectan dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE TRANSPORTE / VEHÍCULOS -->
+    <div id="vehicle-modal" class="modal-overlay hidden">
+      <div class="modal-card small-modal">
+        <div class="modal-title-row">
+          <h2>🚲 Garaje de Movilidad</h2>
+          <button id="btn-close-vehicles" class="close-btn">✖</button>
+        </div>
+        <div class="vehicle-options">
+          <div class="vehicle-card" data-vehicle="a_pie">
+            <div class="vehicle-icon">👟</div>
+            <h4>A pie</h4>
+            <p>Velocidad normal (1x)</p>
+            <button class="btn-select-v">Usar</button>
+          </div>
+          <div class="vehicle-card" data-vehicle="patineta">
+            <div class="vehicle-icon">🛹</div>
+            <h4>Patineta Urbana</h4>
+            <p>Velocidad rápida (1.6x)</p>
+            <button class="btn-select-v">Montar</button>
+          </div>
+          <div class="vehicle-card" data-vehicle="bicicleta">
+            <div class="vehicle-icon">🚲</div>
+            <h4>Bicicleta de Paseo</h4>
+            <p>Velocidad veloz (2.2x)</p>
+            <button class="btn-select-v">Montar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEED DE NOTIFICACIONES TOAST -->
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "myfamily-rpg",
+  "version": "1.0.0",
+  "description": "Juego RPG 2D Multijugador Urbano para la familia Az (Diegoaz, Diegoaz Jr, Vicky Vicky)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "game",
+    "rpg",
+    "multiplayer",
+    "phaser",
+    "socketio",
+    "family",
+    "coolify"
+  ],
+  "author": "DiegoAzz",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "pg": "^8.23.1",
+    "socket.io": "^4.8.4"
+  }
+}
