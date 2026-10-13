@@ -15,40 +15,27 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Servir estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Endpoints REST de apoyo
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
-});
-
-app.get('/api/missions', async (req, res) => {
-  try {
-    const missions = await db.getMissions();
-    res.json(missions);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/vault', async (req, res) => {
-  try {
-    const vault = await db.getFamilyVault();
-    res.json(vault);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json({ status: 'ok', onlinePlayers: Object.keys(connectedPlayers).length });
 });
 
 // Estado de jugadores conectados en memoria
 const connectedPlayers = {};
 
-io.on('connection', (socket) => {
-  console.log(`⚡ Conexión entrante: ${socket.id}`);
+// Estado global de la pelota de fútbol sincronizada
+let sharedSoccerBall = {
+  x: 650,
+  y: 780,
+  vx: 0,
+  vy: 0
+};
 
-  // El jugador selecciona su personaje y entra al barrio
+io.on('connection', (socket) => {
+  console.log(`⚡ Conectado cliente: ${socket.id}`);
+
   socket.on('join_game', async (data) => {
     const characterId = data.characterId || 'diegoaz';
     const playerDb = await db.getPlayer(characterId);
@@ -56,140 +43,109 @@ io.on('connection', (socket) => {
     const playerData = {
       socketId: socket.id,
       id: characterId,
-      name: playerDb ? playerDb.display_name : data.name || 'Aventurero',
-      role: playerDb ? playerDb.role_title : 'Miembro de la Familia',
+      name: playerDb ? playerDb.display_name : data.name || 'Familiar',
+      role: playerDb ? playerDb.role_title : 'Familia Az',
       coins: playerDb ? playerDb.coins : 100,
-      vehicle: playerDb ? playerDb.vehicle : 'a_pie',
-      x: playerDb ? playerDb.x : 400 + Math.random() * 50,
-      y: playerDb ? playerDb.y : 350 + Math.random() * 50,
+      scene: data.scene || 'calle', // 'calle' o 'casa'
+      x: 350 + Math.random() * 80,
+      y: 350 + Math.random() * 60,
       direction: 'down',
       isMoving: false
     };
 
     connectedPlayers[socket.id] = playerData;
 
-    // Notificar al jugador con el estado actual
-    const missions = await db.getMissions();
-    const vault = await db.getFamilyVault();
-
+    // Enviar estado a quien entra
     socket.emit('init_state', {
       self: playerData,
       players: connectedPlayers,
-      missions,
-      vault
+      ball: sharedSoccerBall
     });
 
-    // Avisar al resto de la familia
+    // Notificar inmediatamente a TODOS los demás jugadores
     socket.broadcast.emit('player_joined', playerData);
-    console.log(`🎮 ${playerData.name} (${playerData.id}) se ha unido al Barrio Az.`);
+    console.log(`🎮 [UNIÓN] ${playerData.name} (${socket.id}) en escena ${playerData.scene}. Total conectados: ${Object.keys(connectedPlayers).length}`);
   });
 
-  // Movimiento del personaje en tiempo real
+  // Movimiento en tiempo real con sincronización de escena
   socket.on('player_move', (moveData) => {
     const player = connectedPlayers[socket.id];
     if (player) {
       player.x = moveData.x;
       player.y = moveData.y;
       player.direction = moveData.direction || player.direction;
+      player.scene = moveData.scene || player.scene || 'calle';
       player.isMoving = moveData.isMoving || false;
-      player.vehicle = moveData.vehicle || player.vehicle;
 
-      // Broadcast rápido para sincronización suave
+      // Broadcast a todos los demás
       socket.broadcast.emit('player_moved', {
         socketId: socket.id,
         id: player.id,
+        name: player.name,
         x: player.x,
         y: player.y,
         direction: player.direction,
-        isMoving: player.isMoving,
-        vehicle: player.vehicle
+        scene: player.scene,
+        isMoving: player.isMoving
       });
     }
   });
 
-  // Mensaje en chat o burbuja de diálogo
-  socket.on('send_chat', (messageText) => {
+  // Cambio de escena (entrar o salir de la casa)
+  socket.on('change_scene', (newScene) => {
     const player = connectedPlayers[socket.id];
-    if (player && messageText && messageText.trim().length > 0) {
-      const chatItem = {
+    if (player) {
+      player.scene = newScene;
+      io.emit('player_changed_scene', {
+        socketId: socket.id,
+        name: player.name,
+        scene: newScene
+      });
+    }
+  });
+
+  // Pelota de fútbol compartida (cuando alguien la patea)
+  socket.on('kick_ball', (ballData) => {
+    sharedSoccerBall.x = ballData.x;
+    sharedSoccerBall.y = ballData.y;
+    sharedSoccerBall.vx = ballData.vx;
+    sharedSoccerBall.vy = ballData.vy;
+    socket.broadcast.emit('ball_updated', sharedSoccerBall);
+  });
+
+  // Chat / Reacciones
+  socket.on('send_chat', (text) => {
+    const player = connectedPlayers[socket.id];
+    if (player && text) {
+      io.emit('chat_received', {
         socketId: socket.id,
         senderId: player.id,
         senderName: player.name,
-        text: messageText.trim().slice(0, 100),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      io.emit('chat_received', chatItem);
-    }
-  });
-
-  // Completar misión
-  socket.on('complete_mission', async (missionId) => {
-    const player = connectedPlayers[socket.id];
-    if (player) {
-      const updatedMission = await db.completeMission(missionId, player.id);
-      if (updatedMission) {
-        player.coins += updatedMission.reward_coins;
-        const allMissions = await db.getMissions();
-        io.emit('missions_updated', {
-          missions: allMissions,
-          completedBy: player.name,
-          missionTitle: updatedMission.title,
-          reward: updatedMission.reward_coins
-        });
-        io.emit('player_stats_updated', {
-          socketId: socket.id,
-          id: player.id,
-          coins: player.coins
-        });
-      }
-    }
-  });
-
-  // Cambiar vehículo (a pie, patineta, bicicleta)
-  socket.on('change_vehicle', async (newVehicle) => {
-    const player = connectedPlayers[socket.id];
-    if (player) {
-      player.vehicle = newVehicle;
-      await db.updatePlayerState(player.id, player.x, player.y, player.coins, newVehicle);
-      io.emit('player_vehicle_changed', {
-        socketId: socket.id,
-        id: player.id,
-        vehicle: newVehicle
+        scene: player.scene || 'calle',
+        text: text.trim().slice(0, 70)
       });
     }
   });
 
   // Desconexión
-  socket.on('disconnect', async () => {
+  socket.on('disconnect', () => {
     const player = connectedPlayers[socket.id];
     if (player) {
-      console.log(`👋 ${player.name} salió del juego.`);
-      await db.updatePlayerState(player.id, player.x, player.y, player.coins, player.vehicle);
+      console.log(`👋 [SALIDA] ${player.name} (${socket.id}) desconectado.`);
       delete connectedPlayers[socket.id];
-      socket.broadcast.emit('player_left', { socketId: socket.id, id: player.id });
+      io.emit('player_left', { socketId: socket.id, id: player.id, name: player.name });
     }
   });
 });
 
-// Guardado periódico en BD cada 30 segundos
-setInterval(async () => {
-  for (const socketId in connectedPlayers) {
-    const p = connectedPlayers[socketId];
-    if (p) {
-      await db.updatePlayerState(p.id, p.x, p.y, p.coins, p.vehicle);
-    }
-  }
-}, 30000);
-
-// Arranque
-async function startServer() {
+async function start() {
   await db.initDatabase();
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`===============================================`);
-    console.log(`🚀 El Barrio Az (MyFamily RPG) corriendo en:`);
-    console.log(`👉 http://localhost:${PORT}`);
+    console.log(`🚀 SERVIDOR MULTIJUGADOR BARRIO AZ ACTIVO`);
+    console.log(`👉 Puerto: ${PORT} (0.0.0.0)`);
     console.log(`===============================================`);
   });
 }
 
-startServer();
+start();
