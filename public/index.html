@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#2b1e16">
-  <title>El Barrio Az - RPG Pixel Art Familiar</title>
+  <meta name="theme-color" content="#4a2e18">
+  <title>El Barrio Az - RPG Familiar Stardew Valley</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,153 +14,154 @@
 </head>
 <body>
 
-  <!-- PANTALLA DE SELECCIÓN DE PERSONAJES PIXEL ART -->
+  <!-- MODAL DE SELECCIÓN DE PERSONAJES (RETRATOS ESTILO STARDEW VALLEY) -->
   <div id="character-select-modal" class="modal-overlay">
-    <div class="rpg-box select-box">
-      <div class="rpg-title-ribbon">
-        <h1>⚔️ EL BARRIO AZ ⚔️</h1>
+    <div class="stardew-dialog-box select-dialog">
+      <div class="dialog-banner">
+        <h2>EL BARRIO AZ</h2>
+        <span class="sub-banner">Elige tu personaje</span>
       </div>
-      <p class="rpg-subtext">Elige a tu personaje para entrar al reino del barrio:</p>
 
-      <div class="pixel-heroes-grid">
+      <div class="stardew-portraits-row">
         <!-- Diegoaz (Papá) -->
-        <div class="hero-card" data-char="diegoaz">
-          <div class="hero-portrait-frame">
-            <canvas id="portrait-diegoaz" width="64" height="64" class="pixel-canvas-portrait"></canvas>
-            <span class="hero-badge">PAPÁ (46)</span>
+        <div class="portrait-card" data-char="diegoaz">
+          <div class="portrait-wood-frame">
+            <canvas id="portrait-diegoaz" width="64" height="64" class="stardew-pixel-portrait"></canvas>
           </div>
-          <h3>Diegoaz</h3>
-          <span class="hero-class">🛡️ Maestro Constructor</span>
-          <p class="hero-desc">Líder del barrio, gestiona finanzas y grandes construcciones.</p>
+          <div class="portrait-name">Diegoaz</div>
+          <span class="portrait-tag">Papá (46)</span>
         </div>
 
         <!-- Vicky Vicky (Hija) -->
-        <div class="hero-card" data-char="vicky_vicky">
-          <div class="hero-portrait-frame">
-            <canvas id="portrait-vicky" width="64" height="64" class="pixel-canvas-portrait"></canvas>
-            <span class="hero-badge">HIJA (10)</span>
+        <div class="portrait-card" data-char="vicky_vicky">
+          <div class="portrait-wood-frame">
+            <canvas id="portrait-vicky" width="64" height="64" class="stardew-pixel-portrait"></canvas>
           </div>
-          <h3>Vicky Vicky</h3>
-          <span class="hero-class">🌸 Botánica & Mascotas</span>
-          <p class="hero-desc">Amiga de los animales, cuida la naturaleza y decora la casa.</p>
+          <div class="portrait-name">Vicky Vicky</div>
+          <span class="portrait-tag">Hija (10)</span>
         </div>
 
         <!-- Diegoaz Jr. (Hijo) -->
-        <div class="hero-card active" data-char="diegoaz_jr">
-          <div class="hero-portrait-frame">
-            <canvas id="portrait-junior" width="64" height="64" class="pixel-canvas-portrait"></canvas>
-            <span class="hero-badge">HIJO (4)</span>
+        <div class="portrait-card active" data-char="diegoaz_jr">
+          <div class="portrait-wood-frame">
+            <canvas id="portrait-junior" width="64" height="64" class="stardew-pixel-portrait"></canvas>
           </div>
-          <h3>Diegoaz Jr.</h3>
-          <span class="hero-class">⚡ Explorador Veloz</span>
-          <p class="hero-desc">Ama la pelota, correr a toda prisa y descubrir tesoros.</p>
+          <div class="portrait-name">Diegoaz Jr.</div>
+          <span class="portrait-tag">Hijo (4)</span>
         </div>
       </div>
 
-      <button id="btn-start-game" class="rpg-btn-primary">
-        ▶ ENTRAR AL BARRIO
+      <button id="btn-start-game" class="stardew-btn-wood">
+        ¡COMENZAR AVENTURA!
       </button>
     </div>
   </div>
 
   <!-- JUEGO FULLSCREEN -->
   <div id="game-container" class="hidden">
-    <!-- LIENZO PIXEL ART -->
+    <!-- LIENZO PIXEL ART STARDEW VALLEY -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- UI SUPERIOR ESTILO RPG RETRO (COMO LA IMAGEN) -->
-    <div id="rpg-hud-top">
-      <div class="rpg-box-small stat-box">
-        <span class="gold-icon">🪙</span>
-        <span id="player-coins-val" class="stat-number">100</span>
-        <span class="stat-label">Oro</span>
+    <!-- HUD RESPONSIVE COMPACTO (ESTILO STARDEW VALLEY MÓVIL) -->
+    <header id="stardew-hud">
+      <!-- Izquierda: Retrato del jugador activo -->
+      <div class="hud-player-badge">
+        <canvas id="hud-mini-portrait" width="32" height="32" class="hud-mini-canvas"></canvas>
+        <div class="hud-player-info">
+          <span id="hud-player-name" class="hud-name-text">Diegoaz Jr.</span>
+          <span id="location-badge" class="hud-zone-text">Plaza Central</span>
+        </div>
       </div>
 
-      <div class="rpg-box-small stat-box vault-box" title="Bóveda Familiar">
-        <span class="gold-icon">🏦</span>
-        <span id="family-vault-val" class="stat-number">500</span>
-        <span class="stat-label">Común</span>
+      <!-- Derecha: Cajita de Oro y Bóveda (Ultra compacta, no desborda en celular) -->
+      <div class="hud-wallet-badge">
+        <div class="wallet-row">
+          <span class="gold-coin-icon">🪙</span>
+          <span id="player-coins-val" class="wallet-num">100g</span>
+        </div>
+        <div class="wallet-row vault-row" title="Bóveda Familiar">
+          <span class="vault-icon">🏦</span>
+          <span id="family-vault-val" class="wallet-num">500g</span>
+        </div>
       </div>
 
-      <div class="rpg-box-small location-sign" id="location-badge">
-        🏛️ Plaza de la Fuente
+      <!-- Botones Rápidos Superiores (Audio / Tienda) -->
+      <div class="hud-action-icons">
+        <button id="btn-audio-toggle" class="hud-circle-tool" title="Sonido">🔊</button>
+        <button id="btn-open-house-shop" class="hud-circle-tool" title="Tienda">🛒</button>
       </div>
+    </header>
 
-      <div class="hud-quick-tools">
-        <button id="btn-audio-toggle" class="rpg-icon-btn" title="Sonido">🔊</button>
-        <button id="btn-open-house-shop" class="rpg-icon-btn" title="Tienda del Pueblo">🛒</button>
-        <button id="btn-fullscreen" class="rpg-icon-btn" title="Pantalla completa">⛶</button>
-      </div>
+    <!-- NOTIFICACIÓN EN PERGAMINO FLOTANTE -->
+    <div id="alert-banner" class="stardew-scroll-toast hidden">
+      <span id="alert-text">¡Bienvenido al Barrio Az!</span>
     </div>
 
-    <!-- CARTEL DE ALERTA O MENSAJE -->
-    <div id="alert-banner" class="rpg-alert-banner hidden">
-      <span id="alert-icon">📜</span> <span id="alert-text">¡Bienvenido viajero!</span>
-    </div>
-
-    <!-- CONTROLES TÁCTILES PIXEL RETRO PARA CELULARES -->
+    <!-- CONTROLES TÁCTILES STARDEW (DISEÑADOS PARA NO ESTORBAR) -->
     <div id="mobile-controls">
-      <!-- Joystick Flotante Izquierdo -->
+      <!-- Joystick Flotante Transparente (Izquierda) -->
       <div id="joystick-area">
         <div id="joystick-ring">
           <div id="joystick-knob"></div>
         </div>
       </div>
 
-      <!-- Botones de Acción Estilo Arcade/RPG -->
+      <!-- Botones de Acción (Derecha) -->
       <div id="buttons-area">
-        <button id="btn-fun-sound" class="arcade-btn-mini" aria-label="Bocina / Saludo">
-          🎺
+        <!-- Botón de Gestos / Emojis -->
+        <button id="btn-toggle-reactions" class="stardew-mini-btn" aria-label="Reacciones">
+          💬
         </button>
-        <button id="btn-action-main" class="arcade-action-btn" aria-label="Interactuar">
-          <span id="action-btn-emoji">⚔️</span>
-          <span id="action-btn-label">HABLAR</span>
+        <!-- Botón Principal de Acción (Hablar / Acariciar / Patear) -->
+        <button id="btn-action-main" class="stardew-action-btn" aria-label="Acción">
+          <span id="action-btn-emoji">✨</span>
+          <span id="action-btn-label">TOCAR</span>
         </button>
       </div>
     </div>
 
-    <!-- DIÁLOGO / EMOCIONES RÁPIDAS (ABAJO) -->
-    <div id="quick-reactions">
-      <button class="rpg-pill-btn" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
-      <button class="rpg-pill-btn" data-sound="heart" data-msg="¡A la fuente! ⛲">⛲ Fuente</button>
-      <button class="rpg-pill-btn" data-sound="goal" data-msg="¡Al parque! ⚽">⚽ Fútbol</button>
-      <button class="rpg-pill-btn" data-sound="dog" data-msg="¡Mira el perrito! 🐶">🐶 Perrito</button>
-      <button class="rpg-pill-btn" data-sound="pizza" data-msg="¡A la posada! 🥖">🥖 Posada</button>
+    <!-- BANDEJA DE REACCIONES RÁPIDAS (DESPLEGABLE / DISCRETA) -->
+    <div id="quick-reactions" class="hidden">
+      <button class="stardew-reaction-pill" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
+      <button class="stardew-reaction-pill" data-sound="heart" data-msg="¡A la fuente! ⛲">⛲ Fuente</button>
+      <button class="stardew-reaction-pill" data-sound="goal" data-msg="¡Gool! ⚽">⚽ Fútbol</button>
+      <button class="stardew-reaction-pill" data-sound="dog" data-msg="¡Perrito! 🐶">🐶 Toby</button>
+      <button class="stardew-reaction-pill" data-sound="pizza" data-msg="¡A la posada! 🥖">🥖 Posada</button>
     </div>
 
-    <!-- TIENDA DEL BARRIO (MERCADO PIXEL ART) -->
+    <!-- TIENDA / MERCADO ESTILO STARDEW VALLEY -->
     <div id="house-shop-modal" class="modal-overlay hidden">
-      <div class="rpg-box shop-box">
-        <div class="shop-header">
-          <h2>🏬 Puesto del Mercado</h2>
-          <button id="btn-close-shop" class="close-rpg-btn">✖</button>
+      <div class="stardew-dialog-box shop-modal-box">
+        <div class="dialog-banner">
+          <h2>MERCADO DEL PUEBLO</h2>
+          <button id="btn-close-shop" class="close-wood-btn">✖</button>
         </div>
-        <p class="rpg-subtext">Adquiere mejoras para embellecer el barrio y la casa familiar:</p>
+        <p class="dialog-desc">Mejoras comunitarias para la familia:</p>
 
-        <div class="shop-items-grid">
-          <div class="rpg-shop-item" data-item="tv" data-cost="150">
-            <span class="shop-icon">📺</span>
-            <h4>Tele Mágica</h4>
-            <span class="price-tag">🪙 150</span>
-            <button class="rpg-buy-btn" id="buy-tv">Comprar</button>
+        <div class="stardew-shop-grid">
+          <div class="shop-slot" data-item="tv" data-cost="150">
+            <span class="slot-icon">📺</span>
+            <div class="slot-title">Tele de Roble</div>
+            <span class="slot-price">🪙 150g</span>
+            <button class="btn-buy-wood" id="buy-tv">Comprar</button>
           </div>
-          <div class="rpg-shop-item" data-item="pool" data-cost="400">
-            <span class="shop-icon">🏊</span>
-            <h4>Piscina Real</h4>
-            <span class="price-tag">🪙 400</span>
-            <button class="rpg-buy-btn" id="buy-pool">Comprar</button>
+          <div class="shop-slot" data-item="pool" data-cost="400">
+            <span class="slot-icon">🏊</span>
+            <div class="slot-title">Piscina de Piedra</div>
+            <span class="slot-price">🪙 400g</span>
+            <button class="btn-buy-wood" id="buy-pool">Comprar</button>
           </div>
-          <div class="rpg-shop-item" data-item="car" data-cost="600">
-            <span class="shop-icon">🚗</span>
-            <h4>Carruaje Az</h4>
-            <span class="price-tag">🪙 600</span>
-            <button class="rpg-buy-btn" id="buy-car">Comprar</button>
+          <div class="shop-slot" data-item="car" data-cost="600">
+            <span class="slot-icon">🚗</span>
+            <div class="slot-title">Tractor / Auto</div>
+            <span class="slot-price">🪙 600g</span>
+            <button class="btn-buy-wood" id="buy-car">Comprar</button>
           </div>
-          <div class="rpg-shop-item" data-item="pizza_oven" data-cost="200">
-            <span class="shop-icon">🥖</span>
-            <h4>Horno Dorado</h4>
-            <span class="price-tag">🪙 200</span>
-            <button class="rpg-buy-btn" id="buy-oven">Comprar</button>
+          <div class="shop-slot" data-item="pizza_oven" data-cost="200">
+            <span class="slot-icon">🥖</span>
+            <div class="slot-title">Horno Rústico</div>
+            <span class="slot-price">🪙 200g</span>
+            <button class="btn-buy-wood" id="buy-oven">Comprar</button>
           </div>
         </div>
       </div>

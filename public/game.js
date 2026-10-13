@@ -1,12 +1,11 @@
 // ==========================================
-// EL BARRIO AZ - MOTOR PIXEL ART JRPG
-// Estilo visual inspirado en clásicos RPG de 16/32 bits
+// EL BARRIO AZ - MOTOR PIXEL ART STARDEW VALLEY
 // ==========================================
 
 const socket = io({
   transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 25
+  reconnectionAttempts: 30
 });
 
 // Canvas
@@ -18,18 +17,20 @@ ctx.imageSmoothingEnabled = false;
 const modalSelect = document.getElementById('character-select-modal');
 const gameContainer = document.getElementById('game-container');
 const btnStart = document.getElementById('btn-start-game');
-const heroCards = document.querySelectorAll('.hero-card');
+const portraitCards = document.querySelectorAll('.portrait-card');
 const playerCoinsVal = document.getElementById('player-coins-val');
 const familyVaultVal = document.getElementById('family-vault-val');
 const locationBadge = document.getElementById('location-badge');
+const hudPlayerName = document.getElementById('hud-player-name');
+const hudMiniPortrait = document.getElementById('hud-mini-portrait');
 const alertBanner = document.getElementById('alert-banner');
 const alertText = document.getElementById('alert-text');
 const btnActionMain = document.getElementById('btn-action-main');
 const actionBtnEmoji = document.getElementById('action-btn-emoji');
 const actionBtnLabel = document.getElementById('action-btn-label');
-const btnFunSound = document.getElementById('btn-fun-sound');
+const btnToggleReactions = document.getElementById('btn-toggle-reactions');
+const quickReactions = document.getElementById('quick-reactions');
 const btnAudioToggle = document.getElementById('btn-audio-toggle');
-const btnFullscreen = document.getElementById('btn-fullscreen');
 const houseShopModal = document.getElementById('house-shop-modal');
 const btnOpenHouseShop = document.getElementById('btn-open-house-shop');
 const btnCloseShop = document.getElementById('btn-close-shop');
@@ -40,11 +41,12 @@ const joystickRing = document.getElementById('joystick-ring');
 const joystickKnob = document.getElementById('joystick-knob');
 
 // ==========================================
-// DIMENSIONES DEL GRAN BARRIO (2200 x 1600)
+// MUNDO Y CÁMARA CON ZOOM STARDEW VALLEY
 // ==========================================
 const WORLD_WIDTH = 2200;
 const WORLD_HEIGHT = 1600;
-const camera = { x: 0, y: 0 };
+const camera = { x: 1100, y: 780 };
+let zoomScale = 2.4; // Zoom Stardew para que los personajes se vean grandes y detallados
 
 let selectedCharId = 'diegoaz_jr';
 let myPlayer = null;
@@ -52,24 +54,368 @@ const otherPlayers = {};
 let familyVaultCoins = 500;
 let activeBubbles = {};
 let particles = [];
-let smokeParticles = [];
+let smokePuffs = [];
 let gameTime = 0;
 
-// Objetos interactivos
-const soccerBall = { x: 550, y: 1250, vx: 0, vy: 0, radius: 12 };
-const puppy = { x: 620, y: 1180, following: null, animStep: 0 };
+// Objetos del mundo
+const soccerBall = { x: 600, y: 1250, vx: 0, vy: 0, radius: 10 };
+const puppy = { x: 1200, y: 820, following: null };
 let streetCoins = [
-  { x: 1040, y: 720, collected: false },
-  { x: 1160, y: 720, collected: false },
-  { x: 1100, y: 550, collected: false },
-  { x: 1100, y: 920, collected: false },
-  { x: 1450, y: 720, collected: false },
-  { x: 780, y: 720, collected: false },
-  { x: 600, y: 1200, collected: false }
+  { x: 1040, y: 740, collected: false },
+  { x: 1160, y: 740, collected: false },
+  { x: 1100, y: 620, collected: false },
+  { x: 1100, y: 880, collected: false },
+  { x: 1400, y: 750, collected: false },
+  { x: 800, y: 750, collected: false },
+  { x: 620, y: 1220, collected: false }
 ];
 
 // ==========================================
-// SISTEMA DE AUDIO SINTETIZADO RETRO
+// GENERADOR DE SPRITES Y RETRATOS STARDEW VALLEY
+// ==========================================
+const spriteCanvases = {};
+
+// Helper para dibujar matrices de píxeles
+function createPixelSprite(width, height, drawFn) {
+  const c = document.createElement('canvas');
+  c.width = width;
+  c.height = height;
+  const pctx = c.getContext('2d');
+  pctx.imageSmoothingEnabled = false;
+  drawFn(pctx);
+  return c;
+}
+
+// 1. GENERACIÓN DE RETRATOS DETALLADOS (ESTILO STARDEW VALLEY 64x64)
+function drawStardewPortrait(pctx, charId) {
+  // Fondo de madera/pergamino Stardew
+  pctx.fillStyle = '#b88350';
+  pctx.fillRect(0, 0, 64, 64);
+  pctx.fillStyle = '#caa373';
+  pctx.fillRect(2, 2, 60, 60);
+
+  if (charId === 'diegoaz') {
+    // ----------------------------------------
+    // PAPÁ DIEGOAZ (Estilo Harvey/Clint en Stardew)
+    // ----------------------------------------
+    // Chaqueta verde oscuro con cuello
+    pctx.fillStyle = '#1c3d25'; pctx.fillRect(10, 44, 44, 20);
+    pctx.fillStyle = '#2d5a37'; pctx.fillRect(14, 46, 36, 18);
+    // Camisa interior blanca con botones
+    pctx.fillStyle = '#f8fafc'; pctx.fillRect(27, 44, 10, 20);
+    pctx.fillStyle = '#eab308'; pctx.fillRect(31, 48, 2, 2); pctx.fillRect(31, 54, 2, 2);
+
+    // Cuello y mandíbula
+    pctx.fillStyle = '#e8b88a'; pctx.fillRect(24, 38, 16, 8);
+    // Rostro
+    pctx.fillStyle = '#ffd1a4'; pctx.fillRect(18, 18, 28, 24);
+
+    // Cabello castaño oscuro con volumen y brillo
+    pctx.fillStyle = '#40210f'; pctx.fillRect(16, 10, 32, 12);
+    pctx.fillStyle = '#5c3218'; pctx.fillRect(18, 12, 28, 6);
+    pctx.fillStyle = '#7a4524'; pctx.fillRect(22, 12, 14, 3); // brillo de pelo
+
+    // Barba recortada elegante de papá (Stardew style)
+    pctx.fillStyle = '#40210f'; pctx.fillRect(18, 32, 28, 12);
+    pctx.fillStyle = '#ffd1a4'; pctx.fillRect(26, 34, 12, 3); // labio inferior
+    pctx.fillStyle = '#261207'; pctx.fillRect(27, 33, 10, 1); // bigote perfil
+
+    // Ojos cálidos y cejas
+    pctx.fillStyle = '#40210f'; pctx.fillRect(22, 20, 7, 2); pctx.fillRect(35, 20, 7, 2); // cejas
+    pctx.fillStyle = '#261207'; pctx.fillRect(23, 24, 4, 4); pctx.fillRect(37, 24, 4, 4); // ojos
+    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 24, 2, 2); pctx.fillRect(39, 24, 2, 2); // brillo
+
+  } else if (charId === 'vicky_vicky') {
+    // ----------------------------------------
+    // VICKY VICKY (Estilo Jas/Haley en Stardew)
+    // ----------------------------------------
+    // Cabello largo castaño dorado que cae por los hombros
+    pctx.fillStyle = '#8f4f1f'; pctx.fillRect(12, 14, 40, 44);
+    pctx.fillStyle = '#b86c31'; pctx.fillRect(14, 16, 36, 40);
+
+    // Vestido / Suéter lavanda/rosa
+    pctx.fillStyle = '#be4d80'; pctx.fillRect(14, 46, 36, 18);
+    pctx.fillStyle = '#f8fafc'; pctx.fillRect(25, 43, 14, 6); // cuello blanco
+
+    // Rostro suave
+    pctx.fillStyle = '#ffd6b0'; pctx.fillRect(19, 18, 26, 22);
+
+    // Flequillo y lazo verde
+    pctx.fillStyle = '#b86c31'; pctx.fillRect(16, 14, 32, 8);
+    pctx.fillStyle = '#2d7a36'; pctx.fillRect(15, 12, 34, 4); // cinta verde
+    pctx.fillStyle = '#ef4444'; pctx.fillRect(39, 10, 6, 6);  // lazo rojo
+
+    // Ojos grandes expresivos Stardew
+    pctx.fillStyle = '#5c3218'; pctx.fillRect(23, 21, 6, 1); pctx.fillRect(35, 21, 6, 1);
+    pctx.fillStyle = '#261207'; pctx.fillRect(23, 24, 5, 5); pctx.fillRect(36, 24, 5, 5);
+    pctx.fillStyle = '#38bdf8'; pctx.fillRect(24, 26, 3, 3); pctx.fillRect(37, 26, 3, 3); // iris azul
+    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 24, 2, 2); pctx.fillRect(38, 24, 2, 2); // brillo
+
+    // Sonrisa tierna y mejillas sonrosadas
+    pctx.fillStyle = '#fca5a5'; pctx.fillRect(20, 29, 4, 2); pctx.fillRect(40, 29, 4, 2);
+    pctx.fillStyle = '#dc2626'; pctx.fillRect(28, 33, 8, 2);
+
+  } else if (charId === 'diegoaz_jr') {
+    // ----------------------------------------
+    // DIEGOAZ JR. (Estilo Vincent/Leo en Stardew)
+    // ----------------------------------------
+    // Sudadera naranja brillante con capucha
+    pctx.fillStyle = '#c2410c'; pctx.fillRect(14, 46, 36, 18);
+    pctx.fillStyle = '#f97316'; pctx.fillRect(16, 48, 32, 16);
+    pctx.fillStyle = '#e2e8f0'; pctx.fillRect(31, 46, 2, 18); // cordón sudadera
+
+    // Rostro infantil redondo
+    pctx.fillStyle = '#ffd6b0'; pctx.fillRect(18, 20, 28, 22);
+
+    // Gorra azul hacia atrás (Stardew Style)
+    pctx.fillStyle = '#1d4ed8'; pctx.fillRect(16, 12, 32, 10);
+    pctx.fillStyle = '#2563eb'; pctx.fillRect(18, 14, 28, 6);
+    pctx.fillStyle = '#dc2626'; pctx.fillRect(12, 16, 8, 4); // visera roja hacia atrás
+
+    // Pelo castaño asomando
+    pctx.fillStyle = '#5c3218'; pctx.fillRect(18, 19, 28, 4);
+
+    // Ojos grandes vivaces de niño de 4 años
+    pctx.fillStyle = '#261207'; pctx.fillRect(23, 25, 5, 6); pctx.fillRect(36, 25, 5, 6);
+    pctx.fillStyle = '#ffffff'; pctx.fillRect(24, 25, 2, 3); pctx.fillRect(37, 25, 2, 3); // brillo grande
+
+    // Sonrisa traviesa abierta
+    pctx.fillStyle = '#b91c1c'; pctx.fillRect(28, 34, 8, 3);
+    pctx.fillStyle = '#ffffff'; pctx.fillRect(29, 34, 6, 1); // dientecitos
+    pctx.fillStyle = '#fca5a5'; pctx.fillRect(19, 30, 4, 2); pctx.fillRect(41, 30, 4, 2); // mejillas
+  }
+}
+
+// Pintar los retratos en el modal inicial
+['diegoaz', 'vicky_vicky', 'diegoaz_jr'].forEach(cId => {
+  const canvasEl = document.getElementById(cId === 'diegoaz' ? 'portrait-diegoaz' : (cId === 'vicky_vicky' ? 'portrait-vicky' : 'portrait-junior'));
+  if (canvasEl) {
+    const pctx = canvasEl.getContext('2d');
+    pctx.imageSmoothingEnabled = false;
+    drawStardewPortrait(pctx, cId);
+  }
+});
+
+function updateMiniHudPortrait() {
+  const pctx = hudMiniPortrait.getContext('2d');
+  pctx.imageSmoothingEnabled = false;
+  pctx.clearRect(0, 0, 32, 32);
+  pctx.save();
+  pctx.scale(0.5, 0.5);
+  drawStardewPortrait(pctx, selectedCharId);
+  pctx.restore();
+}
+
+// ==========================================
+// 2. GENERADOR DE SPRITES DE PERSONAJES 16x32 (STARDEW VALLEY EXACTO)
+// ==========================================
+function getStardewSprite(charId, dir, frame) {
+  const key = `${charId}_${dir}_${frame}`;
+  if (spriteCanvases[key]) return spriteCanvases[key];
+
+  // Canvas de 16 x 32 píxeles
+  const c = createPixelSprite(16, 32, (sctx) => {
+    const isStepLeft = (frame === 1);
+    const isStepRight = (frame === 2);
+    const bob = (frame > 0) ? -1 : 0;
+
+    if (charId === 'diegoaz') {
+      // ------------------------------------
+      // PAPÁ DIEGOAZ (16x32 Stardew)
+      // ------------------------------------
+      // Sombra
+      sctx.fillStyle = 'rgba(0,0,0,0.35)';
+      sctx.fillRect(3, 29, 10, 3);
+
+      // Botas y Pantalones
+      sctx.fillStyle = '#1e293b'; // pantalón
+      sctx.fillRect(5, 20 + bob, 3, 7 + (isStepLeft ? -1 : 0));
+      sctx.fillRect(9, 20 + bob, 3, 7 + (isStepRight ? -1 : 0));
+      sctx.fillStyle = '#45220c'; // botas cuero
+      sctx.fillRect(4, 26 + (isStepLeft ? -1 : 0), 4, 4);
+      sctx.fillRect(9, 26 + (isStepRight ? -1 : 0), 4, 4);
+
+      // Torso / Chaqueta verde bosque con botones
+      sctx.fillStyle = '#204d2c';
+      sctx.fillRect(4, 12 + bob, 8, 9);
+      sctx.fillStyle = '#f8fafc'; // cuello camisa blanca
+      sctx.fillRect(7, 12 + bob, 2, 3);
+      sctx.fillStyle = '#a16207'; // cinturón
+      sctx.fillRect(4, 19 + bob, 8, 2);
+
+      // Cabeza / Piel
+      sctx.fillStyle = '#ffd1a4';
+      sctx.fillRect(5, 4 + bob, 6, 7);
+
+      // Cabello castaño y Barba
+      sctx.fillStyle = '#40210f';
+      sctx.fillRect(4, 2 + bob, 8, 4); // pelo arriba
+      if (dir === 'down') {
+        sctx.fillRect(5, 8 + bob, 6, 4); // barba
+        sctx.fillStyle = '#0f172a';
+        sctx.fillRect(6, 6 + bob, 1, 2); sctx.fillRect(9, 6 + bob, 1, 2); // ojos
+      } else if (dir === 'up') {
+        sctx.fillStyle = '#40210f';
+        sctx.fillRect(4, 3 + bob, 8, 8); // nuca
+      } else {
+        sctx.fillRect(dir === 'right' ? 8 : 4, 8 + bob, 4, 3); // barba perfil
+        sctx.fillStyle = '#0f172a';
+        sctx.fillRect(dir === 'right' ? 9 : 6, 6 + bob, 1, 2);
+      }
+
+    } else if (charId === 'vicky_vicky') {
+      // ------------------------------------
+      // VICKY VICKY (16x32 Stardew)
+      // ------------------------------------
+      sctx.fillStyle = 'rgba(0,0,0,0.35)';
+      sctx.fillRect(4, 29, 8, 3);
+
+      // Piernas y botitas
+      sctx.fillStyle = '#ffd6b0';
+      sctx.fillRect(5, 22 + bob, 2, 5 + (isStepLeft ? -1 : 0));
+      sctx.fillRect(9, 22 + bob, 2, 5 + (isStepRight ? -1 : 0));
+      sctx.fillStyle = '#542a12';
+      sctx.fillRect(5, 26 + (isStepLeft ? -1 : 0), 3, 3);
+      sctx.fillRect(9, 26 + (isStepRight ? -1 : 0), 3, 3);
+
+      // Vestido rosa y lazo
+      sctx.fillStyle = '#d96696';
+      sctx.fillRect(4, 13 + bob, 8, 10);
+      sctx.fillStyle = '#ffffff';
+      sctx.fillRect(6, 13 + bob, 4, 3); // cuello
+
+      // Cabello largo cayendo
+      sctx.fillStyle = '#b86c31';
+      sctx.fillRect(3, 4 + bob, 10, 12);
+
+      // Rostro
+      sctx.fillStyle = '#ffd6b0';
+      sctx.fillRect(5, 5 + bob, 6, 6);
+
+      // Cinta verde
+      sctx.fillStyle = '#2d7a36';
+      sctx.fillRect(4, 4 + bob, 8, 1);
+
+      if (dir === 'down') {
+        sctx.fillStyle = '#0f172a';
+        sctx.fillRect(6, 7 + bob, 1, 2); sctx.fillRect(9, 7 + bob, 1, 2);
+      } else if (dir === 'up') {
+        sctx.fillStyle = '#b86c31';
+        sctx.fillRect(4, 4 + bob, 8, 11);
+      }
+
+    } else {
+      // ------------------------------------
+      // DIEGOAZ JR. (16x32 Chibi Stardew)
+      // ------------------------------------
+      sctx.fillStyle = 'rgba(0,0,0,0.35)';
+      sctx.fillRect(4, 28, 8, 3);
+
+      // Piernitas cortas y tenis rojos
+      sctx.fillStyle = '#1e3a8a';
+      sctx.fillRect(5, 21 + bob, 2, 5 + (isStepLeft ? -1 : 0));
+      sctx.fillRect(9, 21 + bob, 2, 5 + (isStepRight ? -1 : 0));
+      sctx.fillStyle = '#dc2626';
+      sctx.fillRect(4, 25 + (isStepLeft ? -1 : 0), 3, 3);
+      sctx.fillRect(9, 25 + (isStepRight ? -1 : 0), 3, 3);
+
+      // Sudadera Naranja
+      sctx.fillStyle = '#f97316';
+      sctx.fillRect(4, 14 + bob, 8, 8);
+
+      // Cabeza
+      sctx.fillStyle = '#ffd6b0';
+      sctx.fillRect(5, 7 + bob, 6, 6);
+
+      // Gorra azul hacia atrás
+      sctx.fillStyle = '#2563eb';
+      sctx.fillRect(4, 5 + bob, 8, 4);
+      sctx.fillStyle = '#dc2626';
+      sctx.fillRect(3, 7 + bob, 2, 2); // visera roja atrás
+
+      if (dir === 'down') {
+        sctx.fillStyle = '#0f172a';
+        sctx.fillRect(6, 9 + bob, 1, 2); sctx.fillRect(9, 9 + bob, 1, 2);
+      } else if (dir === 'up') {
+        sctx.fillStyle = '#2563eb';
+        sctx.fillRect(4, 5 + bob, 8, 6);
+      }
+    }
+  });
+
+  spriteCanvases[key] = c;
+  return c;
+}
+
+// ==========================================
+// REDIMENSIÓN RESPONSIVE STARDEW VALLEY
+// ==========================================
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // Ajustar zoom dinámicamente según la pantalla para que sea idéntico a Stardew Valley Mobile
+  const minDim = Math.min(window.innerWidth, window.innerHeight);
+  zoomScale = Math.max(2.2, Math.min(3.4, minDim / 160));
+  ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+resizeCanvas();
+
+// ==========================================
+// SELECCIÓN DE PERSONAJE
+// ==========================================
+portraitCards.forEach(card => {
+  card.addEventListener('click', () => {
+    initAudio();
+    playSfx('kick');
+    portraitCards.forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedCharId = card.getAttribute('data-char');
+  });
+});
+
+btnStart.addEventListener('click', () => {
+  initAudio();
+  playSfx('fanfare');
+  modalSelect.classList.add('hidden');
+  gameContainer.classList.remove('hidden');
+  resizeCanvas();
+
+  updateMiniHudPortrait();
+  hudPlayerName.innerText = selectedCharId === 'diegoaz' ? 'Diegoaz' : (selectedCharId === 'vicky_vicky' ? 'Vicky' : 'Diego Jr.');
+
+  socket.emit('join_game', { characterId: selectedCharId });
+});
+
+// Desplegable de reacciones rápidas
+btnToggleReactions.addEventListener('click', () => {
+  quickReactions.classList.toggle('hidden');
+});
+
+document.querySelectorAll('.stardew-reaction-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const snd = btn.getAttribute('data-sound');
+    const msg = btn.getAttribute('data-msg');
+    if (snd === 'dog') playSfx('bark');
+    else if (snd === 'goal') playSfx('fanfare');
+    else playSfx('coin');
+
+    quickReactions.classList.add('hidden');
+    if (myPlayer) socket.emit('send_chat', msg);
+  });
+});
+
+btnOpenHouseShop.addEventListener('click', () => {
+  playSfx('coin');
+  houseShopModal.classList.remove('hidden');
+});
+btnCloseShop.addEventListener('click', () => {
+  houseShopModal.classList.add('hidden');
+});
+
+// ==========================================
+// AUDIO SINTETIZADO RETRO
 // ==========================================
 let audioEnabled = true;
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -138,114 +484,25 @@ btnAudioToggle.addEventListener('click', () => {
 });
 
 // ==========================================
-// DIBUJAR RETRATOS PIXEL ART EN EL MENÚ
-// ==========================================
-function drawPortrait(canvasId, charType) {
-  const c = document.getElementById(canvasId);
-  if (!c) return;
-  const pctx = c.getContext('2d');
-  pctx.imageSmoothingEnabled = false;
-  pctx.clearRect(0, 0, 64, 64);
-
-  // Fondo cálido pergamino
-  pctx.fillStyle = '#2d1e15';
-  pctx.fillRect(0, 0, 64, 64);
-
-  if (charType === 'diegoaz') {
-    // Papá (Barba, cabello castaño, túnica azul oscura con cuello cuero)
-    pctx.fillStyle = '#1e3a8a'; pctx.fillRect(14, 44, 36, 20); // hombros
-    pctx.fillStyle = '#78350f'; pctx.fillRect(26, 42, 12, 6);  // cuello
-    pctx.fillStyle = '#fed7aa'; pctx.fillRect(20, 18, 24, 24); // cara
-    pctx.fillStyle = '#451a03'; pctx.fillRect(18, 12, 28, 12); // pelo
-    pctx.fillStyle = '#451a03'; pctx.fillRect(18, 32, 28, 12); // barba elegante
-    pctx.fillStyle = '#fed7aa'; pctx.fillRect(26, 34, 12, 4);  // labio
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 24, 4, 4);   pctx.fillRect(36, 24, 4, 4); // ojos
-  } else if (charType === 'vicky') {
-    // Vicky (Cabello largo castaño claro, cinta verde, vestido rosa con lazo)
-    pctx.fillStyle = '#ca8a04'; pctx.fillRect(14, 14, 36, 40); // pelo largo
-    pctx.fillStyle = '#ec4899'; pctx.fillRect(16, 44, 32, 20); // vestido
-    pctx.fillStyle = '#fed7aa'; pctx.fillRect(20, 18, 24, 22); // cara
-    pctx.fillStyle = '#16a34a'; pctx.fillRect(18, 14, 28, 4);  // cinta de pelo
-    pctx.fillStyle = '#fde047'; pctx.fillRect(38, 12, 6, 6);   // flor
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 26, 4, 4);   pctx.fillRect(36, 26, 4, 4); // ojos
-    pctx.fillStyle = '#f43f5e'; pctx.fillRect(28, 34, 8, 3);   // sonrisa
-  } else if (charType === 'junior') {
-    // Junior (Gorra azul hacia atrás, pelo castaño, sudadera naranja, ojos grandes)
-    pctx.fillStyle = '#ea580c'; pctx.fillRect(16, 46, 32, 18); // sudadera
-    pctx.fillStyle = '#fed7aa'; pctx.fillRect(20, 22, 24, 22); // cara
-    pctx.fillStyle = '#2563eb'; pctx.fillRect(16, 14, 32, 10); // gorra
-    pctx.fillStyle = '#1d4ed8'; pctx.fillRect(12, 18, 10, 6);  // visera hacia atrás
-    pctx.fillStyle = '#451a03'; pctx.fillRect(20, 20, 24, 4);  // flequillo
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 28, 4, 5);   pctx.fillRect(36, 28, 4, 5); // ojos vivaces
-    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 29, 2, 2);   pctx.fillRect(37, 29, 2, 2); // brillo
-    pctx.fillStyle = '#f43f5e'; pctx.fillRect(28, 37, 8, 3);   // sonrisa alegre
-  }
-}
-
-drawPortrait('portrait-diegoaz', 'diegoaz');
-drawPortrait('portrait-vicky', 'vicky');
-drawPortrait('portrait-junior', 'junior');
-
-// Redimensionar pantalla completa
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  ctx.imageSmoothingEnabled = false;
-}
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', resizeCanvas);
-resizeCanvas();
-
-// Selección de personajes
-heroCards.forEach(card => {
-  card.addEventListener('click', () => {
-    initAudio();
-    playSfx('kick');
-    heroCards.forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-    selectedCharId = card.getAttribute('data-char');
-  });
-});
-
-btnStart.addEventListener('click', () => {
-  initAudio();
-  playSfx('fanfare');
-  modalSelect.classList.add('hidden');
-  gameContainer.classList.remove('hidden');
-  resizeCanvas();
-
-  socket.emit('join_game', {
-    characterId: selectedCharId,
-    scene: 'calle'
-  });
-});
-
-btnFullscreen.addEventListener('click', () => {
-  playSfx('kick');
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  } else {
-    document.exitFullscreen().catch(() => {});
-  }
-});
-
-// ==========================================
 // SOCKET.IO MULTIJUGADOR SINCRONIZADO
 // ==========================================
 socket.on('init_state', (data) => {
   myPlayer = data.self;
+  camera.x = myPlayer.x;
+  camera.y = myPlayer.y;
+
   for (const sId in data.players) {
     if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
   }
-  playerCoinsVal.innerText = myPlayer.coins;
-  familyVaultVal.innerText = familyVaultCoins;
+  playerCoinsVal.innerText = `${myPlayer.coins}g`;
+  familyVaultVal.innerText = `${familyVaultCoins}g`;
   showAlert(`¡Bienvenido al Barrio Az, ${myPlayer.name}!`);
 });
 
 socket.on('player_joined', (p) => {
   if (p.socketId !== socket.id) {
     otherPlayers[p.socketId] = p;
-    showAlert(`👋 ¡${p.name} entró al barrio!`);
+    showAlert(`👋 ¡${p.name} se unió a la partida!`);
     playSfx('fanfare');
   }
 });
@@ -272,7 +529,7 @@ socket.on('ball_updated', (b) => {
 
 socket.on('player_left', (data) => {
   if (otherPlayers[data.socketId]) {
-    showAlert(`🚪 ${otherPlayers[data.socketId].name} se desconectó.`);
+    showAlert(`🚪 ${otherPlayers[data.socketId].name} salió.`);
     delete otherPlayers[data.socketId];
   }
 });
@@ -340,7 +597,7 @@ function updateJoystickPos(cx, cy) {
   let dx = cx - rx;
   let dy = cy - ry;
   const dist = Math.hypot(dx, dy);
-  const maxR = 38;
+  const maxR = 36;
 
   if (dist > maxR) {
     dx = (dx / dist) * maxR;
@@ -373,33 +630,8 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
 });
 
-btnFunSound.addEventListener('click', () => {
-  playSfx('fanfare');
-  spawnEmojiBubble(myPlayer ? myPlayer.x : 0, myPlayer ? myPlayer.y - 60 : 0, '🎺 ¡HOLA FAMILIA!');
-});
-
-document.querySelectorAll('.rpg-pill-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const snd = btn.getAttribute('data-sound');
-    const msg = btn.getAttribute('data-msg');
-    if (snd === 'dog') playSfx('bark');
-    else if (snd === 'goal') playSfx('fanfare');
-    else playSfx('coin');
-
-    if (myPlayer) socket.emit('send_chat', msg);
-  });
-});
-
-btnOpenHouseShop.addEventListener('click', () => {
-  playSfx('coin');
-  houseShopModal.classList.remove('hidden');
-});
-btnCloseShop.addEventListener('click', () => {
-  houseShopModal.classList.add('hidden');
-});
-
 // ==========================================
-// ACCIONES E INTERACCIÓN
+// INTERACCIONES Y ACCIÓN
 // ==========================================
 let currentInteractType = null;
 
@@ -407,59 +639,44 @@ function checkProximities() {
   if (!myPlayer) return;
   currentInteractType = null;
 
-  // 1. Fuente Central (Plaza)
+  // 1. Fuente Central
   const distFountain = Math.hypot(myPlayer.x - 1100, myPlayer.y - 750);
-  if (distFountain < 85) {
+  if (distFountain < 80) {
     currentInteractType = 'fountain';
-    setActionButton('⛲', 'DESEAR SUERTE');
-    locationBadge.innerText = '🏛️ Plaza de la Fuente';
+    setActionButton('⛲', 'DESEAR');
+    locationBadge.innerText = 'Plaza de la Fuente';
     return;
   }
 
-  // 2. Posada / Casa Az (Noroeste)
+  // 2. Casa Az
   const distInn = Math.hypot(myPlayer.x - 620, myPlayer.y - 420);
   if (distInn < 90) {
     currentInteractType = 'inn';
-    setActionButton('🏡', 'CASA FAMILIAR');
-    locationBadge.innerText = '🏡 Gran Casa Az';
+    setActionButton('🏡', 'ENTRAR');
+    locationBadge.innerText = 'Gran Casa Az';
     return;
   }
 
-  // 3. Mercado (Noreste)
+  // 3. Mercado
   const distMarket = Math.hypot(myPlayer.x - 1580, myPlayer.y - 420);
   if (distMarket < 90) {
     currentInteractType = 'market';
-    setActionButton('🍎', 'COMPRAR FRUTA');
-    locationBadge.innerText = '🛒 Mercado del Barrio';
+    setActionButton('🍎', 'COMPRAR');
+    locationBadge.innerText = 'Mercado del Pueblo';
     return;
   }
 
-  // 4. Herrería / Taller de Junior (Suroeste)
-  const distSmith = Math.hypot(myPlayer.x - 620, myPlayer.y - 920);
-  if (distSmith < 90) {
-    currentInteractType = 'workshop';
-    setActionButton('🔨', 'TALLER TECH');
-    locationBadge.innerText = '🔨 Taller de Diego Jr.';
-    return;
-  }
-
-  // 5. Parque y Cancha de Fútbol (Sur)
-  const distPark = Math.hypot(myPlayer.x - 550, myPlayer.y - 1200);
-  if (distPark < 160) {
-    locationBadge.innerText = '⚽ Parque & Cancha';
-  }
-
-  // 6. Perrito Toby
+  // 4. Perrito Toby
   const distPuppy = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
-  if (distPuppy < 65) {
+  if (distPuppy < 60) {
     currentInteractType = 'puppy';
     setActionButton('🐶', 'ACARICIAR');
     return;
   }
 
   btnActionMain.classList.remove('pulse');
-  actionBtnEmoji.innerText = '⚔️';
-  actionBtnLabel.innerText = 'HABLAR';
+  actionBtnEmoji.innerText = '✨';
+  actionBtnLabel.innerText = 'TOCAR';
 }
 
 function setActionButton(emoji, label) {
@@ -473,28 +690,23 @@ btnActionMain.addEventListener('click', () => { doAction(); });
 function doAction() {
   if (!currentInteractType) {
     playSfx('kick');
-    spawnEmojiBubble(myPlayer.x, myPlayer.y - 60, '✨ ¡Hola!');
+    spawnEmojiBubble(myPlayer.x, myPlayer.y - 45, '✨ ¡Hola!');
     return;
   }
 
   if (currentInteractType === 'fountain') {
     playSfx('coin');
-    spawnParticles(1100, 750, '💧');
-    showAlert('⛲ ¡Tiraste una moneda a la fuente! +Suerte para la familia.');
+    showAlert('⛲ ¡Tiraste una moneda de oro a la fuente sagrada!');
   } else if (currentInteractType === 'inn') {
     playSfx('coin');
-    showAlert('🏡 ¡Bienvenidos a la Gran Casa Az! Lugar de descanso.');
+    showAlert('🏡 ¡Entraron a la Gran Casa Az!');
   } else if (currentInteractType === 'market') {
     playSfx('coin');
-    showAlert('🍎 Doña Rosa: "¡Miren qué manzanas tan frescas para Vicky y Junior!"');
-  } else if (currentInteractType === 'workshop') {
-    playSfx('kick');
-    showAlert('🔨 Don Pedro: "¡Diego Jr., tus inventos son los mejores del pueblo!"');
+    showAlert('🍎 Doña Rosa: "¡Fruta fresca para Vicky y Diego Jr.!"');
   } else if (currentInteractType === 'puppy') {
     playSfx('bark');
     puppy.following = socket.id;
-    spawnParticles(puppy.x, puppy.y, '❤️');
-    showAlert('🐶 ¡Toby mueve la cola y te sigue feliz!');
+    showAlert('🐶 ¡Toby está feliz y te sigue!');
   }
 }
 
@@ -504,27 +716,15 @@ function showAlert(text) {
   clearTimeout(showAlert.timer);
   showAlert.timer = setTimeout(() => {
     alertBanner.classList.add('hidden');
-  }, 3500);
+  }, 3200);
 }
 
 function spawnEmojiBubble(x, y, text) {
-  activeBubbles[socket.id] = { text, time: Date.now() + 3800 };
-}
-
-function spawnParticles(x, y, char) {
-  for (let i = 0; i < 7; i++) {
-    particles.push({
-      x: x + (Math.random() - 0.5) * 30,
-      y: y + (Math.random() - 0.5) * 30,
-      vy: -1.8 - Math.random() * 2,
-      char,
-      life: 1.0
-    });
-  }
+  activeBubbles[socket.id] = { text, time: Date.now() + 3500 };
 }
 
 // ==========================================
-// FÍSICA Y LOOP PRINCIPAL
+// LOOP PRINCIPAL DE ACTUALIZACIÓN (60 FPS)
 // ==========================================
 let lastMoveSent = 0;
 let stepAnim = 0;
@@ -533,8 +733,8 @@ function update() {
   gameTime += 0.03;
   if (!myPlayer) return;
 
-  let speed = 4.2;
-  if (selectedCharId === 'diegoaz_jr') speed = 5.0; // Junior es ultra rápido
+  let speed = 3.6;
+  if (selectedCharId === 'diegoaz_jr') speed = 4.4;
 
   let vx = 0;
   let vy = 0;
@@ -553,9 +753,9 @@ function update() {
     }
   }
 
-  const isMoving = Math.hypot(vx, vy) > 0.4;
+  const isMoving = Math.hypot(vx, vy) > 0.3;
   if (isMoving) {
-    stepAnim += 0.28;
+    stepAnim += 0.22;
     myPlayer.x = Math.max(50, Math.min(WORLD_WIDTH - 50, myPlayer.x + vx));
     myPlayer.y = Math.max(50, Math.min(WORLD_HEIGHT - 50, myPlayer.y + vy));
 
@@ -564,10 +764,13 @@ function update() {
   }
   myPlayer.isMoving = isMoving;
 
-  camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, myPlayer.x - canvas.width / 2));
-  camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, myPlayer.y - canvas.height / 2));
+  // CÁMARA SUAVE CENTRADA CON ZOOM
+  const targetCamX = myPlayer.x - (canvas.width / zoomScale) / 2;
+  const targetCamY = myPlayer.y - (canvas.height / zoomScale) / 2;
+  camera.x += (targetCamX - camera.x) * 0.15;
+  camera.y += (targetCamY - camera.y) * 0.15;
 
-  // Enviar multijugador
+  // Enviar multijugador a 30fps
   const now = Date.now();
   if (now - lastMoveSent > 33) {
     socket.emit('player_move', {
@@ -581,12 +784,11 @@ function update() {
 
   // Pelota de fútbol
   const distBall = Math.hypot(myPlayer.x - soccerBall.x, myPlayer.y - soccerBall.y);
-  if (distBall < 30) {
+  if (distBall < 26) {
     const angle = Math.atan2(soccerBall.y - myPlayer.y, soccerBall.x - myPlayer.x);
-    soccerBall.vx = Math.cos(angle) * 9.0;
-    soccerBall.vy = Math.sin(angle) * 9.0;
+    soccerBall.vx = Math.cos(angle) * 8.5;
+    soccerBall.vy = Math.sin(angle) * 8.5;
     playSfx('kick');
-    spawnParticles(soccerBall.x, soccerBall.y, '💨');
     socket.emit('kick_ball', soccerBall);
   }
 
@@ -594,25 +796,14 @@ function update() {
   soccerBall.y += soccerBall.vy;
   soccerBall.vx *= 0.94;
   soccerBall.vy *= 0.94;
-  soccerBall.x = Math.max(400, Math.min(850, soccerBall.x));
-  soccerBall.y = Math.max(1100, Math.min(1450, soccerBall.y));
-
-  // Arco gol
-  if (soccerBall.x > 580 && soccerBall.x < 660 && soccerBall.y < 1120) {
-    playSfx('fanfare');
-    showAlert('⚽ ¡GOOOOOOL EN EL PARQUE AZ!');
-    spawnParticles(soccerBall.x, soccerBall.y, '⭐');
-    soccerBall.y = 1250; soccerBall.vx = 0; soccerBall.vy = 0;
-    socket.emit('kick_ball', soccerBall);
-  }
 
   // Perrito Toby
   if (puppy.following === socket.id) {
     const distToPlayer = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
-    if (distToPlayer > 50) {
+    if (distToPlayer > 40) {
       const pAngle = Math.atan2(myPlayer.y - puppy.y, myPlayer.x - puppy.x);
-      puppy.x += Math.cos(pAngle) * 3.8;
-      puppy.y += Math.sin(pAngle) * 3.8;
+      puppy.x += Math.cos(pAngle) * 3.4;
+      puppy.y += Math.sin(pAngle) * 3.4;
     }
   }
 
@@ -620,73 +811,65 @@ function update() {
   streetCoins.forEach(coin => {
     if (!coin.collected) {
       const distC = Math.hypot(myPlayer.x - coin.x, myPlayer.y - coin.y);
-      if (distC < 30) {
+      if (distC < 24) {
         coin.collected = true;
         myPlayer.coins += 10;
         familyVaultCoins += 10;
-        playerCoinsVal.innerText = myPlayer.coins;
-        familyVaultVal.innerText = familyVaultCoins;
+        playerCoinsVal.innerText = `${myPlayer.coins}g`;
+        familyVaultVal.innerText = `${familyVaultCoins}g`;
         playSfx('coin');
-        spawnParticles(coin.x, coin.y, '🪙');
-        showAlert('🪙 ¡10 Monedas de Oro encontradas!');
+        showAlert('🪙 +10 Oro familiar recogido!');
         setTimeout(() => { coin.collected = false; }, 18000);
       }
     }
   });
 
-  // Humo de la chimenea
-  if (Math.random() < 0.2) {
-    smokeParticles.push({
-      x: 520 + (Math.random() - 0.5) * 8,
-      y: 330,
-      radius: 4 + Math.random() * 4,
-      alpha: 0.8,
-      vy: -0.8 - Math.random() * 0.5
-    });
+  // Humo chimenea
+  if (Math.random() < 0.15) {
+    smokePuffs.push({ x: 505, y: 325, r: 3, a: 0.8, vy: -0.6 });
   }
-  for (let i = smokeParticles.length - 1; i >= 0; i--) {
-    const s = smokeParticles[i];
+  for (let i = smokePuffs.length - 1; i >= 0; i--) {
+    const s = smokePuffs[i];
     s.y += s.vy;
-    s.radius += 0.15;
-    s.alpha -= 0.012;
-    if (s.alpha <= 0) smokeParticles.splice(i, 1);
-  }
-
-  // Partículas
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.y += p.vy;
-    p.life -= 0.03;
-    if (p.life <= 0) particles.splice(i, 1);
+    s.r += 0.12;
+    s.a -= 0.015;
+    if (s.a <= 0) smokePuffs.splice(i, 1);
   }
 
   checkProximities();
 }
 
 // ==========================================
-// RENDERIZADO PIXEL ART
+// RENDERIZADO VISUAL STARDEW VALLEY
 // ==========================================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
+  // Aplicar zoom y traslación de cámara centrada
+  ctx.scale(zoomScale, zoomScale);
   ctx.translate(-camera.x, -camera.y);
 
-  // 1. DIBUJAR EL GRAN BARRIO PIXEL ART (ESTILO EXACTO A LA IMAGEN)
-  drawPixelTown();
+  // 1. DIBUJAR PUEBLO PIXEL ART
+  drawPixelWorld();
 
-  // 2. DIBUJAR JUGADORES REMOTOS
+  // 2. DIBUJAR JUGADORES REMOTOS CON SPRITES 16x32
   for (const sId in otherPlayers) {
-    drawPixelCharacter(otherPlayers[sId], sId);
+    drawStardewPlayer(otherPlayers[sId], sId);
   }
 
   // 3. DIBUJAR JUGADOR LOCAL
   if (myPlayer) {
-    drawPixelCharacter(myPlayer, socket.id, true);
+    drawStardewPlayer(myPlayer, socket.id, true);
   }
 
-  // 4. HUMO DE CHIMENEA Y PARTÍCULAS
-  drawSmokeAndParticles();
+  // 4. HUMO DE CHIMENEA
+  smokePuffs.forEach(s => {
+    ctx.fillStyle = `rgba(241, 245, 249, ${s.a})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
 
   // 5. GLOBOS DE CHAT
   drawBubbles();
@@ -694,595 +877,258 @@ function draw() {
   ctx.restore();
 }
 
-// DIBUJO DETALLADO DEL PUEBLO (COBBLESTONE, FUENTE, TEJADOS, MERCADO)
-function drawPixelTown() {
-  // Fondo de césped verde exuberante
-  ctx.fillStyle = '#4c6e33';
+// DIBUJO DE ESCENARIO STARDEW VALLEY
+function drawPixelWorld() {
+  // Césped verde exuberante
+  ctx.fillStyle = '#4c7332';
   ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // Textura sutil de hierba
-  ctx.fillStyle = '#42622c';
+  // Textura sutil de briznas de hierba Stardew
+  ctx.fillStyle = '#3f6228';
   for (let x = 0; x < WORLD_WIDTH; x += 32) {
     for (let y = 0; y < WORLD_HEIGHT; y += 32) {
-      if ((x + y) % 64 === 0) {
-        ctx.fillRect(x + 8, y + 8, 4, 4);
-      }
+      if ((x + y) % 64 === 0) ctx.fillRect(x + 10, y + 10, 4, 3);
     }
   }
 
-  // CAMINOS DE ADOQUINES EMPEDRADOS (COBBLESTONE DE LA IMAGEN)
-  drawCobblestoneRoad(980, 0, 240, WORLD_HEIGHT);     // Avenida Vertical Central
-  drawCobblestoneRoad(0, 640, WORLD_WIDTH, 220);     // Avenida Horizontal Central
-  drawCobblestoneCircle(1100, 750, 180);              // Plaza Redonda de la Fuente
+  // Caminos de adoquines empedrados (Cobblestone)
+  drawCobblestoneRoad(990, 0, 220, WORLD_HEIGHT);
+  drawCobblestoneRoad(0, 650, WORLD_WIDTH, 200);
 
-  // LA GRAN FUENTE DE PIEDRA CON AGUA (CENTRO DE LA IMAGEN)
-  drawStoneFountain(1100, 750);
+  // Plaza Central Redonda
+  ctx.fillStyle = '#9b9281';
+  ctx.beginPath();
+  ctx.arc(1100, 750, 160, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#5c5446';
+  ctx.lineWidth = 4;
+  ctx.stroke();
 
-  // EDIFICIO 1: LA GRAN POSADA / CASA FAMILIAR AZ (Noroeste)
-  drawInnHouse(460, 310, 260, 200, 'INN CASA AZ');
+  // FUENTE DE PIEDRA CON AGUA ANIMADA (CENTRAL)
+  drawFountain(1100, 750);
 
-  // EDIFICIO 2: EL PUESTO DE MERCADO CON TOLDO A RAYAS AZULES (Noreste - Como la imagen)
-  drawMarketStall(1460, 340, 180, 120);
+  // POSADA / GRAN CASA AZ (Noroeste)
+  drawInnHouse(460, 310, 240, 180);
 
-  // EDIFICIO 3: EL TALLER / HERRERÍA CON CHIMENEA (Suroeste - Como la imagen)
-  drawBlacksmithShop(460, 840, 240, 180);
+  // MERCADO CON TOLDO DE RAYAS AZUL Y BLANCO (Noreste)
+  drawMarketStall(1480, 340, 160, 110);
 
-  // PUENTE DE MADERA SOBRE EL ESTANQUE (Sureste)
-  drawWoodenBridge(1460, 850, 160, 100);
+  // PARQUE CON PELOTA ⚽
+  drawParkAndBall(440, 1100, 440, 320);
 
-  // PARQUE FAMILIAR CON CANCHA DE FÚTBOL (Sur)
-  drawSoccerPark(420, 1100, 480, 380);
+  // PERRITO TOBY
+  drawPixelDog(puppy.x, puppy.y);
 
-  // CARTELES INDICADORES DE MADERA (Como el letrero de la imagen con flechas)
-  drawSignpost(1260, 820);
+  // CARTELES DE MADERA
+  drawSign(1240, 810);
 
-  // BARRICAS, FAROLAS Y CAJAS DE FRUTAS
-  drawStreetLantern(960, 520);
-  drawStreetLantern(1240, 520);
-  drawStreetLantern(960, 960);
-  drawStreetLantern(1240, 960);
+  // FAROLES CON LUZ CÁLIDA
+  drawLantern(970, 560);
+  drawLantern(1230, 560);
+  drawLantern(970, 920);
+  drawLantern(1230, 920);
 
-  drawWoodenBarrel(740, 500);
-  drawWoodenBarrel(755, 510);
-  drawWoodenBarrel(1430, 430);
+  // Árboles frondosos estilo Stardew
+  drawStardewTree(860, 480);
+  drawStardewTree(1340, 480);
+  drawStardewTree(860, 1000);
+  drawStardewTree(1340, 1000);
+  drawStardewTree(360, 260);
+  drawStardewTree(1760, 260);
 
-  // Monedas doradas
+  // Monedas brillantes en el suelo
   streetCoins.forEach(coin => {
     if (!coin.collected) {
       ctx.fillStyle = '#facc15';
-      ctx.fillRect(coin.x - 6, coin.y - 6, 12, 12);
+      ctx.fillRect(coin.x - 5, coin.y - 5, 10, 10);
       ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(coin.x - 4, coin.y - 4, 8, 8);
+      ctx.fillRect(coin.x - 3, coin.y - 3, 6, 6);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(coin.x - 2, coin.y - 2, 4, 4); // brillo
+      ctx.fillRect(coin.x - 1, coin.y - 1, 3, 3);
     }
   });
-
-  // Perrito Toby
-  drawPixelPuppy(puppy.x, puppy.y);
-
-  // Árboles frondosos pixel art
-  drawPixelTree(360, 240);
-  drawPixelTree(760, 240);
-  drawPixelTree(1360, 240);
-  drawPixelTree(1700, 240);
-  drawPixelTree(360, 780);
-  drawPixelTree(1700, 780);
-  drawPixelTree(960, 1300);
-  drawPixelTree(1240, 1300);
 }
 
-// CAMINOS EMPEDRADOS ESTILO JRPG (COBBLESTONE)
 function drawCobblestoneRoad(x, y, w, h) {
-  ctx.fillStyle = '#948a78';
+  ctx.fillStyle = '#9b9281';
   ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#5c5243';
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#5c5446';
+  ctx.lineWidth = 3;
   ctx.strokeRect(x, y, w, h);
 
-  // Textura de ladrillos / piedras
-  ctx.fillStyle = '#aba18e';
-  for (let px = x + 4; px < x + w - 16; px += 24) {
-    for (let py = y + 4; py < y + h - 16; py += 16) {
+  ctx.fillStyle = '#b0a693';
+  for (let px = x + 6; px < x + w - 16; px += 24) {
+    for (let py = y + 6; py < y + h - 16; py += 16) {
       const offset = (Math.floor(py / 16) % 2 === 0) ? 0 : 12;
-      ctx.fillRect(px + offset, py, 20, 12);
-      ctx.fillStyle = '#7a705e';
-      ctx.fillRect(px + offset, py + 11, 20, 2); // sombra ladrillo
-      ctx.fillStyle = '#c7bda9';
-      ctx.fillRect(px + offset, py, 20, 2);      // luz ladrillo
-      ctx.fillStyle = '#aba18e';
+      ctx.fillRect(px + offset, py, 18, 10);
+      ctx.fillStyle = '#7a7060';
+      ctx.fillRect(px + offset, py + 9, 18, 2);
+      ctx.fillStyle = '#b0a693';
     }
   }
 }
 
-function drawCobblestoneCircle(cx, cy, r) {
-  ctx.fillStyle = '#948a78';
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#5c5243';
-  ctx.lineWidth = 6;
-  ctx.stroke();
-}
-
-// FUENTE DE PIEDRA CIRCULAR (IDÉNTICA A LA IMAGEN)
-function drawStoneFountain(cx, cy) {
-  // Borde exterior de piedra labrada
+function drawFountain(cx, cy) {
+  // Anillo exterior
   ctx.fillStyle = '#78716c';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 74, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#44403c';
-  ctx.lineWidth = 6;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, 64, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#44403c'; ctx.lineWidth = 4; ctx.stroke();
 
-  // Borde interior de piedra clara
-  ctx.fillStyle = '#a8a29e';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 64, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Agua azul ondulante
-  const wave = Math.sin(gameTime * 3) * 2;
+  // Agua azul
+  const pulse = Math.sin(gameTime * 3) * 2;
   ctx.fillStyle = '#0284c7';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 54 + wave, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 48 + pulse, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#38bdf8';
-  ctx.beginPath();
-  ctx.arc(cx - 10, cy - 10, 38, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(cx - 8, cy - 8, 34, 0, Math.PI * 2); ctx.fill();
 
-  // Pedestal y estatua central
+  // Estatua central
   ctx.fillStyle = '#78716c';
-  ctx.fillRect(cx - 16, cy - 20, 32, 28);
-  ctx.strokeStyle = '#292524';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(cx - 16, cy - 20, 32, 28);
-
-  // Escultura superior
-  ctx.fillStyle = '#d6d3d1';
-  ctx.beginPath();
-  ctx.arc(cx, cy - 24, 14, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  ctx.fillRect(cx - 12, cy - 16, 24, 22);
+  ctx.fillStyle = '#e7e5e4';
+  ctx.beginPath(); ctx.arc(cx, cy - 20, 10, 0, Math.PI * 2); ctx.fill();
 }
 
-// CASA / POSADA CON TEJADO ROJO TEJAS (COMO LA IMAGEN)
-function drawInnHouse(x, y, w, h, label) {
-  // Fachada de madera clara y vigas
-  ctx.fillStyle = '#e7d8bf';
-  ctx.fillRect(x, y + 70, w, h - 70);
-  ctx.strokeStyle = '#451a03';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(x, y + 70, w, h - 70);
-
-  // Vigas de madera verticales (Timber framing medieval)
-  ctx.fillStyle = '#78350f';
-  for (let bx = x + 30; bx < x + w; bx += 48) {
-    ctx.fillRect(bx, y + 70, 8, h - 70);
-  }
-
-  // Tejado de tejas rojas triangulares
-  ctx.fillStyle = '#b91c1c';
-  ctx.fillRect(x - 14, y, w + 28, 70);
-  ctx.strokeStyle = '#450a0a';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(x - 14, y, w + 28, 70);
-
-  // Tejas sombreadas
-  ctx.fillStyle = '#991b1b';
-  for (let row = y + 10; row < y + 65; row += 14) {
-    for (let col = x - 6; col < x + w + 16; col += 18) {
-      ctx.fillRect(col, row, 16, 6);
-    }
-  }
-
-  // Chimenea de piedra humeante
-  ctx.fillStyle = '#57534e';
-  ctx.fillRect(x + 40, y - 24, 28, 40);
-  ctx.strokeStyle = '#1c1917';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x + 40, y - 24, 28, 40);
-
-  // Puerta de madera con arco
-  ctx.fillStyle = '#451a03';
-  ctx.fillRect(x + w / 2 - 24, y + h - 60, 48, 60);
-  ctx.fillStyle = '#fde047';
-  ctx.fillRect(x + w / 2 + 12, y + h - 34, 4, 4); // perilla dorada
-
-  // Farol colgante en la entrada (luz cálida ámbar como la imagen)
-  drawGlowingLantern(x + w / 2 - 40, y + h - 45);
-
-  // Rótulo / Letrero de madera colgante "INN"
-  ctx.fillStyle = '#451a03';
-  ctx.fillRect(x + w / 2 - 50, y + 44, 100, 24);
-  ctx.strokeStyle = '#eab308';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + w / 2 - 50, y + 44, 100, 24);
-  ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 9px "Press Start 2P"';
-  ctx.textAlign = 'center';
-  ctx.fillText(label, x + w / 2, y + 60);
-  ctx.textAlign = 'start';
-}
-
-// PUESTO DE MERCADO CON TOLDO DE RAYAS AZUL Y BLANCO (EXACTO A LA IMAGEN)
-function drawMarketStall(x, y, w, h) {
-  // Mostrador de madera
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x, y + 45, w, h - 45);
-  ctx.strokeStyle = '#291104';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(x, y + 45, w, h - 45);
-
-  // Toldo a rayas azules y blancas (como en la foto de referencia)
-  const stripeW = 20;
-  for (let i = 0; i < w / stripeW; i++) {
-    ctx.fillStyle = (i % 2 === 0) ? '#1d4ed8' : '#f8fafc';
-    ctx.fillRect(x + i * stripeW, y, stripeW, 46);
-  }
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x, y, w, 46);
-
-  // Cajas de fruta (manzanas rojas y lechugas verdes)
-  ctx.fillStyle = '#b45309';
-  ctx.fillRect(x + 14, y + 54, 38, 24); // caja manzanas
-  ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x + 18, y + 58, 10, 8);  ctx.fillRect(x + 34, y + 58, 10, 8); // manzanas
-
-  ctx.fillStyle = '#b45309';
-  ctx.fillRect(x + 64, y + 54, 38, 24); // caja verduras
-  ctx.fillStyle = '#22c55e';
-  ctx.fillRect(x + 68, y + 58, 10, 8);  ctx.fillRect(x + 84, y + 58, 10, 8); // lechugas
-
-  // Letrero "MERCADO"
-  ctx.fillStyle = '#451a03';
-  ctx.fillRect(x + w / 2 - 40, y + 84, 80, 20);
-  ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 8px "Press Start 2P"';
-  ctx.textAlign = 'center';
-  ctx.fillText('MERCADO', x + w / 2, y + 98);
-  ctx.textAlign = 'start';
-}
-
-// HERRERÍA / TALLER DE JUNIOR
-function drawBlacksmithShop(x, y, w, h) {
-  ctx.fillStyle = '#78716c';
+function drawInnHouse(x, y, w, h) {
+  // Fachada
+  ctx.fillStyle = '#ebd6b7';
   ctx.fillRect(x, y + 60, w, h - 60);
-  ctx.strokeStyle = '#292524';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(x, y + 60, w, h - 60);
+  ctx.strokeStyle = '#451a03'; ctx.lineWidth = 3; ctx.strokeRect(x, y + 60, w, h - 60);
 
-  // Tejado de pizarra oscura
-  ctx.fillStyle = '#334155';
+  // Vigas
+  ctx.fillStyle = '#78350f';
+  for (let bx = x + 30; bx < x + w; bx += 44) ctx.fillRect(bx, y + 60, 6, h - 60);
+
+  // Tejado de tejas rojas Stardew
+  ctx.fillStyle = '#b91c1c';
   ctx.fillRect(x - 10, y, w + 20, 60);
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(x - 10, y, w + 20, 60);
+  ctx.strokeStyle = '#450a0a'; ctx.lineWidth = 4; ctx.strokeRect(x - 10, y, w + 20, 60);
 
-  // Yunque y rueda de madera afuera
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(x + w - 45, y + h - 35, 26, 20);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '16px monospace';
-  ctx.fillText('🔨', x + w - 42, y + h - 18);
+  // Chimenea
+  ctx.fillStyle = '#57534e';
+  ctx.fillRect(x + 36, y - 20, 24, 30);
 
-  // Letrero
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(x + 20, y + 75, 120, 22);
+  // Puerta y letrero
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(x + w / 2 - 20, y + h - 50, 40, 50);
+
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(x + w / 2 - 40, y + 36, 80, 20);
   ctx.fillStyle = '#fef08a';
   ctx.font = 'bold 8px "Press Start 2P"';
-  ctx.fillText('TALLER TECH', x + 28, y + 90);
+  ctx.textAlign = 'center';
+  ctx.fillText('CASA AZ', x + w / 2, y + 50);
+  ctx.textAlign = 'start';
 }
 
-// PUENTE DE MADERA
-function drawWoodenBridge(x, y, w, h) {
-  // Agua debajo
-  ctx.fillStyle = '#0284c7';
-  ctx.fillRect(x - 10, y + 10, w + 20, h - 20);
-
-  // Tablones de madera
+function drawMarketStall(x, y, w, h) {
   ctx.fillStyle = '#78350f';
-  for (let px = x; px < x + w; px += 18) {
-    ctx.fillRect(px, y, 14, h);
-    ctx.fillStyle = '#451a03';
-    ctx.fillRect(px, y + h - 6, 14, 6);
-    ctx.fillStyle = '#78350f';
+  ctx.fillRect(x, y + 40, w, h - 40);
+  ctx.strokeStyle = '#291104'; ctx.lineWidth = 3; ctx.strokeRect(x, y + 40, w, h - 40);
+
+  // Toldo a rayas azules y blancas (como en Stardew)
+  const sw = 16;
+  for (let i = 0; i < w / sw; i++) {
+    ctx.fillStyle = (i % 2 === 0) ? '#1d4ed8' : '#f8fafc';
+    ctx.fillRect(x + i * sw, y, sw, 40);
   }
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, 40);
+
+  // Cajas de fruta
+  ctx.fillStyle = '#b45309'; ctx.fillRect(x + 16, y + 48, 30, 20);
+  ctx.fillStyle = '#dc2626'; ctx.fillRect(x + 20, y + 52, 8, 6); ctx.fillRect(x + 32, y + 52, 8, 6);
+
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 7px "Press Start 2P"';
+  ctx.fillText('MERCADO', x + 24, y + 84);
 }
 
-// PARQUE Y CANCHA DE FÚTBOL
-function drawSoccerPark(x, y, w, h) {
+function drawParkAndBall(x, y, w, h) {
   ctx.fillStyle = '#15803d';
   ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#14532d';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(x, y, w, h);
+  ctx.strokeStyle = '#14532d'; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h);
 
-  // Líneas blancas de fútbol
-  ctx.strokeStyle = '#f8fafc';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x + 40, y + 40, w - 80, h - 80);
-  ctx.beginPath();
-  ctx.arc(x + w / 2, y + h / 2, 40, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2;
+  ctx.strokeRect(x + 20, y + 20, w - 40, h - 40);
 
   // Arco norte
   ctx.fillStyle = '#e2e8f0';
-  ctx.fillRect(580, 1100, 80, 14);
-  ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 9px "Press Start 2P"';
-  ctx.fillText('ARCO', 596, 1112);
+  ctx.fillRect(560, 1100, 80, 10);
 
   // Pelota ⚽
   ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(soccerBall.x, soccerBall.y, soccerBall.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = '#0f172a';
-  ctx.font = '12px sans-serif';
-  ctx.fillText('⚽', soccerBall.x - 7, soccerBall.y + 5);
+  ctx.beginPath(); ctx.arc(soccerBall.x, soccerBall.y, soccerBall.radius, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#0f172a'; ctx.font = '10px sans-serif';
+  ctx.fillText('⚽', soccerBall.x - 6, soccerBall.y + 4);
 }
 
-// LETRERO CON FLECHAS DE MADERA (IDÉNTICO AL DE LA IMAGEN)
-function drawSignpost(x, y) {
-  // Poste de madera
-  ctx.fillStyle = '#451a03';
-  ctx.fillRect(x + 8, y, 10, 70);
-
-  // Flecha 1: Mercado ->
-  drawWoodArrow(x - 20, y + 8, 80, 18, 'Mercado →');
-  // Flecha 2: Taller ->
-  drawWoodArrow(x - 20, y + 28, 80, 18, 'Taller →');
-  // Flecha 3: <- Plaza
-  drawWoodArrow(x - 26, y + 48, 86, 18, '← Plaza');
-}
-
-function drawWoodArrow(x, y, w, h, text) {
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#291104';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
-  ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 7px "Press Start 2P"';
-  ctx.fillText(text, x + 6, y + 13);
-}
-
-// FAROLA CON LUZ CÁLIDA (COMO LA IMAGEN)
-function drawStreetLantern(x, y) {
-  // Poste
-  ctx.fillStyle = '#292524';
-  ctx.fillRect(x - 3, y, 6, 42);
-  // Soporte
-  ctx.fillRect(x - 8, y, 16, 4);
-
-  // Halo cálido amarillo
-  ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
-  ctx.beginPath();
-  ctx.arc(x, y - 6, 22, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Foco
-  ctx.fillStyle = '#fde047';
-  ctx.fillRect(x - 5, y - 10, 10, 10);
-  ctx.strokeStyle = '#78350f';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x - 5, y - 10, 10, 10);
-}
-
-function drawGlowingLantern(x, y) {
-  ctx.fillStyle = 'rgba(250, 204, 21, 0.35)';
-  ctx.beginPath();
-  ctx.arc(x, y, 16, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x - 4, y - 6, 8, 10);
-}
-
-function drawWoodenBarrel(x, y) {
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x, y, 20, 26);
-  ctx.strokeStyle = '#451a03';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x, y, 20, 26);
-  ctx.fillStyle = '#475569';
-  ctx.fillRect(x, y + 4, 20, 3); // aro metal
-  ctx.fillRect(x, y + 18, 20, 3);
-}
-
-function drawPixelTree(x, y) {
-  // Tronco
-  ctx.fillStyle = '#5c3317';
-  ctx.fillRect(x - 8, y + 20, 16, 30);
-  // Follaje pixelado en capas con sombra y luz
-  ctx.fillStyle = '#166534';
-  ctx.beginPath(); ctx.arc(x, y, 36, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#15803d';
-  ctx.beginPath(); ctx.arc(x - 6, y - 6, 30, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#22c55e';
-  ctx.beginPath(); ctx.arc(x - 12, y - 12, 18, 0, Math.PI * 2); ctx.fill();
-}
-
-function drawPixelPuppy(x, y) {
-  ctx.fillStyle = '#b45309';
-  ctx.fillRect(x - 10, y - 6, 20, 12); // cuerpo
-  ctx.fillRect(x + 4, y - 14, 10, 10); // cabeza
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x + 2, y - 16, 4, 6);   // oreja
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(x + 10, y - 11, 2, 2);  // ojo
-  // Patitas
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x - 8, y + 6, 4, 6);
-  ctx.fillRect(x + 4, y + 6, 4, 6);
-  // Letrero Toby
+function drawPixelDog(x, y) {
+  ctx.fillStyle = '#b45309'; ctx.fillRect(x - 8, y - 5, 16, 10);
+  ctx.fillRect(x + 3, y - 11, 8, 8);
+  ctx.fillStyle = '#78350f'; ctx.fillRect(x + 1, y - 13, 3, 5);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(x + 8, y - 8, 2, 2);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 8px "Press Start 2P"';
-  ctx.fillText('🐶 Toby', x - 18, y - 20);
+  ctx.font = 'bold 7px "Press Start 2P"';
+  ctx.fillText('🐶 Toby', x - 14, y - 18);
 }
 
-// ==========================================
-// DIBUJO DE LOS PERSONAJES PIXEL ART AUTÉNTICOS
-// (Como el héroe de espaldas/frente en la imagen)
-// ==========================================
-function drawPixelCharacter(p, sId, isSelf = false) {
-  const x = p.x;
-  const y = p.y;
-  const step = p.isMoving ? Math.sin(stepAnim) * 2.5 : 0;
+function drawSign(x, y) {
+  ctx.fillStyle = '#451a03'; ctx.fillRect(x + 6, y, 8, 50);
+  ctx.fillStyle = '#78350f'; ctx.fillRect(x - 14, y + 6, 68, 14);
+  ctx.fillStyle = '#fef08a'; ctx.font = 'bold 6px "Press Start 2P"';
+  ctx.fillText('Mercado →', x - 10, y + 16);
+}
+
+function drawLantern(x, y) {
+  ctx.fillStyle = '#292524'; ctx.fillRect(x - 2, y, 4, 30);
+  ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
+  ctx.beginPath(); ctx.arc(x, y - 4, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fde047'; ctx.fillRect(x - 4, y - 8, 8, 8);
+}
+
+function drawStardewTree(x, y) {
+  // Tronco
+  ctx.fillStyle = '#5c3317'; ctx.fillRect(x - 6, y + 16, 12, 26);
+  // Follaje exuberante en capas Stardew
+  ctx.fillStyle = '#166534'; ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(x - 5, y - 5, 26, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(x - 10, y - 10, 16, 0, Math.PI * 2); ctx.fill();
+}
+
+// DIBUJAR JUGADOR CON EL SPRITE 16x32 STARDEW VALLEY
+function drawStardewPlayer(p, sId, isSelf = false) {
+  const x = Math.round(p.x);
+  const y = Math.round(p.y);
   const dir = p.direction || 'down';
 
-  // Sombra elíptica en los pies
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + 16, 14, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (p.id === 'diegoaz') {
-    // ------------------------------------
-    // PAPÁ DIEGOAZ (Estilo Guerrero / Noble)
-    // Túnica roja/azul, cinturón, capa, botas
-    // ------------------------------------
-    // Piernas / Botas
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(x - 6, y + 4 + step, 5, 12);
-    ctx.fillRect(x + 2, y + 4 - step, 5, 12);
-    ctx.fillStyle = '#78350f'; // botas cuero
-    ctx.fillRect(x - 6, y + 10 + step, 5, 6);
-    ctx.fillRect(x + 2, y + 10 - step, 5, 6);
-
-    // Túnica (Azul profundo con bordes dorados)
-    ctx.fillStyle = '#1e3a8a';
-    ctx.fillRect(x - 10, y - 12, 20, 18);
-    ctx.fillStyle = '#eab308';
-    ctx.fillRect(x - 10, y + 2, 20, 3); // cinturón hebilla dorada
-
-    // Capa en la espalda
-    if (dir === 'up') {
-      ctx.fillStyle = '#991b1b';
-      ctx.fillRect(x - 9, y - 10, 18, 16);
-    }
-
-    // Cabeza / Piel
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x - 7, y - 26, 14, 14);
-
-    // Cabello y Barba castaño oscuro
-    ctx.fillStyle = '#451a03';
-    ctx.fillRect(x - 8, y - 29, 16, 6); // pelo superior
-    if (dir === 'down') {
-      ctx.fillRect(x - 7, y - 17, 14, 6); // barba elegante frontal
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(x - 4, y - 22, 2, 3); ctx.fillRect(x + 2, y - 22, 2, 3); // ojos
-    } else if (dir === 'left') {
-      ctx.fillRect(x - 8, y - 29, 6, 16);
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(x - 6, y - 22, 2, 3);
-    } else if (dir === 'right') {
-      ctx.fillRect(x + 2, y - 29, 6, 16);
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(x + 4, y - 22, 2, 3);
-    }
-
-  } else if (p.id === 'vicky_vicky') {
-    // ------------------------------------
-    // VICKY VICKY (10 AÑOS - Aventurera / Doncella)
-    // Cabello largo, cinta verde, vestido rosa y delantal blanco
-    // ------------------------------------
-    // Cabello largo cayendo en la espalda
-    ctx.fillStyle = '#ca8a04';
-    ctx.fillRect(x - 9, y - 26, 18, 22);
-
-    // Piernas
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x - 5, y + 4 + step, 4, 10);
-    ctx.fillRect(x + 1, y + 4 - step, 4, 10);
-
-    // Vestido Rosa con delantal blanco
-    ctx.fillStyle = '#ec4899';
-    ctx.fillRect(x - 8, y - 10, 16, 16);
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(x - 4, y - 6, 8, 12); // delantal
-
-    // Cabeza
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x - 6, y - 24, 12, 13);
-
-    // Cinta verde y flor en el pelo
-    ctx.fillStyle = '#16a34a';
-    ctx.fillRect(x - 7, y - 26, 14, 3);
-    ctx.fillStyle = '#fde047';
-    ctx.fillRect(x + 5, y - 28, 4, 4); // flor amarilla
-
-    if (dir === 'down') {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(x - 4, y - 20, 2, 3); ctx.fillRect(x + 2, y - 20, 2, 3);
-    }
-
-  } else {
-    // ------------------------------------
-    // DIEGOAZ JR. (4 AÑOS - Pequeño Chibi Veloz)
-    // Gorra azul hacia atrás, sudadera naranja, zapatillas
-    // ------------------------------------
-    // Piernas más cortas
-    ctx.fillStyle = '#1e3a8a';
-    ctx.fillRect(x - 5, y + 2 + step, 4, 8);
-    ctx.fillRect(x + 1, y + 2 - step, 4, 8);
-    ctx.fillStyle = '#dc2626'; // zapatillas rojas
-    ctx.fillRect(x - 5, y + 7 + step, 4, 4);
-    ctx.fillRect(x + 1, y + 7 - step, 4, 4);
-
-    // Sudadera Naranja
-    ctx.fillStyle = '#ea580c';
-    ctx.fillRect(x - 7, y - 9, 14, 12);
-
-    // Cabeza Chibi
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x - 6, y - 22, 12, 13);
-
-    // Gorra azul hacia atrás
-    ctx.fillStyle = '#2563eb';
-    ctx.fillRect(x - 7, y - 26, 14, 6);
-    ctx.fillStyle = '#1d4ed8';
-    ctx.fillRect(x - 9, y - 23, 4, 3); // visera atrás
-
-    if (dir === 'down') {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(x - 4, y - 18, 2, 3); ctx.fillRect(x + 2, y - 18, 2, 3);
-    }
+  // Frame de caminata (0 = idle, 1 = paso izq, 2 = paso der)
+  let frame = 0;
+  if (p.isMoving) {
+    const cycle = Math.floor(stepAnim) % 4;
+    if (cycle === 1) frame = 1;
+    else if (cycle === 3) frame = 2;
   }
 
-  // ETIQUETA DE NOMBRE CON ESTILO RPG RETRO
-  ctx.font = 'bold 8px "Press Start 2P"';
-  ctx.textAlign = 'center';
-  const tagW = ctx.measureText(p.name).width + 12;
+  // Obtener o generar sprite 16x32
+  const sprite = getStardewSprite(p.id, dir, frame);
 
-  ctx.fillStyle = isSelf ? '#166534' : '#271a12';
-  ctx.fillRect(x - tagW / 2, y - 44, tagW, 14);
-  ctx.strokeStyle = isSelf ? '#86efac' : '#eab308';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x - tagW / 2, y - 44, tagW, 14);
+  // Dibujar centrado en los pies (sprite de 16x32)
+  ctx.drawImage(sprite, x - 8, y - 28);
+
+  // Etiqueta con Nombre estilo Stardew Valley
+  ctx.font = 'bold 7px "Press Start 2P"';
+  ctx.textAlign = 'center';
+  const tagW = ctx.measureText(p.name).width + 8;
+
+  ctx.fillStyle = isSelf ? 'rgba(30, 75, 40, 0.88)' : 'rgba(50, 30, 15, 0.88)';
+  ctx.fillRect(x - tagW / 2, y - 36, tagW, 11);
+  ctx.strokeStyle = isSelf ? '#86efac' : '#facc15';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x - tagW / 2, y - 36, tagW, 11);
 
   ctx.fillStyle = '#fef08a';
-  ctx.fillText(p.name, x, y - 34);
+  ctx.fillText(p.name, x, y - 28);
   ctx.textAlign = 'start';
-}
-
-function drawSmokeAndParticles() {
-  smokeParticles.forEach(s => {
-    ctx.fillStyle = `rgba(226, 232, 240, ${s.alpha})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  particles.forEach(p => {
-    ctx.font = '14px sans-serif';
-    ctx.fillText(p.char, p.x, p.y);
-  });
 }
 
 function drawBubbles() {
@@ -1296,18 +1142,18 @@ function drawBubbles() {
     const p = (sId === socket.id ? myPlayer : otherPlayers[sId]);
     if (p) {
       const bx = p.x;
-      const by = p.y - 56;
-      ctx.font = 'bold 8px "Press Start 2P"';
+      const by = p.y - 44;
+      ctx.font = 'bold 7px "Press Start 2P"';
       ctx.textAlign = 'center';
-      const tw = ctx.measureText(b.text).width + 16;
+      const tw = ctx.measureText(b.text).width + 12;
 
-      ctx.fillStyle = '#271a12';
-      ctx.fillRect(bx - tw / 2, by - 14, tw, 20);
-      ctx.strokeStyle = '#eab308';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(bx - tw / 2, by - 14, tw, 20);
+      ctx.fillStyle = '#deb887';
+      ctx.fillRect(bx - tw / 2, by - 12, tw, 16);
+      ctx.strokeStyle = '#5a381e';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx - tw / 2, by - 12, tw, 16);
 
-      ctx.fillStyle = '#fef08a';
+      ctx.fillStyle = '#3b200c';
       ctx.fillText(b.text, bx, by);
       ctx.textAlign = 'start';
     }
