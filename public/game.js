@@ -1,76 +1,55 @@
 // =========================================================
-// GEOMETRY FAMILY: NEON DASH - MOTOR DEL JUEGO
-// Gráficos Cyberpunk / Geometry Dash Neón + Vibraciones + Multijugador
+// COME-FRUTAS EN FAMILIA: ARENA GLOTONA - CLIENT ENGINE
+// Fácil, Interactivo, Tierno, Con Voz y Multijugador en Vivo
 // =========================================================
 
-// Socket.io Multijugador
 const socket = io({
   transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionAttempts: 30
 });
 
-// Canvas & Contexto
+// Canvas
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // DOM Elements
 const selectModal = document.getElementById('character-select-modal');
 const gameContainer = document.getElementById('game-container');
-const btnStartRace = document.getElementById('btn-start-race');
+const btnStartParty = document.getElementById('btn-start-party');
 const heroCards = document.querySelectorAll('.hero-card');
-const chkKidShield = document.getElementById('chk-kid-shield');
 
-const hudName = document.getElementById('hud-name');
-const hudCoins = document.getElementById('hud-coins');
-const hudSpeed = document.getElementById('hud-speed');
-const hudCubeIcon = document.getElementById('hud-cube-icon');
-const raceProgressFill = document.getElementById('race-progress-fill');
-const markerSelf = document.getElementById('marker-self');
-const markerOthersContainer = document.getElementById('marker-others-container');
-const racePercentVal = document.getElementById('race-percent-val');
+const hudPlayerName = document.getElementById('hud-player-name');
+const hudCoinsVal = document.getElementById('hud-coins-val');
+const hudScoreVal = document.getElementById('hud-score-val');
+const hudAvatarMini = document.getElementById('hud-avatar-mini');
 
-const btnSpeakRepeat = document.getElementById('btn-speak-repeat');
-const btnMusicToggle = document.getElementById('btn-music-toggle');
-const btnVibrateToggle = document.getElementById('btn-vibrate-toggle');
+const didacticBanner = document.getElementById('didactic-banner');
+const btnRepeatVoice = document.getElementById('btn-repeat-voice');
+const challengePromptText = document.getElementById('challenge-prompt-text');
+const leaderboardList = document.getElementById('leaderboard-list');
 
-const didacticLivePill = document.getElementById('didactic-live-pill');
-const didacticEmojiIcon = document.getElementById('didactic-emoji-icon');
-const didacticPromptText = document.getElementById('didactic-prompt-text');
-
-const neonToast = document.getElementById('neon-toast');
+const partyToast = document.getElementById('party-toast');
 const toastTitle = document.getElementById('toast-title');
-const toastSubtitle = document.getElementById('toast-subtitle');
+const toastDesc = document.getElementById('toast-desc');
 
-const mobileTapSurface = document.getElementById('mobile-tap-surface');
-const victoryModal = document.getElementById('victory-modal');
-const btnNextLevel = document.getElementById('btn-next-level');
+const btnTurboBoost = document.getElementById('btn-turbo-boost');
+const joystickThumb = document.getElementById('joystick-thumb');
 
 // =========================================================
-// CONFIGURACIÓN DE AUDIO SINTETIZADO & BEAT SYNTHWAVE
+// SISTEMA DE AUDIO (EFECTOS SINTETIZADOS Y MÚSICA MARIMBA)
 // =========================================================
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-let musicEnabled = true;
-let sfxEnabled = true;
-let vibrationEnabled = true;
-let beatTimer = null;
-let beatStep = 0;
-const BPM = 126;
-const BEAT_INTERVAL = (60 / BPM) * 1000 / 4; // semicorcheas
+let musicInterval = null;
+let musicStep = 0;
 
 function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new AudioCtx();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// Síntesis de efectos de sonido estilo Geometry Dash
 function playSfx(type) {
-  if (!sfxEnabled) return;
   try {
     initAudio();
     const now = audioCtx.currentTime;
@@ -79,143 +58,89 @@ function playSfx(type) {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
 
-    if (type === 'jump') {
+    if (type === 'eat') {
+      // Mordisco pop dulce
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(540, now + 0.12);
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(740, now + 0.08);
       gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
-      osc.start(now); osc.stop(now + 0.14);
-    } else if (type === 'orb') {
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'boing') {
+      // Rebote cómico entre jugadores
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587, now);
-      osc.frequency.setValueAtTime(880, now + 0.08);
-      osc.frequency.setValueAtTime(1174, now + 0.16);
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.linearRampToValueAtTime(380, now + 0.12);
+      osc.frequency.linearRampToValueAtTime(220, now + 0.22);
       gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now); osc.stop(now + 0.3);
-    } else if (type === 'portal') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.exponentialRampToValueAtTime(950, now + 0.25);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
-      osc.start(now); osc.stop(now + 0.28);
-    } else if (type === 'gate_correct') {
-      [523, 659, 783, 1046, 1318].forEach((f, idx) => {
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now); osc.stop(now + 0.25);
+    } else if (type === 'correct') {
+      // Fanfarria alegre de acierto
+      [523, 659, 783, 1046].forEach((f, idx) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
         o.type = 'triangle';
-        o.frequency.setValueAtTime(f, now + idx * 0.06);
-        g.gain.setValueAtTime(0.18, now + idx * 0.06);
-        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.06 + 0.2);
-        o.start(now + idx * 0.06); o.stop(now + idx * 0.06 + 0.2);
+        o.frequency.setValueAtTime(f, now + idx * 0.07);
+        g.gain.setValueAtTime(0.2, now + idx * 0.07);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.24);
+        o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.24);
       });
-    } else if (type === 'shield') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(330, now);
-      osc.frequency.exponentialRampToValueAtTime(660, now + 0.2);
-      gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
-      osc.start(now); osc.stop(now + 0.28);
+    } else if (type === 'turbo') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(650, now + 0.2);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now); osc.stop(now + 0.25);
     }
   } catch (e) {}
 }
 
-// Bucle musical Synthwave sintetizado (cero descargas, ligero y rítmico)
-function startSynthwaveMusic() {
-  if (beatTimer) clearInterval(beatTimer);
-  beatTimer = setInterval(() => {
-    if (!musicEnabled || !audioCtx) return;
+// Melodía suave y alegre de xilófono / marimba para niños
+function startCheerfulMusic() {
+  if (musicInterval) clearInterval(musicInterval);
+  const notes = [523, 587, 659, 698, 783, 880, 783, 659, 587, 659, 783, 880, 1046, 880, 783, 659];
+  musicInterval = setInterval(() => {
+    if (!audioCtx) return;
     try {
       const now = audioCtx.currentTime;
-      const step = beatStep % 16;
-      beatStep++;
+      const freq = notes[musicStep % notes.length];
+      musicStep++;
 
-      // Bombo potente en compases 0, 4, 8, 12 (Four-on-the-floor)
-      if (step === 0 || step === 4 || step === 8 || step === 12) {
-        const kickOsc = audioCtx.createOscillator();
-        const kickGain = audioCtx.createGain();
-        kickOsc.connect(kickGain); kickGain.connect(audioCtx.destination);
-        kickOsc.frequency.setValueAtTime(140, now);
-        kickOsc.frequency.exponentialRampToValueAtTime(32, now + 0.09);
-        kickGain.gain.setValueAtTime(0.26, now);
-        kickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        kickOsc.start(now); kickOsc.stop(now + 0.1);
-
-        // Pulso visual sutil en el bombo
-        triggerBeatPulse();
-      }
-
-      // Bajo rodante Cyberpunk en semicorcheas
-      const bassNotes = [110, 110, 130, 110, 146, 110, 130, 164, 110, 110, 130, 110, 146, 164, 196, 130];
-      const bassFreq = bassNotes[step];
-      const bassOsc = audioCtx.createOscillator();
-      const bassGain = audioCtx.createGain();
-      bassOsc.connect(bassGain); bassGain.connect(audioCtx.destination);
-      bassOsc.type = 'sawtooth';
-      bassOsc.frequency.setValueAtTime(bassFreq, now);
-      bassGain.gain.setValueAtTime(0.07, now);
-      bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-      bassOsc.start(now); bassOsc.stop(now + 0.08);
-
-      // Chiptune Arpegio brillante en compases pares
-      if (step % 2 === 0) {
-        const arpNotes = [440, 523, 659, 783, 880, 1046, 880, 659];
-        const arpFreq = arpNotes[(step / 2) % arpNotes.length];
-        const arpOsc = audioCtx.createOscillator();
-        const arpGain = audioCtx.createGain();
-        arpOsc.connect(arpGain); arpGain.connect(audioCtx.destination);
-        arpOsc.type = 'square';
-        arpOsc.frequency.setValueAtTime(arpFreq, now);
-        arpGain.gain.setValueAtTime(0.03, now);
-        arpGain.gain.exponentialRampToValueAtTime(0.005, now + 0.07);
-        arpOsc.start(now); arpOsc.stop(now + 0.07);
-      }
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.22);
+      osc.start(now); osc.stop(now + 0.22);
     } catch (e) {}
-  }, BEAT_INTERVAL);
+  }, 320);
 }
 
-// =========================================================
-// SISTEMA DE VIBRACIÓN HÁPTICA Y SACUDIDA DE PANTALLA
-// =========================================================
-let screenShakeMagnitude = 0;
+// Vibración háptica en móvil
+function triggerHaptic(ms = 25) {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(ms); } catch (e) {}
+  }
+}
 
-function triggerScreenShake(amount = 8) {
-  screenShakeMagnitude = Math.max(screenShakeMagnitude, amount);
+function triggerShake() {
   if (gameContainer) {
     gameContainer.classList.remove('screen-shake');
-    void gameContainer.offsetWidth; // reflow
+    void gameContainer.offsetWidth;
     gameContainer.classList.add('screen-shake');
-    setTimeout(() => {
-      gameContainer.classList.remove('screen-shake');
-    }, 180);
-  }
-}
-
-function triggerHaptic(pattern = [40, 25, 40]) {
-  if (vibrationEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-    try {
-      navigator.vibrate(pattern);
-    } catch (e) {}
-  }
-}
-
-function triggerBeatPulse() {
-  if (gameContainer) {
-    gameContainer.classList.add('beat-pulse');
-    setTimeout(() => {
-      gameContainer.classList.remove('beat-pulse');
-    }, 150);
+    setTimeout(() => { gameContainer.classList.remove('screen-shake'); }, 220);
   }
 }
 
 // =========================================================
-// SINTETIZADOR DE VOZ EDUCATIVO (TEXT-TO-SPEECH)
-// Permite que Diego Jr. (4 años) escuche todo sin saber leer
+// SISTEMA DE VOZ DIDÁCTICA (TEXT-TO-SPEECH)
 // =========================================================
-let lastSpokenPrompt = '¡Rebota en los orbes para contar!';
+let currentVoicePrompt = '¡Come frutas y burbujas con números para crecer!';
 let spanishVoices = [];
 
 function loadVoices() {
@@ -232,8 +157,8 @@ if ('speechSynthesis' in window) {
   }
 }
 
-function speak(text, pitch = 1.15, rate = 0.95) {
-  lastSpokenPrompt = text;
+function speak(text, pitch = 1.18, rate = 0.95) {
+  currentVoicePrompt = text;
   if (!('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();
@@ -247,730 +172,471 @@ function speak(text, pitch = 1.15, rate = 0.95) {
       const friendly = spanishVoices.find(v => /sabina|monica|paulina|lucia|laura|helena|spanish/i.test(v.name)) || spanishVoices[0];
       if (friendly) utter.voice = friendly;
     }
+
+    const speaker = document.querySelector('.speaker-icon');
+    if (speaker) speaker.classList.add('talking');
+    utter.onend = () => { if (speaker) speaker.classList.remove('talking'); };
+    utter.onerror = () => { if (speaker) speaker.classList.remove('talking'); };
+
     window.speechSynthesis.speak(utter);
   } catch (e) {}
 }
 
+btnRepeatVoice.addEventListener('click', () => {
+  speak(currentVoicePrompt);
+});
+
 // =========================================================
-// PERSONAJES Y ESTADO DEL JUGADOR
+// PERSONAJES Y ESTADO
 // =========================================================
 let selectedHeroId = 'diegoaz_jr';
-let isKidShieldActive = true;
 
-const HERO_DEFS = {
+const HERO_DATA = {
   diegoaz_jr: {
     id: 'diegoaz_jr',
-    name: 'Diegoaz Jr.',
-    role: 'Cadete Espacial (4 años)',
-    primaryColor: '#facc15', // Amarillo Dorado
-    secondaryColor: '#38bdf8', // Cian
-    trailColor: '#facc15',
-    face: 'demon_cute'
+    name: 'Diego Jr.',
+    role: 'Glotón Amarillo (4 años)',
+    primaryColor: '#facc15',
+    secondaryColor: '#38bdf8',
+    cheekColor: '#f87171',
+    faceStyle: 'jr_cute'
   },
   vicky_vicky: {
     id: 'vicky_vicky',
     name: 'Vicky Vicky',
-    role: 'Científica Neón (10 años)',
-    primaryColor: '#f43f5e', // Rosa Neón / Magenta
-    secondaryColor: '#06b6d4', // Cian
-    trailColor: '#ec4899',
-    face: 'cat_cute'
+    role: 'Cazadora Rosa (10 años)',
+    primaryColor: '#f43f5e',
+    secondaryColor: '#06b6d4',
+    cheekColor: '#fda4af',
+    faceStyle: 'vicky_star'
   },
   diegoaz: {
     id: 'diegoaz',
     name: 'Diego (Papá)',
-    role: 'Guía & Piloto Mayor',
-    primaryColor: '#10b981', // Verde Esmeralda Neón
-    secondaryColor: '#f59e0b', // Ámbar
-    trailColor: '#10b981',
-    face: 'glasses_pro'
+    role: 'Glotón Esmeralda (Papá)',
+    primaryColor: '#10b981',
+    secondaryColor: '#f59e0b',
+    cheekColor: '#34d399',
+    faceStyle: 'dad_glasses'
   }
 };
 
 let myPlayer = {
-  x: 100,
-  y: 0,
+  x: 1200,
+  y: 900,
+  vx: 0,
   vy: 0,
-  rot: 0,
-  size: 42,
-  mode: 'cube', // 'cube' o 'ship'
-  isGrounded: false,
-  isHoldingJump: false,
-  isAlive: true,
-  shieldTimer: 0,
+  speed: 4.8,
+  baseSpeed: 4.8,
+  turboSpeed: 8.5,
+  isTurbo: false,
+  size: 48,
+  angle: 0,
+  mouthOpen: 0,
   score: 0,
   coins: 100,
-  speed: 8.5,
-  distance: 0
+  bubblesTrail: []
 };
 
-const otherPlayers = {};
+let otherPlayers = {};
+let foodItems = [];
 let particles = [];
-let shockwaves = [];
-let floatingEmojis = [];
+let ARENA_W = 2600;
+let ARENA_H = 1800;
 
-// =========================================================
-// PISTA Y GENERACIÓN DEL MUNDO GEOMÉTRICO (GEOMETRY DASH)
-// =========================================================
-const LEVEL_LENGTH = 9000; // Longitud total de la carrera en px
-let floorY = 0; // Calculado según tamaño del canvas
-let obstacles = [];
-let jumpOrbs = [];
-let portals = [];
-let mathGates = [];
-let countingOrbs = [];
-
-// Generador de la pista sincrónica neón
-function generateTrack(seed = 421337) {
-  obstacles = [];
-  jumpOrbs = [];
-  portals = [];
-  mathGates = [];
-  countingOrbs = [];
-
-  // 1. Orbes de conteo para Diego Jr. (1 al 5) en los primeros 1800px
-  const countPositions = [350, 650, 950, 1250, 1550];
-  countPositions.forEach((pos, idx) => {
-    countingOrbs.push({
-      x: pos,
-      y: -110,
-      radius: 26,
-      num: idx + 1,
-      collected: false,
-      color: '#facc15'
-    });
-  });
-
-  // 2. Obstáculos Neón (Púas y Pilares como en la foto)
-  const spikePattern = [
-    { x: 500, type: 'spike', count: 1 },
-    { x: 800, type: 'spike', count: 2 },
-    { x: 1100, type: 'pillar', h: 90, w: 50 },
-    { x: 1400, type: 'spike', count: 2 },
-    { x: 1700, type: 'pendulum', h: 140 }, // Péndulo colgante como en la foto
-    { x: 2000, type: 'platform', h: 100, w: 220 },
-    { x: 2400, type: 'spike', count: 3 },
-    { x: 2700, type: 'pillar', h: 130, w: 50 }
-  ];
-
-  spikePattern.forEach(sp => {
-    obstacles.push(sp);
-  });
-
-  // 3. Primer Portal de Transformación a NAVE ESPACIAL en x = 2850 (Como en la foto)
-  portals.push({
-    x: 2850,
-    y: -140,
-    w: 55,
-    h: 170,
-    targetMode: 'ship',
-    type: 'ship_portal',
-    color: '#ff007f',
-    label: '🛸 NAVE ESPACIAL'
-  });
-
-  // Pista de vuelo en nave espacial (x: 2900 a 4800)
-  for (let sx = 3100; sx < 4700; sx += 320) {
-    obstacles.push({
-      x: sx,
-      type: 'hanging_stalactite',
-      h: Math.floor(Math.sin(sx) * 40 + 90)
-    });
-    // Orbes en el aire para volar entre ellos
-    jumpOrbs.push({
-      x: sx + 150,
-      y: -150 + Math.cos(sx) * 45,
-      radius: 20,
-      color: '#00f0ff'
-    });
-  }
-
-  // 4. Portal de regreso a Cubo en x = 4850
-  portals.push({
-    x: 4850,
-    y: -140,
-    w: 55,
-    h: 170,
-    targetMode: 'cube',
-    type: 'cube_portal',
-    color: '#10b981',
-    label: '🟩 CUBO'
-  });
-
-  // 5. Puertas Matemáticas Turbo para Vicky y Familia (x = 5400 y 6800)
-  mathGates.push({
-    x: 5400,
-    question: '5 + 3 = ?',
-    spoken: '¡Pregunta de matemáticas para Vicky! ¿Cuánto es 5 más 3?',
-    top: { label: '5 + 3 = 8', correct: true, val: 8 },
-    bottom: { label: '5 + 3 = 10', correct: false, val: 10 },
-    cleared: false
-  });
-
-  mathGates.push({
-    x: 6800,
-    question: '6 × 4 = ?',
-    spoken: '¡Multiplicación para Vicky y la familia! ¿Cuánto es 6 por 4?',
-    top: { label: '6 × 4 = 20', correct: false, val: 20 },
-    bottom: { label: '6 × 4 = 24', correct: true, val: 24 },
-    cleared: false
-  });
-
-  // Obstáculos finales hacia la meta
-  for (let fx = 7300; fx < 8800; fx += 280) {
-    obstacles.push({
-      x: fx,
-      type: 'spike',
-      count: (fx % 560 === 0) ? 2 : 1
-    });
-    jumpOrbs.push({
-      x: fx + 140,
-      y: -120,
-      radius: 22,
-      color: '#facc15'
-    });
-  }
-}
-
-// =========================================================
-// RENDERIZADO DE ICONOS Y CUBOS NEÓN CON EXPRESIONES
-// =========================================================
-function drawNeonCubeIcon(pctx, size, color, secColor, faceType, angle = 0, isShip = false) {
-  pctx.save();
-  pctx.translate(size / 2, size / 2);
-  pctx.rotate(angle);
-
-  const half = size / 2;
-
-  if (isShip) {
-    // NAVE ESPACIAL / COHETE (Como en el centro de la foto del usuario)
-    // Cuerpo aerodinámico amarillo
-    pctx.fillStyle = color;
-    pctx.beginPath();
-    pctx.moveTo(half - 4, 0);
-    pctx.lineTo(-half + 4, -half + 10);
-    pctx.lineTo(-half + 8, 0);
-    pctx.lineTo(-half + 4, half - 10);
-    pctx.closePath();
-    pctx.fill();
-
-    pctx.strokeStyle = '#ffffff';
-    pctx.lineWidth = 2.5;
-    pctx.stroke();
-
-    // Alas / Alerones cian
-    pctx.fillStyle = secColor;
-    pctx.beginPath();
-    pctx.moveTo(-half + 6, -half + 8);
-    pctx.lineTo(-half - 6, -half - 4);
-    pctx.lineTo(-half + 14, 0);
-    pctx.closePath();
-    pctx.fill();
-
-    // Cabina azul luminosa
-    pctx.fillStyle = '#38bdf8';
-    pctx.fillRect(-2, -6, 12, 12);
-    pctx.strokeStyle = '#ffffff';
-    pctx.lineWidth = 1.5;
-    pctx.strokeRect(-2, -6, 12, 12);
-
-    // Propulsor trasero con fuego neón
-    pctx.fillStyle = '#f97316';
-    pctx.fillRect(-half - 4, -4, 8, 8);
-  } else {
-    // CUBO ESTILO GEOMETRY DASH
-    // Cuerpo exterior con brillo neón
-    pctx.fillStyle = color;
-    pctx.fillRect(-half, -half, size, size);
-
-    // Borde brillante blanco
-    pctx.strokeStyle = '#ffffff';
-    pctx.lineWidth = 3;
-    pctx.strokeRect(-half, -half, size, size);
-
-    // Marco interior secundario
-    pctx.strokeStyle = secColor;
-    pctx.lineWidth = 2.5;
-    pctx.strokeRect(-half + 5, -half + 5, size - 10, size - 10);
-
-    // Centro del cubo
-    pctx.fillStyle = '#0f172a';
-    pctx.fillRect(-half + 8, -half + 8, size - 16, size - 16);
-
-    // Expresión de la cara (Demon / Cute / Glasses)
-    if (faceType === 'demon_cute') {
-      // Ojos pícaros luminosos cian (Como el de la foto del usuario)
-      pctx.fillStyle = '#38bdf8';
-      pctx.beginPath();
-      pctx.moveTo(-half + 10, -half + 12);
-      pctx.lineTo(-half + 17, -half + 17);
-      pctx.lineTo(-half + 10, -half + 17);
-      pctx.closePath();
-      pctx.fill();
-
-      pctx.beginPath();
-      pctx.moveTo(half - 10, -half + 12);
-      pctx.lineTo(half - 17, -half + 17);
-      pctx.lineTo(half - 10, -half + 17);
-      pctx.closePath();
-      pctx.fill();
-
-      // Sonrisa picarona con colmillitos
-      pctx.strokeStyle = '#38bdf8';
-      pctx.lineWidth = 2;
-      pctx.beginPath();
-      pctx.moveTo(-8, 5);
-      pctx.lineTo(-4, 9);
-      pctx.lineTo(0, 5);
-      pctx.lineTo(4, 9);
-      pctx.lineTo(8, 5);
-      pctx.stroke();
-    } else if (faceType === 'cat_cute') {
-      // Ojitos tiernos redondos de Vicky
-      pctx.fillStyle = '#ec4899';
-      pctx.beginPath();
-      pctx.arc(-7, -4, 4, 0, Math.PI * 2);
-      pctx.arc(7, -4, 4, 0, Math.PI * 2);
-      pctx.fill();
-      pctx.fillStyle = '#ffffff';
-      pctx.beginPath();
-      pctx.arc(-6, -5, 1.5, 0, Math.PI * 2);
-      pctx.arc(8, -5, 1.5, 0, Math.PI * 2);
-      pctx.fill();
-
-      // Sonrisita de gato
-      pctx.strokeStyle = '#ec4899';
-      pctx.lineWidth = 1.8;
-      pctx.beginPath();
-      pctx.arc(-3, 4, 3, 0, Math.PI);
-      pctx.arc(3, 4, 3, 0, Math.PI);
-      pctx.stroke();
-    } else {
-      // Gafas cibernéticas de Diego Papá
-      pctx.fillStyle = '#10b981';
-      pctx.fillRect(-12, -7, 10, 8);
-      pctx.fillRect(2, -7, 10, 8);
-      pctx.fillRect(-2, -5, 4, 3);
-      pctx.strokeStyle = '#ffffff';
-      pctx.lineWidth = 1.5;
-      pctx.strokeRect(-12, -7, 10, 8);
-      pctx.strokeRect(2, -7, 10, 8);
-
-      // Sonrisa de mentor
-      pctx.strokeStyle = '#10b981';
-      pctx.lineWidth = 2;
-      pctx.beginPath();
-      pctx.moveTo(-6, 6);
-      pctx.lineTo(6, 6);
-      pctx.stroke();
+// Renderizar avatares en la selección
+function renderPreviewCanvases() {
+  ['diegoaz_jr', 'vicky_vicky', 'diegoaz'].forEach(id => {
+    const el = document.getElementById(id === 'diegoaz_jr' ? 'prev-diego-jr' : (id === 'vicky_vicky' ? 'prev-vicky' : 'prev-diego'));
+    if (el) {
+      const c = el.getContext('2d');
+      c.clearRect(0, 0, 80, 80);
+      drawGlotonAvatar(c, 40, 40, 32, HERO_DATA[id], 0, 0.4);
     }
-  }
-
-  pctx.restore();
+  });
 }
+renderPreviewCanvases();
 
-// Pre-renderizar retratos en los canvas de selección
-function renderHeroPreviews() {
-  const pJr = document.getElementById('prev-diego-jr');
-  if (pJr) {
-    const c = pJr.getContext('2d');
-    c.clearRect(0, 0, 70, 70);
-    drawNeonCubeIcon(c, 52, HERO_DEFS.diegoaz_jr.primaryColor, HERO_DEFS.diegoaz_jr.secondaryColor, HERO_DEFS.diegoaz_jr.face);
-  }
-  const pVi = document.getElementById('prev-vicky');
-  if (pVi) {
-    const c = pVi.getContext('2d');
-    c.clearRect(0, 0, 70, 70);
-    drawNeonCubeIcon(c, 52, HERO_DEFS.vicky_vicky.primaryColor, HERO_DEFS.vicky_vicky.secondaryColor, HERO_DEFS.vicky_vicky.face);
-  }
-  const pDa = document.getElementById('prev-diego');
-  if (pDa) {
-    const c = pDa.getContext('2d');
-    c.clearRect(0, 0, 70, 70);
-    drawNeonCubeIcon(c, 52, HERO_DEFS.diegoaz.primaryColor, HERO_DEFS.diegoaz.secondaryColor, HERO_DEFS.diegoaz.face);
-  }
-}
-renderHeroPreviews();
-
-// Selección de corredor en UI
 heroCards.forEach(card => {
   card.addEventListener('click', () => {
     heroCards.forEach(c => c.classList.remove('active'));
     card.classList.add('active');
     selectedHeroId = card.getAttribute('data-id');
     initAudio();
-    playSfx('orb');
+    playSfx('eat');
   });
 });
 
-chkKidShield.addEventListener('change', (e) => {
-  isKidShieldActive = e.target.checked;
-});
-
-// Iniciar carrera
-btnStartRace.addEventListener('click', () => {
+btnStartParty.addEventListener('click', () => {
   initAudio();
-  playSfx('portal');
-  startSynthwaveMusic();
+  playSfx('correct');
+  startCheerfulMusic();
 
-  const heroDef = HERO_DEFS[selectedHeroId];
-  hudName.innerText = heroDef.name;
+  const hero = HERO_DATA[selectedHeroId];
+  hudPlayerName.innerText = hero.name;
 
-  // Dibujar mini cubo en el HUD
-  const hctx = hudCubeIcon.getContext('2d');
-  hctx.clearRect(0, 0, 32, 32);
-  drawNeonCubeIcon(hctx, 28, heroDef.primaryColor, heroDef.secondaryColor, heroDef.face);
+  // Renderizar mini avatar en el HUD
+  const hctx = hudAvatarMini.getContext('2d');
+  hctx.clearRect(0, 0, 36, 36);
+  drawGlotonAvatar(hctx, 18, 18, 15, hero, 0, 0);
 
   selectModal.classList.add('hidden');
   gameContainer.classList.remove('hidden');
   resizeCanvas();
 
-  // Conectar a Socket.io
-  socket.emit('join_game', {
-    characterId: selectedHeroId,
-    color: heroDef.primaryColor
-  });
+  socket.emit('join_game', { characterId: selectedHeroId });
 
-  generateTrack();
-
-  // Bienvenida por voz
   if (selectedHeroId === 'diegoaz_jr') {
-    speak('¡Hola Diego Junior! Toca la pantalla para saltar y cuenta los orbes numéricos.');
+    speak('¡Hola Diego Junior! Mueve tu dedito para comer frutas y burbujas.');
   } else {
-    speak('¡Bienvenidos a la carrera neón en familia!');
+    speak('¡A comer frutas en familia!');
   }
 });
 
 // =========================================================
-// FÍSICAS, SALTO Y CONTROL DEL JUGADOR (ONE-TOUCH CONTROLS)
+// RENDERIZADO DEL AVATAR GLOTÓN CON EXPRESIONES TIERNAS
 // =========================================================
-const GRAVITY = 0.88;
-const JUMP_FORCE = -15.5;
-const SHIP_THRUST = -0.72;
-const SHIP_GRAVITY = 0.48;
+function drawGlotonAvatar(pctx, x, y, radius, hero, angle = 0, mouthAmount = 0) {
+  pctx.save();
+  pctx.translate(x, y);
+  pctx.rotate(angle);
 
-function triggerJump() {
-  if (!myPlayer.isAlive) return;
+  // Sombra suave en el suelo
+  pctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  pctx.beginPath();
+  pctx.arc(0, radius * 0.15, radius * 1.05, 0, Math.PI * 2);
+  pctx.fill();
 
-  if (myPlayer.mode === 'cube') {
-    if (myPlayer.isGrounded) {
-      myPlayer.vy = JUMP_FORCE;
-      myPlayer.isGrounded = false;
-      playSfx('jump');
-      triggerScreenShake(6);
-      triggerHaptic([35]);
-      spawnJumpParticles(myPlayer.x, floorY);
+  // Cuerpo circular suave
+  const bodyGrad = pctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+  bodyGrad.addColorStop(0, '#ffffff');
+  bodyGrad.addColorStop(0.35, hero.primaryColor);
+  bodyGrad.addColorStop(1, hero.secondaryColor || hero.primaryColor);
 
-      socket.emit('player_action', { type: 'jump', x: myPlayer.x, y: myPlayer.y });
-    }
+  pctx.fillStyle = bodyGrad;
+  pctx.beginPath();
+  pctx.arc(0, 0, radius, 0, Math.PI * 2);
+  pctx.fill();
+
+  pctx.strokeStyle = '#ffffff';
+  pctx.lineWidth = Math.max(2, radius * 0.08);
+  pctx.stroke();
+
+  // Mejillas sonrosadas tiernas
+  pctx.fillStyle = hero.cheekColor || '#f87171';
+  pctx.beginPath();
+  pctx.arc(-radius * 0.5, radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+  pctx.arc(radius * 0.5, radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+  pctx.fill();
+
+  // Ojos grandes animados y expresivos
+  const eyeOffsetX = radius * 0.3;
+  const eyeOffsetY = -radius * 0.2;
+  const eyeRadius = radius * 0.22;
+
+  // Blanco de los ojos
+  pctx.fillStyle = '#ffffff';
+  pctx.beginPath();
+  pctx.arc(-eyeOffsetX, eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+  pctx.arc(eyeOffsetX, eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+  pctx.fill();
+
+  // Pupilas brillantes
+  pctx.fillStyle = '#0f172a';
+  pctx.beginPath();
+  pctx.arc(-eyeOffsetX + 1.5, eyeOffsetY, eyeRadius * 0.65, 0, Math.PI * 2);
+  pctx.arc(eyeOffsetX + 1.5, eyeOffsetY, eyeRadius * 0.65, 0, Math.PI * 2);
+  pctx.fill();
+
+  // Brillo en los ojos
+  pctx.fillStyle = '#ffffff';
+  pctx.beginPath();
+  pctx.arc(-eyeOffsetX + 2.5, eyeOffsetY - 1.5, eyeRadius * 0.25, 0, Math.PI * 2);
+  pctx.arc(eyeOffsetX + 2.5, eyeOffsetY - 1.5, eyeRadius * 0.25, 0, Math.PI * 2);
+  pctx.fill();
+
+  // Boca que se abre para comer (Nom Nom)
+  if (mouthAmount > 0.05) {
+    pctx.fillStyle = '#881337';
+    pctx.beginPath();
+    pctx.arc(0, radius * 0.28, radius * (0.2 + mouthAmount * 0.35), 0, Math.PI);
+    pctx.fill();
+
+    // Lengüita tierna
+    pctx.fillStyle = '#fb7185';
+    pctx.beginPath();
+    pctx.arc(0, radius * 0.45, radius * 0.16, 0, Math.PI);
+    pctx.fill();
+  } else {
+    // Sonrisita feliz
+    pctx.strokeStyle = '#0f172a';
+    pctx.lineWidth = Math.max(2, radius * 0.08);
+    pctx.beginPath();
+    pctx.arc(0, radius * 0.25, radius * 0.25, 0.1 * Math.PI, 0.9 * Math.PI);
+    pctx.stroke();
   }
+
+  // Detalles únicos de cada personaje
+  if (hero.faceStyle === 'jr_cute') {
+    // Coronita o antenita tierna de Diego Jr.
+    pctx.fillStyle = '#fde047';
+    pctx.beginPath();
+    pctx.moveTo(-radius * 0.3, -radius * 0.85);
+    pctx.lineTo(-radius * 0.15, -radius * 1.15);
+    pctx.lineTo(0, -radius * 0.95);
+    pctx.lineTo(radius * 0.15, -radius * 1.15);
+    pctx.lineTo(radius * 0.3, -radius * 0.85);
+    pctx.closePath();
+    pctx.fill();
+    pctx.strokeStyle = '#ca8a04';
+    pctx.lineWidth = 1.5;
+    pctx.stroke();
+  } else if (hero.faceStyle === 'vicky_star') {
+    // Lazito de Vicky
+    pctx.fillStyle = '#ec4899';
+    pctx.beginPath();
+    pctx.arc(radius * 0.45, -radius * 0.7, radius * 0.22, 0, Math.PI * 2);
+    pctx.fill();
+    pctx.fillStyle = '#ffffff';
+    pctx.beginPath();
+    pctx.arc(radius * 0.45, -radius * 0.7, radius * 0.08, 0, Math.PI * 2);
+    pctx.fill();
+  } else if (hero.faceStyle === 'dad_glasses') {
+    // Gafas y bigotito de Diego Papá
+    pctx.strokeStyle = '#1e293b';
+    pctx.lineWidth = 2.5;
+    pctx.strokeRect(-eyeOffsetX - eyeRadius * 0.9, eyeOffsetY - eyeRadius * 0.9, eyeRadius * 1.8, eyeRadius * 1.8);
+    pctx.strokeRect(eyeOffsetX - eyeRadius * 0.9, eyeOffsetY - eyeRadius * 0.9, eyeRadius * 1.8, eyeRadius * 1.8);
+    pctx.beginPath();
+    pctx.moveTo(-eyeOffsetX + eyeRadius * 0.9, eyeOffsetY);
+    pctx.lineTo(eyeOffsetX - eyeRadius * 0.9, eyeOffsetY);
+    pctx.stroke();
+  }
+
+  pctx.restore();
 }
 
-// Controles táctiles pantalla completa
-function onInputStart(e) {
-  if (e) e.preventDefault();
-  initAudio();
-  myPlayer.isHoldingJump = true;
-  triggerJump();
+// =========================================================
+// CONTROLES TÁCTILES Y DE RATÓN INTUITIVOS
+// =========================================================
+let pointerTarget = { x: 1200, y: 900, active: false };
+let joystickActive = false;
+let joystickCenter = { x: 0, y: 0 };
+
+function handlePointerMove(clientX, clientY) {
+  // Convertir coordenadas de pantalla a coordenadas del mundo de juego
+  const rect = canvas.getBoundingClientRect();
+  const screenX = clientX - rect.left;
+  const screenY = clientY - rect.top;
+
+  const camX = myPlayer.x - canvas.width / 2;
+  const camY = myPlayer.y - canvas.height / 2;
+
+  pointerTarget.x = screenX + camX;
+  pointerTarget.y = screenY + camY;
+  pointerTarget.active = true;
 }
 
-function onInputEnd(e) {
-  if (e) e.preventDefault();
-  myPlayer.isHoldingJump = false;
-}
+window.addEventListener('mousemove', (e) => {
+  handlePointerMove(e.clientX, e.clientY);
+});
 
-if (mobileTapSurface) {
-  mobileTapSurface.addEventListener('touchstart', onInputStart, { passive: false });
-  mobileTapSurface.addEventListener('touchend', onInputEnd, { passive: false });
-  mobileTapSurface.addEventListener('mousedown', onInputStart);
-  mobileTapSurface.addEventListener('mouseup', onInputEnd);
-}
+window.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 0) {
+    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: true });
 
+window.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 0) {
+    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: true });
+
+// Control con teclado en PC (WASD / Flechas)
+const keys = { up: false, down: false, left: false, right: false };
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-    if (!myPlayer.isHoldingJump) {
-      initAudio();
-      myPlayer.isHoldingJump = true;
-      triggerJump();
-    }
-  }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+  if (e.code === 'Space') activateTurbo();
 });
-
 window.addEventListener('keyup', (e) => {
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-    myPlayer.isHoldingJump = false;
-  }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
 });
 
+// Botón Turbo
+function activateTurbo() {
+  if (myPlayer.isTurbo) return;
+  myPlayer.isTurbo = true;
+  myPlayer.speed = myPlayer.turboSpeed;
+  playSfx('turbo');
+  triggerHaptic(40);
+  triggerShake();
+  setTimeout(() => {
+    myPlayer.speed = myPlayer.baseSpeed;
+    myPlayer.isTurbo = false;
+  }, 3000);
+}
+
+btnTurboBoost.addEventListener('click', activateTurbo);
+
 // =========================================================
-// ACTUALIZACIÓN DE FÍSICAS Y COLISIONES
+// FÍSICAS Y MOVIMIENTO DEL GLOTÓN
 // =========================================================
-function updatePlayer() {
-  if (!myPlayer.isAlive) return;
+function updateMyPlayer() {
+  let moveX = 0;
+  let moveY = 0;
 
-  // Avance horizontal continuo
-  myPlayer.distance += myPlayer.speed;
-  myPlayer.x = myPlayer.distance + 120;
+  if (keys.up || keys.down || keys.left || keys.right) {
+    if (keys.up) moveY -= 1;
+    if (keys.down) moveY += 1;
+    if (keys.left) moveX -= 1;
+    if (keys.right) moveX += 1;
+  } else if (pointerTarget.active) {
+    const dx = pointerTarget.x - myPlayer.x;
+    const dy = pointerTarget.y - myPlayer.y;
+    const dist = Math.hypot(dx, dy);
 
-  // Modo Cubo vs Modo Nave
-  if (myPlayer.mode === 'cube') {
-    myPlayer.vy += GRAVITY;
-    myPlayer.y += myPlayer.vy;
-
-    // Colisión con el suelo
-    if (myPlayer.y >= 0) {
-      myPlayer.y = 0;
-      myPlayer.vy = 0;
-      myPlayer.isGrounded = true;
-      // Ajustar rotación exacta a múltiplos de 90° al caer
-      myPlayer.rot = Math.round(myPlayer.rot / (Math.PI / 2)) * (Math.PI / 2);
+    if (dist > 15) {
+      moveX = dx / dist;
+      moveY = dy / dist;
+      // Apertura de boca cuando se mueve hacia comida
+      myPlayer.mouthOpen = Math.min(1, dist / 80);
     } else {
-      myPlayer.isGrounded = false;
-      // Rotar continuamente en el aire (Geometry Dash spin)
-      myPlayer.rot += 0.14;
+      myPlayer.mouthOpen = 0;
     }
-  } else if (myPlayer.mode === 'ship') {
-    // Físicas de Nave Espacial (mantener presionado para volar hacia arriba)
-    if (myPlayer.isHoldingJump) {
-      myPlayer.vy += SHIP_THRUST;
-    } else {
-      myPlayer.vy += SHIP_GRAVITY;
-    }
-
-    myPlayer.vy = Math.max(-9, Math.min(8.5, myPlayer.vy));
-    myPlayer.y += myPlayer.vy;
-
-    // Límites de vuelo de nave
-    const ceilingLimit = -260;
-    if (myPlayer.y < ceilingLimit) {
-      myPlayer.y = ceilingLimit;
-      myPlayer.vy = 0;
-    }
-    if (myPlayer.y > -20) {
-      myPlayer.y = -20;
-      myPlayer.vy = 0;
-    }
-
-    // Inclinación aerodinámica de la nave según su velocidad vertical
-    myPlayer.rot = (myPlayer.vy / 10) * 0.45;
   }
 
-  // Generar estela de partículas de cuadritos neón (como en la foto)
-  spawnTrailParticle(myPlayer.x - 16, floorY + myPlayer.y - 10, HERO_DEFS[selectedHeroId].primaryColor);
-
-  // 1. Detección de Orbes de Conteo para Diego Jr. (1, 2, 3, 4, 5)
-  countingOrbs.forEach(orb => {
-    if (!orb.collected) {
-      const dist = Math.hypot(myPlayer.x - orb.x, (floorY + myPlayer.y) - (floorY + orb.y));
-      if (dist < orb.radius + myPlayer.size / 2) {
-        orb.collected = true;
-        myPlayer.vy = JUMP_FORCE * 0.95; // Rebote asistido
-        playSfx('orb');
-        triggerScreenShake(7);
-        triggerHaptic([45, 20, 45]);
-        spawnShockwave(orb.x, floorY + orb.y, orb.color);
-
-        // Locución en voz alta del número
-        const numWords = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco'];
-        const word = numWords[orb.num - 1] || `${orb.num}`;
-        didacticEmojiIcon.innerText = '🔢';
-        didacticPromptText.innerText = `¡Número ${orb.num} (${word})!`;
-        speak(`¡${word}!`, 1.25);
-
-        if (orb.num === 5) {
-          showCelebrationToast('⭐ ¡EXCELENTE DIEGO JR.!', '¡Contaste hasta 5! (+20🪙)');
-          rewardCoins(20);
-        }
-      }
-    }
-  });
-
-  // 2. Detección de Portales de Transformación
-  portals.forEach(portal => {
-    if (Math.abs(myPlayer.x - portal.x) < 30) {
-      if (myPlayer.mode !== portal.targetMode) {
-        myPlayer.mode = portal.targetMode;
-        playSfx('portal');
-        triggerScreenShake(12);
-        triggerHaptic([60, 30, 60]);
-        spawnShockwave(portal.x, floorY + portal.y, portal.color);
-
-        didacticEmojiIcon.innerText = portal.targetMode === 'ship' ? '🛸' : '🟩';
-        didacticPromptText.innerText = portal.label;
-
-        if (portal.targetMode === 'ship') {
-          speak('¡Portal de Nave Espacial! ¡Mantén pulsada la pantalla para volar!');
-        } else {
-          speak('¡De vuelta al Cubo Saltarín!');
-        }
-      }
-    }
-  });
-
-  // 3. Detección de Puertas Matemáticas (Para Vicky y Familia)
-  mathGates.forEach(gate => {
-    if (!gate.cleared && Math.abs(myPlayer.x - gate.x) < 40) {
-      gate.cleared = true;
-      const isTop = myPlayer.y < -130;
-      const chosen = isTop ? gate.top : gate.bottom;
-
-      if (chosen.correct) {
-        playSfx('gate_correct');
-        triggerScreenShake(14);
-        triggerHaptic([80, 40, 80]);
-        showCelebrationToast('🏆 ¡BRILIANTE VICKY VICKY!', `${chosen.label} (+25🪙 & Super Turbo)`);
-        rewardCoins(25);
-        myPlayer.speed = 11.5; // Super Turbo
-        setTimeout(() => { myPlayer.speed = 8.5; }, 4000);
-        speak(`¡Brillante Vicky! ${gate.question.replace(' = ?', '')} es ${chosen.val}. ¡Super turbo activado!`);
-      } else {
-        triggerScreenShake(6);
-        speak(`¡Casi Vicky! La respuesta correcta era ${gate.top.correct ? gate.top.val : gate.bottom.val}.`);
-      }
-    }
-  });
-
-  // 4. Detección de Obstáculos y Púas
-  const playerScreenY = floorY + myPlayer.y;
-  obstacles.forEach(obs => {
-    const ox = obs.x;
-    if (Math.abs(myPlayer.x - ox) < 25) {
-      let isHit = false;
-
-      if (obs.type === 'spike') {
-        if (playerScreenY > floorY - 26) {
-          isHit = true;
-        }
-      } else if (obs.type === 'hanging_stalactite') {
-        const stalactiteBottom = floorY - 260 + obs.h;
-        if (playerScreenY - myPlayer.size / 2 < stalactiteBottom) {
-          isHit = true;
-        }
-      }
-
-      if (isHit) {
-        handleObstacleHit();
-      }
-    }
-  });
-
-  // 5. Barra de progreso multijugador
-  const progressRatio = Math.min(1, myPlayer.distance / LEVEL_LENGTH);
-  raceProgressFill.style.width = `${(progressRatio * 100).toFixed(1)}%`;
-  markerSelf.style.left = `${(progressRatio * 100).toFixed(1)}%`;
-  racePercentVal.innerText = `${Math.floor(progressRatio * 100)}%`;
-
-  // Comprobar victoria
-  if (myPlayer.distance >= LEVEL_LENGTH && victoryModal.classList.contains('hidden')) {
-    victoryModal.classList.remove('hidden');
-    playSfx('gate_correct');
-    speak('¡Felicitaciones familia! ¡Completaron la carrera en el mundo Neón!');
+  // Normalizar vector de movimiento
+  const length = Math.hypot(moveX, moveY);
+  if (length > 0) {
+    moveX /= length;
+    moveY /= length;
+    myPlayer.angle = Math.atan2(moveY, moveX);
   }
 
-  // Notificar progreso a Socket.io
-  socket.emit('player_progress', {
-    distance: myPlayer.distance,
+  // Fricción suave
+  myPlayer.vx = myPlayer.vx * 0.75 + moveX * myPlayer.speed * 0.25;
+  myPlayer.vy = myPlayer.vy * 0.75 + moveY * myPlayer.speed * 0.25;
+
+  myPlayer.x += myPlayer.vx;
+  myPlayer.y += myPlayer.vy;
+
+  // Límites de la arena con rebote elástico
+  const margin = myPlayer.size;
+  if (myPlayer.x < margin) { myPlayer.x = margin; myPlayer.vx *= -0.5; }
+  if (myPlayer.x > ARENA_W - margin) { myPlayer.x = ARENA_W - margin; myPlayer.vx *= -0.5; }
+  if (myPlayer.y < margin) { myPlayer.y = margin; myPlayer.vy *= -0.5; }
+  if (myPlayer.y > ARENA_H - margin) { myPlayer.y = ARENA_H - margin; myPlayer.vy *= -0.5; }
+
+  // Estela de burbujitas que te siguen
+  if (Math.hypot(myPlayer.vx, myPlayer.vy) > 1.2 && Math.random() < 0.35) {
+    spawnBubbleParticle(myPlayer.x, myPlayer.y, HERO_DATA[selectedHeroId].primaryColor);
+  }
+
+  // 1. Detección de colisión con Frutas y Burbujas
+  for (let i = foodItems.length - 1; i >= 0; i--) {
+    const food = foodItems[i];
+    const dist = Math.hypot(myPlayer.x - food.x, myPlayer.y - food.y);
+
+    if (dist < myPlayer.size + 14) {
+      // Comer fruta
+      socket.emit('eat_food', food.id);
+      playSfx('eat');
+      triggerHaptic(25);
+      spawnEatParticles(food.x, food.y, food.color);
+      foodItems.splice(i, 1);
+      break;
+    }
+  }
+
+  // 2. Colisión y rebote amigable con otros jugadores (Boing!)
+  Object.values(otherPlayers).forEach(other => {
+    const distP = Math.hypot(myPlayer.x - other.x, myPlayer.y - other.y);
+    const minDist = myPlayer.size + (other.size || 48);
+
+    if (distP < minDist && distP > 0) {
+      // Rebotar ambos en direcciones opuestas
+      const angleBump = Math.atan2(myPlayer.y - other.y, myPlayer.x - other.x);
+      myPlayer.vx += Math.cos(angleBump) * 6;
+      myPlayer.vy += Math.sin(angleBump) * 6;
+
+      playSfx('boing');
+      triggerHaptic(40);
+      triggerShake();
+      spawnConfetti(myPlayer.x, myPlayer.y);
+
+      socket.emit('player_bump', { targetSocketId: other.socketId, x: myPlayer.x, y: myPlayer.y });
+    }
+  });
+
+  // Notificar posición al servidor
+  socket.emit('player_move', {
+    x: myPlayer.x,
     y: myPlayer.y,
-    vy: myPlayer.vy,
-    rot: myPlayer.rot,
-    mode: myPlayer.mode,
-    isAlive: myPlayer.isAlive,
-    score: myPlayer.score,
-    speed: myPlayer.speed
+    angle: myPlayer.angle,
+    mouthOpen: myPlayer.mouthOpen
   });
 }
 
-function handleObstacleHit() {
-  if (myPlayer.shieldTimer > 0) return; // Inmune temporalmente
-
-  triggerScreenShake(12);
-  triggerHaptic([100]);
-
-  if (isKidShieldActive) {
-    // MODO PROTECTOR INFANTIL: Protege a Diego Jr. con burbuja neón sin frustración
-    myPlayer.shieldTimer = 90; // Frames de inmunidad
-    myPlayer.vy = -10; // Rebote seguro hacia arriba
-    playSfx('shield');
-    spawnShockwave(myPlayer.x, floorY + myPlayer.y, '#38bdf8');
-    speak('¡Escudo protector activado! ¡Tú puedes Diego Junior!', 1.2);
-  } else {
-    // Respawn suave a corta distancia atrás
-    myPlayer.distance = Math.max(0, myPlayer.distance - 260);
-    myPlayer.y = 0;
-    myPlayer.vy = 0;
-    myPlayer.shieldTimer = 60;
-    playSfx('shield');
-  }
-}
-
-function rewardCoins(amount) {
-  myPlayer.coins += amount;
-  hudCoins.innerText = myPlayer.coins;
-  socket.emit('save_reward', { coins: amount });
-}
-
-function showCelebrationToast(title, subtitle) {
-  toastTitle.innerText = title;
-  toastSubtitle.innerText = subtitle;
-  neonToast.classList.remove('hidden');
-  clearTimeout(showCelebrationToast.timer);
-  showCelebrationToast.timer = setTimeout(() => {
-    neonToast.classList.add('hidden');
-  }, 2600);
-}
-
 // =========================================================
-// SISTEMA DE PARTÍCULAS NEÓN Y ONDAS DE CHOQUE
+// SISTEMA DE PARTÍCULAS Y CONFETI
 // =========================================================
-function spawnTrailParticle(x, y, color) {
-  particles.push({
-    x: x + (Math.random() - 0.5) * 6,
-    y: y + (Math.random() - 0.5) * 6,
-    vx: -myPlayer.speed * 0.45,
-    vy: (Math.random() - 0.5) * 2,
-    size: Math.random() * 6 + 5,
-    color: color,
-    alpha: 0.9,
-    rot: Math.random() * Math.PI
-  });
-}
-
-function spawnJumpParticles(x, y) {
-  for (let i = 0; i < 12; i++) {
+function spawnEatParticles(x, y, color) {
+  for (let i = 0; i < 8; i++) {
     particles.push({
       x: x,
       y: y,
-      vx: (Math.random() - 0.5) * 8 - 2,
-      vy: (Math.random() - 0.5) * 4 - 3,
-      size: Math.random() * 5 + 4,
-      color: '#ffffff',
-      alpha: 1,
-      rot: Math.random() * Math.PI
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      size: Math.random() * 5 + 3,
+      color: color,
+      alpha: 1
     });
   }
 }
 
-function spawnShockwave(x, y, color) {
-  shockwaves.push({
-    x: x,
-    y: y,
-    radius: 10,
-    maxRadius: 75,
+function spawnBubbleParticle(x, y, color) {
+  particles.push({
+    x: x - Math.cos(myPlayer.angle) * myPlayer.size * 0.7,
+    y: y - Math.sin(myPlayer.angle) * myPlayer.size * 0.7,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: (Math.random() - 0.5) * 1.5,
+    size: Math.random() * 8 + 4,
     color: color,
-    alpha: 1
+    alpha: 0.65,
+    isBubble: true
   });
 }
 
-function updateAndDrawParticles(camX) {
-  // Partículas de estela
+function spawnConfetti(x, y) {
+  const colors = ['#facc15', '#f43f5e', '#10b981', '#38bdf8', '#fbbf24'];
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 10,
+      vy: (Math.random() - 0.5) * 10,
+      size: Math.random() * 6 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1
+    });
+  }
+}
+
+function updateAndDrawParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.alpha -= 0.035;
-    p.size *= 0.96;
+    p.alpha -= 0.025;
 
-    if (p.alpha <= 0 || p.size < 1) {
+    if (p.alpha <= 0) {
       particles.splice(i, 1);
       continue;
     }
@@ -978,335 +644,136 @@ function updateAndDrawParticles(camX) {
     ctx.save();
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 8;
-    ctx.translate(p.x - camX, p.y);
-    ctx.rotate(p.rot);
-    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-    ctx.restore();
-  }
 
-  // Ondas de choque circulares
-  for (let i = shockwaves.length - 1; i >= 0; i--) {
-    const s = shockwaves[i];
-    s.radius += 4.5;
-    s.alpha -= 0.045;
-
-    if (s.alpha <= 0 || s.radius >= s.maxRadius) {
-      shockwaves.splice(i, 1);
-      continue;
+    if (p.isBubble) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.fill();
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    ctx.save();
-    ctx.globalAlpha = s.alpha;
-    ctx.strokeStyle = s.color;
-    ctx.shadowColor = s.color;
-    ctx.shadowBlur = 12;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(s.x - camX, s.y, s.radius, 0, Math.PI * 2);
-    ctx.stroke();
     ctx.restore();
   }
 }
 
 // =========================================================
-// RENDERIZADO PRINCIPAL (CANVAS 60 FPS)
+// RENDERIZADO DEL JUEGO (CANVAS 60 FPS)
 // =========================================================
+let bgGridOffset = 0;
+
 function drawGame() {
   requestAnimationFrame(drawGame);
 
   const w = canvas.width;
   const h = canvas.height;
-  floorY = h * 0.76;
 
-  updatePlayer();
+  updateMyPlayer();
 
-  if (myPlayer.shieldTimer > 0) myPlayer.shieldTimer--;
-
-  // Cámara centrada en el jugador
-  const camX = myPlayer.x - w * 0.28;
-
-  // 1. FONDO ESPACIAL CYBERPUNK (Exacto a la foto)
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, '#0a031e');
-  bgGrad.addColorStop(0.5, '#170b3b');
-  bgGrad.addColorStop(1, '#28115e');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, w, h);
-
-  // Cuadrícula neón en perspectiva (Cyber Grid)
-  ctx.strokeStyle = 'rgba(139, 92, 246, 0.16)';
-  ctx.lineWidth = 1.2;
-  const gridOffsetX = -(camX * 0.3) % 40;
-  for (let x = gridOffsetX; x < w; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, floorY);
-    ctx.stroke();
-  }
-  for (let y = 0; y < floorY; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-    ctx.stroke();
-  }
-
-  // 2. SUELO GEOMÉTRICO CON BORDE NEÓN
-  const floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
-  floorGrad.addColorStop(0, '#1e1145');
-  floorGrad.addColorStop(1, '#09041a');
-  ctx.fillStyle = floorGrad;
-  ctx.fillRect(0, floorY, w, h - floorY);
-
-  // Línea superior del suelo brillante
-  ctx.strokeStyle = '#00f0ff';
-  ctx.lineWidth = 3;
-  ctx.shadowColor = '#00f0ff';
-  ctx.shadowBlur = 10;
-  ctx.beginPath();
-  ctx.moveTo(0, floorY);
-  ctx.lineTo(w, floorY);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Patrón geométrico del suelo (Dientes de sierra inferiores como en la foto)
-  ctx.fillStyle = '#150933';
-  const sawStep = 30;
-  const sawOffset = -(camX) % sawStep;
-  for (let sx = sawOffset; sx < w; sx += sawStep) {
-    ctx.beginPath();
-    ctx.moveTo(sx, floorY + 4);
-    ctx.lineTo(sx + sawStep / 2, floorY + 16);
-    ctx.lineTo(sx + sawStep, floorY + 4);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // 3. RENDERIZAR OBSTÁCULOS (Púas, Pilares, Péndulo)
-  obstacles.forEach(obs => {
-    const rx = obs.x - camX;
-    if (rx < -150 || rx > w + 150) return;
-
-    if (obs.type === 'spike') {
-      const spWidth = 26;
-      for (let i = 0; i < obs.count; i++) {
-        const sx = rx + i * spWidth;
-        // Púa neón (Triángulo con gradiente interior y contorno brillante)
-        ctx.fillStyle = '#0f0a21';
-        ctx.beginPath();
-        ctx.moveTo(sx, floorY);
-        ctx.lineTo(sx + spWidth / 2, floorY - 30);
-        ctx.lineTo(sx + spWidth, floorY);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 8;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-    } else if (obs.type === 'pillar') {
-      // Pilar de bloques futuristas con gradiente (Como en la foto)
-      const pGrad = ctx.createLinearGradient(0, floorY, 0, floorY - obs.h);
-      pGrad.addColorStop(0, '#0f0a21');
-      pGrad.addColorStop(1, '#e2e8f0');
-      ctx.fillStyle = pGrad;
-      ctx.fillRect(rx, floorY - obs.h, obs.w, obs.h);
-
-      ctx.strokeStyle = '#00f0ff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(rx, floorY - obs.h, obs.w, obs.h);
-    } else if (obs.type === 'pendulum') {
-      // Péndulo colgante con cadena (Como en la foto del usuario)
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(rx + 20, 0);
-      ctx.lineTo(rx + 20, obs.h);
-      ctx.stroke();
-
-      // Púa invertida del péndulo
-      ctx.fillStyle = '#0f0a21';
-      ctx.beginPath();
-      ctx.moveTo(rx, obs.h);
-      ctx.lineTo(rx + 20, obs.h + 40);
-      ctx.lineTo(rx + 40, obs.h);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (obs.type === 'hanging_stalactite') {
-      // Estalactita de techo en modo nave
-      ctx.fillStyle = '#1e1145';
-      ctx.fillRect(rx, floorY - 260, 30, obs.h);
-      ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(rx, floorY - 260, 30, obs.h);
-    }
-  });
-
-  // 4. RENDERIZAR ORBES DE CONTEO Y ORBES DE SALTO
-  countingOrbs.forEach(orb => {
-    const rx = orb.x - camX;
-    if (rx < -100 || rx > w + 100 || orb.collected) return;
-
-    ctx.save();
-    ctx.shadowColor = orb.color;
-    ctx.shadowBlur = 15;
-    ctx.fillStyle = orb.color;
-    ctx.beginPath();
-    ctx.arc(rx, floorY + orb.y, orb.radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Número visible en el orbe
-    ctx.fillStyle = '#020617';
-    ctx.font = 'bold 16px "Orbitron", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(orb.num, rx, floorY + orb.y);
-    ctx.restore();
-  });
-
-  jumpOrbs.forEach(orb => {
-    const rx = orb.x - camX;
-    if (rx < -100 || rx > w + 100) return;
-
-    ctx.save();
-    ctx.shadowColor = orb.color;
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = 'rgba(15, 10, 33, 0.7)';
-    ctx.beginPath();
-    ctx.arc(rx, floorY + orb.y, orb.radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = orb.color;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-  });
-
-  // 5. RENDERIZAR PORTALES DE TRANSFORMACIÓN (Hexágono Neón como en la foto)
-  portals.forEach(portal => {
-    const rx = portal.x - camX;
-    if (rx < -120 || rx > w + 120) return;
-
-    ctx.save();
-    ctx.shadowColor = portal.color;
-    ctx.shadowBlur = 20;
-
-    // Marco hexagonal alargado
-    ctx.strokeStyle = portal.color;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(rx - portal.w / 2, floorY + portal.y, portal.w, portal.h);
-
-    // Barras de energía horizontales
-    ctx.fillStyle = portal.color;
-    for (let by = floorY + portal.y + 12; by < floorY + portal.y + portal.h - 10; by += 18) {
-      ctx.fillRect(rx - portal.w / 2 + 6, by, portal.w - 12, 4);
-    }
-
-    // Texto de portal
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 8px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText(portal.label, rx, floorY + portal.y - 12);
-    ctx.restore();
-  });
-
-  // 6. RENDERIZAR PUERTAS MATEMÁTICAS (Para Vicky y Familia)
-  mathGates.forEach(gate => {
-    const rx = gate.x - camX;
-    if (rx < -160 || rx > w + 160) return;
-
-    // Puerta Superior
-    ctx.fillStyle = gate.top.correct ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
-    ctx.fillRect(rx - 60, floorY - 220, 120, 60);
-    ctx.strokeRect(rx - 60, floorY - 220, 120, 60);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px "Orbitron", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(gate.top.label, rx, floorY - 185);
-
-    // Puerta Inferior
-    ctx.fillStyle = gate.bottom.correct ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)';
-    ctx.fillRect(rx - 60, floorY - 120, 120, 60);
-    ctx.strokeRect(rx - 60, floorY - 120, 120, 60);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(gate.bottom.label, rx, floorY - 85);
-  });
-
-  // 7. RENDERIZAR OTROS JUGADORES (MULTIJUGADOR EN TIEMPO REAL)
-  Object.values(otherPlayers).forEach(other => {
-    const orx = (other.distance + 120) - camX;
-    if (orx < -100 || orx > w + 100) return;
-
-    const ory = floorY + (other.y || 0) - myPlayer.size / 2;
-    ctx.save();
-    ctx.translate(orx, ory);
-
-    // Nombre flotante con halo
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 9px "Orbitron", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = other.color || '#38bdf8';
-    ctx.shadowBlur = 8;
-    ctx.fillText(other.name, 0, -myPlayer.size / 2 - 8);
-
-    // Render de cubo u nave del compañero
-    const isOtherShip = other.mode === 'ship';
-    drawNeonCubeIcon(ctx, myPlayer.size, other.color || '#38bdf8', '#ffffff', 'demon_cute', other.rot || 0, isOtherShip);
-    ctx.restore();
-  });
-
-  // 8. RENDERIZAR JUGADOR ACTUAL (CON SOMBRA NEÓN Y ESCUDO)
-  const px = myPlayer.x - camX;
-  const py = floorY + myPlayer.y - myPlayer.size / 2;
+  // Cámara suave que sigue al jugador
+  const camX = myPlayer.x - w / 2;
+  const camY = myPlayer.y - h / 2;
 
   ctx.save();
-  ctx.translate(px, py);
+  ctx.translate(-camX, -camY);
 
-  // Escudo protector de energía para Diego Jr.
-  if (myPlayer.shieldTimer > 0) {
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 16;
+  // 1. FONDO DE LA ARENA (Cuadrícula colorida y límites)
+  ctx.fillStyle = '#1e1b4b';
+  ctx.fillRect(0, 0, ARENA_W, ARENA_H);
+
+  // Cuadrícula suave y tierna
+  ctx.strokeStyle = 'rgba(139, 92, 246, 0.12)';
+  ctx.lineWidth = 2;
+  for (let x = 0; x <= ARENA_W; x += 60) {
     ctx.beginPath();
-    ctx.arc(0, 0, myPlayer.size * 0.85, 0, Math.PI * 2);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, ARENA_H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= ARENA_H; y += 60) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(ARENA_W, y);
     ctx.stroke();
   }
 
-  // Nombre del jugador
+  // Bordes luminosos de la arena
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(0, 0, ARENA_W, ARENA_H);
+
+  // 2. DIBUJAR TODAS LAS FRUTAS Y BURBUJAS
+  const now = Date.now() / 300;
+  foodItems.forEach(food => {
+    // Solo dibujar si está cerca de la pantalla para máximo rendimiento
+    if (food.x < camX - 60 || food.x > camX + w + 60 || food.y < camY - 60 || food.y > camY + h + 60) return;
+
+    const floatY = food.y + Math.sin(now + food.id) * 4;
+
+    ctx.save();
+    if (food.isNumber) {
+      // BURBUJA CON NÚMERO (1, 2, 3, 4, 5)
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+      ctx.beginPath();
+      ctx.arc(food.x, floatY, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 22px "Grandstander", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(food.numberVal, food.x, floatY);
+    } else {
+      // FRUTA CLÁSICA CON SOMBRA
+      ctx.font = '28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(food.emoji, food.x, floatY);
+    }
+    ctx.restore();
+  });
+
+  // 3. DIBUJAR OTROS JUGADORES EN VIVO
+  Object.values(otherPlayers).forEach(other => {
+    const hero = HERO_DATA[other.id] || HERO_DATA.diegoaz;
+    drawGlotonAvatar(ctx, other.x, other.y, other.size || 48, hero, other.angle || 0, other.mouthOpen || 0);
+
+    // Nombre flotante
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px "Grandstander", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(other.name, other.x, other.y - (other.size || 48) - 10);
+    ctx.restore();
+  });
+
+  // 4. DIBUJAR MI JUGADOR
+  const myHero = HERO_DATA[selectedHeroId];
+  drawGlotonAvatar(ctx, myPlayer.x, myPlayer.y, myPlayer.size, myHero, myPlayer.angle, myPlayer.mouthOpen);
+
+  // Mi nombre flotante
+  ctx.save();
   ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 9px "Orbitron", sans-serif';
+  ctx.font = 'bold 13px "Grandstander", sans-serif';
   ctx.textAlign = 'center';
-  ctx.shadowColor = HERO_DEFS[selectedHeroId].primaryColor;
-  ctx.shadowBlur = 8;
-  ctx.fillText(HERO_DEFS[selectedHeroId].name, 0, -myPlayer.size / 2 - 8);
-
-  const isShipMode = myPlayer.mode === 'ship';
-  drawNeonCubeIcon(ctx, myPlayer.size, HERO_DEFS[selectedHeroId].primaryColor, HERO_DEFS[selectedHeroId].secondaryColor, HERO_DEFS[selectedHeroId].face, myPlayer.rot, isShipMode);
-
+  ctx.fillText(myHero.name, myPlayer.x, myPlayer.y - myPlayer.size - 10);
   ctx.restore();
 
-  // 9. DIBUJAR PARTÍCULAS Y ONDAS DE CHOQUE
-  updateAndDrawParticles(camX);
+  // 5. PARTÍCULAS Y CONFETI
+  updateAndDrawParticles();
+
+  ctx.restore();
 }
 
-// Redimensionar canvas adaptativo
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -1317,100 +784,149 @@ window.addEventListener('resize', resizeCanvas);
 // EVENTOS MULTIJUGADOR SOCKET.IO
 // =========================================================
 socket.on('init_state', (data) => {
+  if (data.arena) {
+    ARENA_W = data.arena.width;
+    ARENA_H = data.arena.height;
+  }
+  if (data.foods) {
+    foodItems = data.foods;
+  }
   if (data.players) {
-    Object.keys(data.players).forEach(sockId => {
-      if (sockId !== socket.id) {
-        otherPlayers[sockId] = data.players[sockId];
-      }
+    Object.keys(data.players).forEach(sId => {
+      if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
     });
-    updateOtherPlayerMarkers();
+    updateLeaderboard();
+  }
+  if (data.challenge) {
+    setChallenge(data.challenge);
   }
 });
 
-socket.on('player_joined', (pData) => {
-  if (pData.socketId !== socket.id) {
-    otherPlayers[pData.socketId] = pData;
-    updateOtherPlayerMarkers();
+socket.on('player_joined', (p) => {
+  if (p.socketId !== socket.id) {
+    otherPlayers[p.socketId] = p;
+    updateLeaderboard();
   }
 });
 
-socket.on('player_updated', (pData) => {
-  if (pData.socketId !== socket.id) {
-    otherPlayers[pData.socketId] = pData;
-    updateOtherPlayerMarkers();
+socket.on('player_moved', (p) => {
+  if (p.socketId !== socket.id && otherPlayers[p.socketId]) {
+    otherPlayers[p.socketId].x = p.x;
+    otherPlayers[p.socketId].y = p.y;
+    otherPlayers[p.socketId].size = p.size;
+    otherPlayers[p.socketId].angle = p.angle;
+    otherPlayers[p.socketId].mouthOpen = p.mouthOpen;
+    otherPlayers[p.socketId].score = p.score;
   }
 });
 
-socket.on('player_left', (pData) => {
-  delete otherPlayers[pData.socketId];
-  updateOtherPlayerMarkers();
+socket.on('food_eaten', (data) => {
+  // Eliminar fruta comida localmente
+  const idx = foodItems.findIndex(f => f.id === data.foodId);
+  if (idx !== -1) foodItems.splice(idx, 1);
+
+  if (data.eaterSocketId === socket.id) {
+    myPlayer.size = data.eaterSize;
+    myPlayer.score = data.eaterScore;
+    myPlayer.coins = data.eaterCoins;
+    hudCoinsVal.innerText = myPlayer.coins;
+    hudScoreVal.innerText = myPlayer.score;
+
+    if (data.completedChallenge) {
+      playSfx('correct');
+      triggerShake();
+      showToast('🎉 ¡EXCELENTE!', `¡Completaste el reto! (+15🪙)`);
+      speak(`¡Excelente ${data.eaterName}! ¡Ganaste quince monedas!`);
+    }
+  } else if (otherPlayers[data.eaterSocketId]) {
+    otherPlayers[data.eaterSocketId].size = data.eaterSize;
+    otherPlayers[data.eaterSocketId].score = data.eaterScore;
+  }
+
+  updateLeaderboard();
+});
+
+socket.on('new_food_spawned', (newFood) => {
+  foodItems.push(newFood);
+});
+
+socket.on('challenge_updated', (challenge) => {
+  setChallenge(challenge);
+});
+
+socket.on('players_bumped', (data) => {
+  if (data.p2 === socket.id) {
+    playSfx('boing');
+    triggerHaptic(40);
+    triggerShake();
+    spawnConfetti(myPlayer.x, myPlayer.y);
+  }
 });
 
 socket.on('reaction_received', (data) => {
-  // Mostrar emoji flotante en pantalla
-  showFloatingEmoji(data.emoji, data.name);
-  playSfx('orb');
+  showFloatingReaction(data.emoji, data.name);
 });
 
-function updateOtherPlayerMarkers() {
-  if (!markerOthersContainer) return;
-  markerOthersContainer.innerHTML = '';
-  Object.values(otherPlayers).forEach(p => {
-    const ratio = Math.min(1, (p.distance || 0) / LEVEL_LENGTH);
-    const m = document.createElement('div');
-    m.className = 'other-runner-marker';
-    m.style.left = `${(ratio * 100).toFixed(1)}%`;
-    m.style.backgroundColor = p.color || '#ec4899';
-    m.title = p.name;
-    markerOthersContainer.appendChild(m);
+socket.on('player_left', (data) => {
+  delete otherPlayers[data.socketId];
+  updateLeaderboard();
+});
+
+function setChallenge(ch) {
+  challengePromptText.innerText = ch.prompt;
+  speak(ch.prompt);
+}
+
+function updateLeaderboard() {
+  if (!leaderboardList) return;
+  const all = [
+    { name: HERO_DATA[selectedHeroId].name, score: myPlayer.score, isSelf: true },
+    ...Object.values(otherPlayers).map(p => ({ name: p.name, score: p.score || 0, isSelf: false }))
+  ];
+
+  all.sort((a, b) => b.score - a.score);
+
+  leaderboardList.innerHTML = '';
+  all.forEach(p => {
+    const item = document.createElement('div');
+    item.className = `lb-item ${p.isSelf ? 'self' : ''}`;
+    item.innerHTML = `<span>${p.name}</span><span>${p.score} pts</span>`;
+    leaderboardList.appendChild(item);
   });
 }
 
-function showFloatingEmoji(emoji, sender) {
-  const div = document.createElement('div');
-  div.style.position = 'absolute';
-  div.style.left = `${Math.random() * 60 + 20}%`;
-  div.style.bottom = '90px';
-  div.style.fontSize = '32px';
-  div.style.pointerEvents = 'none';
-  div.style.zIndex = '90';
-  div.style.animation = 'toastPop 0.25s ease-out, bannerFloat 1.2s forwards';
-  div.innerText = emoji;
-  document.body.appendChild(div);
-  setTimeout(() => { div.remove(); }, 1200);
+function showToast(head, desc) {
+  toastTitle.innerText = head;
+  toastDesc.innerText = desc;
+  partyToast.classList.remove('hidden');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => {
+    partyToast.classList.add('hidden');
+  }, 2800);
 }
 
-// Botones de reacciones rápidas
-document.querySelectorAll('.btn-react-emoji').forEach(btn => {
+function showFloatingReaction(emoji, name) {
+  const div = document.createElement('div');
+  div.style.position = 'absolute';
+  div.style.left = `${Math.random() * 50 + 25}%`;
+  div.style.bottom = '110px';
+  div.style.fontSize = '34px';
+  div.style.pointerEvents = 'none';
+  div.style.zIndex = '90';
+  div.style.animation = 'toastPopIn 0.3s ease-out';
+  div.innerText = `${emoji}`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 1200);
+}
+
+// Botones de emojis
+document.querySelectorAll('.btn-emoji-bubble').forEach(btn => {
   btn.addEventListener('click', () => {
     const emoji = btn.getAttribute('data-emoji');
     socket.emit('send_reaction', emoji);
-    showFloatingEmoji(emoji, 'Tú');
+    showFloatingReaction(emoji, 'Tú');
   });
 });
 
-// Botones de herramientas del HUD
-btnSpeakRepeat.addEventListener('click', () => {
-  speak(lastSpokenPrompt);
-});
-
-btnMusicToggle.addEventListener('click', () => {
-  musicEnabled = !musicEnabled;
-  btnMusicToggle.classList.toggle('active', musicEnabled);
-  btnMusicToggle.innerText = musicEnabled ? '🎵' : '🔇';
-});
-
-btnVibrateToggle.addEventListener('click', () => {
-  vibrationEnabled = !vibrationEnabled;
-  btnVibrateToggle.classList.toggle('active', vibrationEnabled);
-});
-
-btnNextLevel.addEventListener('click', () => {
-  victoryModal.classList.add('hidden');
-  myPlayer.distance = 0;
-  generateTrack();
-  speak('¡Siguiente nivel iniciado! ¡A toda velocidad!');
-});
-
-// Iniciar bucle de dibujo
+// Arrancar bucle
 requestAnimationFrame(drawGame);

@@ -3,170 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0a051b">
+  <meta name="theme-color" content="#1e1b4b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Geometry Family: Neon Dash</title>
-  <!-- Fuentes Arcade y Cyberpunk de Google Fonts -->
+  <title>Come-Frutas en Familia: Arena Glotona</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Press+Start+2P&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Grandstander:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- MODAL DE SELECCIÓN DE PERSONAJE NEÓN -->
-  <div id="character-select-modal" class="neon-modal-overlay">
-    <div class="neon-dialog-box">
-      <div class="cyber-header">
-        <h1 class="glitch-title" data-text="GEOMETRY AZ">GEOMETRY AZ</h1>
-        <p class="subtitle-neon">⚡ NEON FAMILY RUNNER ⚡</p>
+  <!-- MODAL DE SELECCIÓN DE GLOTÓN FAMILIAR -->
+  <div id="character-select-modal" class="party-modal-overlay">
+    <div class="party-dialog-box">
+      <div class="party-header">
+        <h1 class="bounce-title">🍓 COME-FRUTAS AZ 🍉</h1>
+        <p class="subtitle-party">¡La arena glotona más divertida y fácil de jugar!</p>
       </div>
 
-      <p class="select-hero-prompt">ELIGE TU CORREDOR NEÓN:</p>
+      <p class="select-hero-prompt">ELIGE TU PERSONAJE:</p>
 
       <div class="hero-cards-grid">
         <!-- Diego Junior (4 años) -->
         <div class="hero-card active" data-id="diegoaz_jr" data-color="#facc15" data-sec="#38bdf8">
-          <div class="hero-cube-preview">
-            <canvas id="prev-diego-jr" width="70" height="70" class="neon-cube-canvas"></canvas>
+          <div class="hero-avatar-circle">
+            <canvas id="prev-diego-jr" width="80" height="80" class="hero-canvas"></canvas>
           </div>
           <span class="hero-name">Diego Jr.</span>
           <span class="hero-badge badge-jr">⭐ 4 AÑOS</span>
-          <span class="hero-feature">Escudo + Números</span>
+          <span class="hero-role">Glotón Amarillo</span>
         </div>
 
         <!-- Vicky Vicky (10 años) -->
         <div class="hero-card" data-id="vicky_vicky" data-color="#f43f5e" data-sec="#06b6d4">
-          <div class="hero-cube-preview">
-            <canvas id="prev-vicky" width="70" height="70" class="neon-cube-canvas"></canvas>
+          <div class="hero-avatar-circle">
+            <canvas id="prev-vicky" width="80" height="80" class="hero-canvas"></canvas>
           </div>
           <span class="hero-name">Vicky Vicky</span>
-          <span class="hero-badge badge-vicky">🚀 10 AÑOS</span>
-          <span class="hero-feature">Turbo + Matemáticas</span>
+          <span class="hero-badge badge-vicky">🍓 10 AÑOS</span>
+          <span class="hero-role">Cazadora Rosa</span>
         </div>
 
         <!-- Diego Papá (46 años) -->
         <div class="hero-card" data-id="diegoaz" data-color="#10b981" data-sec="#f59e0b">
-          <div class="hero-cube-preview">
-            <canvas id="prev-diego" width="70" height="70" class="neon-cube-canvas"></canvas>
+          <div class="hero-avatar-circle">
+            <canvas id="prev-diego" width="80" height="80" class="hero-canvas"></canvas>
           </div>
           <span class="hero-name">Diego (Papá)</span>
           <span class="hero-badge badge-dad">👑 GUÍA</span>
-          <span class="hero-feature">Piloto Cyber</span>
+          <span class="hero-role">Glotón Esmeralda</span>
         </div>
       </div>
 
-      <div class="assist-toggle-row">
-        <label class="assist-switch" title="Protege a los más pequeños para que nunca pierdan y sigan jugando">
-          <input type="checkbox" id="chk-kid-shield" checked>
-          <span class="slider-neon"></span>
-          <span class="assist-label">🛡️ Modo Protector (Para Diego Jr. - Rebote seguro)</span>
-        </label>
+      <div class="how-to-play-card">
+        <span class="how-icon">💡</span>
+        <span class="how-text"><b>¿Cómo se juega?</b> Solo desliza tu dedo por la pantalla hacia las frutas. ¡Come manzanas, fresas y burbujas con números para crecer y ganar monedas!</span>
       </div>
 
-      <button id="btn-start-race" class="btn-neon-action">
-        <span>▶ ¡A CORRER EN FAMILIA!</span>
+      <button id="btn-start-party" class="btn-party-action">
+        <span>▶ ¡A COMER FRUTAS EN FAMILIA!</span>
       </button>
-
-      <div class="controls-hint">
-        <span>📱 <b>Celular:</b> Toca la pantalla para saltar / Mantén para volar con la nave</span>
-        <span>💻 <b>PC:</b> Barra Espaciadora o Clic del ratón</span>
-      </div>
     </div>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL DEL JUEGO -->
+  <!-- PANTALLA PRINCIPAL DEL JUEGO -->
   <div id="game-container" class="hidden">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD SUPERIOR ENERGÉTICO NEÓN -->
-    <header id="neon-hud">
-      <!-- Izquierda: Estado del jugador actual -->
-      <div class="hud-left-player">
-        <canvas id="hud-cube-icon" width="32" height="32" class="hud-mini-cube"></canvas>
-        <div class="hud-player-meta">
-          <span id="hud-name" class="hud-player-title">Diego Jr.</span>
-          <div class="hud-stats-row">
-            <span class="coin-pill"><span class="coin-icon">🪙</span> <span id="hud-coins">100</span></span>
-            <span class="speed-pill">⚡ <span id="hud-speed">1.0x</span></span>
+    <!-- HUD SUPERIOR ENERGÉTICO Y AMIGABLE -->
+    <header id="party-hud">
+      <!-- Izquierda: Estado del jugador -->
+      <div class="hud-player-pill">
+        <canvas id="hud-avatar-mini" width="36" height="36" class="hud-mini-canvas"></canvas>
+        <div class="hud-player-stats">
+          <span id="hud-player-name" class="hud-title">Diego Jr.</span>
+          <div class="hud-coins-row">
+            <span class="coin-icon">🪙</span>
+            <span id="hud-coins-val" class="coin-num">100</span>
+            <span class="score-tag">⭐ <span id="hud-score-val">0</span> pts</span>
           </div>
         </div>
       </div>
 
-      <!-- Centro: Barra de progreso de la carrera multijugador -->
-      <div class="hud-center-race">
-        <div class="race-track-bar">
-          <div id="race-progress-fill" class="race-track-fill"></div>
-          <!-- Marcadores de corredores en la barra -->
-          <div id="marker-self" class="race-runner-marker self-marker" title="Tú"></div>
-          <div id="marker-others-container"></div>
-          <span class="finish-flag-icon">🏁</span>
-        </div>
-        <div class="race-percent-text">
-          <span id="race-percent-val">0%</span>
+      <!-- Centro: Reto Didáctico Activo (Con voz y altavoz) -->
+      <div id="didactic-banner" class="hud-challenge-banner">
+        <button id="btn-repeat-voice" class="voice-btn" title="Toca para escuchar en voz alta">
+          <span class="speaker-icon">🔊</span>
+        </button>
+        <div class="challenge-info">
+          <span id="challenge-prompt-text" class="challenge-text">¡Diego Jr., busca el número 3!</span>
         </div>
       </div>
 
-      <!-- Derecha: Herramientas didácticas y audio -->
-      <div class="hud-right-tools">
-        <!-- Botón de voz para repetir pregunta/figura -->
-        <button id="btn-speak-repeat" class="hud-tool-btn" title="Repetir voz didáctica">🔊</button>
-        <!-- Música synthwave -->
-        <button id="btn-music-toggle" class="hud-tool-btn" title="Música Neón">🎵</button>
-        <!-- Vibración on/off -->
-        <button id="btn-vibrate-toggle" class="hud-tool-btn active" title="Vibración háptica">📳</button>
+      <!-- Derecha: Tabla de posiciones en vivo de la familia -->
+      <div class="hud-leaderboard-box">
+        <span class="lb-title">🏆 FAMILIA AZ</span>
+        <div id="leaderboard-list" class="lb-list">
+          <!-- Jugadores en vivo -->
+        </div>
       </div>
     </header>
 
-    <!-- BANNER DE RETO DIDÁCTICO ACTIVO (NÚMEROS, COLORES, MATEMÁTICAS) -->
-    <div id="didactic-live-pill" class="neon-live-banner">
-      <span id="didactic-emoji-icon" class="pill-icon">🔢</span>
-      <span id="didactic-prompt-text" class="pill-text">¡Rebota en los orbes para contar 1, 2, 3!</span>
+    <!-- TOAST DE CELEBRACIÓN AL COMER LA FRUTA CORRECTA -->
+    <div id="party-toast" class="party-toast-box hidden">
+      <span id="toast-title" class="toast-head">🎉 ¡EXCELENTE DIEGO JR.!</span>
+      <span id="toast-sub" class="toast-desc">¡Comiste el número correcto! (+15🪙)</span>
     </div>
 
-    <!-- TOAST DE FELICITACIÓN Y PREMIO -->
-    <div id="neon-toast" class="neon-celebration-toast hidden">
-      <span id="toast-title" class="toast-headline">⭐ ¡EXCELENTE DIEGO JR.!</span>
-      <span id="toast-subtitle" class="toast-subline">+15 Monedas Ganadas</span>
-    </div>
-
-    <!-- REACCIONES MULTIJUGADOR FLOTANTES -->
-    <div id="reaction-bar" class="hud-reaction-bar">
-      <button class="btn-react-emoji" data-emoji="🔥">🔥</button>
-      <button class="btn-react-emoji" data-emoji="🚀">🚀</button>
-      <button class="btn-react-emoji" data-emoji="⭐">⭐</button>
-      <button class="btn-react-emoji" data-emoji="🎉">🎉</button>
-      <button class="btn-react-emoji" data-emoji="💖">💖</button>
-    </div>
-
-    <!-- BOTÓN TÁCTIL GRANDE PARA CELULAR (ONE-TOUCH JUMP) -->
-    <div id="mobile-tap-surface" class="mobile-jump-overlay">
-      <div id="tap-indicator-ripple" class="tap-ripple-prompt">
-        <span class="tap-emoji-symbol">👆</span>
-        <span class="tap-label-text">TOCA PARA SALTAR O VOLAR</span>
+    <!-- JOYSTICK VIRTUAL FLOTANTE PARA CELULAR -->
+    <div id="virtual-joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-thumb"></div>
       </div>
     </div>
 
-    <!-- MODAL DE VICTORIA / CHECKPOINT -->
-    <div id="victory-modal" class="neon-modal-overlay hidden">
-      <div class="neon-dialog-box victory-box">
-        <h2 class="victory-title">🏆 ¡CARRERA COMPLETADA!</h2>
-        <p class="victory-msg">¡La Familia Az conquistó el mundo Neón!</p>
-        <div class="victory-stats">
-          <div class="v-stat-card">
-            <span class="v-stat-num" id="v-coins-earned">+50</span>
-            <span class="v-stat-lbl">🪙 Monedas</span>
-          </div>
-          <div class="v-stat-card">
-            <span class="v-stat-num" id="v-math-cleared">100%</span>
-            <span class="v-stat-lbl">⭐ Didáctica</span>
-          </div>
-        </div>
-        <button id="btn-next-level" class="btn-neon-action">
-          <span>⚡ ¡SIGUIENTE NIVEL NEÓN!</span>
-        </button>
+    <!-- BOTÓN DE TURBO & REACCIONES -->
+    <div id="party-actions-bottom">
+      <div class="reaction-bubbles">
+        <button class="btn-emoji-bubble" data-emoji="😋">😋</button>
+        <button class="btn-emoji-bubble" data-emoji="🍎">🍎</button>
+        <button class="btn-emoji-bubble" data-emoji="⭐">⭐</button>
+        <button class="btn-emoji-bubble" data-emoji="💖">💖</button>
       </div>
+
+      <button id="btn-turbo-boost" class="btn-turbo-action" title="Super Turbo">
+        <span class="turbo-icon">⚡</span>
+        <span class="turbo-label">TURBO</span>
+      </button>
     </div>
   </div>
 
