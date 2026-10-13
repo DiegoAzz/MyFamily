@@ -1,114 +1,76 @@
-// ==========================================
-// EL BARRIO AZ - MOTOR PIXEL ART URBANO & DIDÁCTICO
-// Enseña Números, Colores, Animales y Matemáticas
-// ==========================================
+// =========================================================
+// GEOMETRY FAMILY: NEON DASH - MOTOR DEL JUEGO
+// Gráficos Cyberpunk / Geometry Dash Neón + Vibraciones + Multijugador
+// =========================================================
 
+// Socket.io Multijugador
 const socket = io({
   transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionAttempts: 30
 });
 
-// Canvas
+// Canvas & Contexto
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
 
 // DOM Elements
-const modalSelect = document.getElementById('character-select-modal');
+const selectModal = document.getElementById('character-select-modal');
 const gameContainer = document.getElementById('game-container');
-const btnStart = document.getElementById('btn-start-game');
-const portraitCards = document.querySelectorAll('.portrait-card');
-const playerCoinsVal = document.getElementById('player-coins-val');
-const familyVaultVal = document.getElementById('family-vault-val');
-const locationBadge = document.getElementById('location-badge');
-const hudPlayerName = document.getElementById('hud-player-name');
-const hudMiniPortrait = document.getElementById('hud-mini-portrait');
-const alertBanner = document.getElementById('alert-banner');
-const alertText = document.getElementById('alert-text');
-const btnActionMain = document.getElementById('btn-action-main');
-const actionBtnEmoji = document.getElementById('action-btn-emoji');
-const actionBtnLabel = document.getElementById('action-btn-label');
-const btnToggleReactions = document.getElementById('btn-toggle-reactions');
-const quickReactions = document.getElementById('quick-reactions');
-const btnAudioToggle = document.getElementById('btn-audio-toggle');
-const houseShopModal = document.getElementById('house-shop-modal');
-const btnOpenHouseShop = document.getElementById('btn-open-house-shop');
-const btnCloseShop = document.getElementById('btn-close-shop');
+const btnStartRace = document.getElementById('btn-start-race');
+const heroCards = document.querySelectorAll('.hero-card');
+const chkKidShield = document.getElementById('chk-kid-shield');
 
-// Elementos Didácticos DOM
-const btnOpenLearn = document.getElementById('btn-open-learn');
-const didacticModal = document.getElementById('didactic-modal');
-const btnCloseLearn = document.getElementById('btn-close-learn');
-const btnRepeatVoice = document.getElementById('btn-repeat-voice');
-const voiceTranscript = document.getElementById('voice-transcript');
-const learnTabBtns = document.querySelectorAll('.tab-btn');
-const numberQuestText = document.getElementById('number-quest-text');
-const numberItemsDisplay = document.getElementById('number-items-display');
-const numberFeedback = document.getElementById('number-feedback');
-const colorQuestText = document.getElementById('color-quest-text');
-const colorFeedback = document.getElementById('color-feedback');
-const mathQuestion = document.getElementById('math-question');
-const mathOptionsRow = document.getElementById('math-options-row');
-const mathFeedback = document.getElementById('math-feedback');
+const hudName = document.getElementById('hud-name');
+const hudCoins = document.getElementById('hud-coins');
+const hudSpeed = document.getElementById('hud-speed');
+const hudCubeIcon = document.getElementById('hud-cube-icon');
+const raceProgressFill = document.getElementById('race-progress-fill');
+const markerSelf = document.getElementById('marker-self');
+const markerOthersContainer = document.getElementById('marker-others-container');
+const racePercentVal = document.getElementById('race-percent-val');
 
-// Joystick
-const joystickArea = document.getElementById('joystick-area');
-const joystickRing = document.getElementById('joystick-ring');
-const joystickKnob = document.getElementById('joystick-knob');
+const btnSpeakRepeat = document.getElementById('btn-speak-repeat');
+const btnMusicToggle = document.getElementById('btn-music-toggle');
+const btnVibrateToggle = document.getElementById('btn-vibrate-toggle');
 
-// ==========================================
-// MUNDO Y ZOOM BALANCEADO (1.35x)
-// ==========================================
-const WORLD_WIDTH = 2000;
-const WORLD_HEIGHT = 1500;
-const camera = { x: 1000, y: 700 };
-let zoomScale = 1.35;
+const didacticLivePill = document.getElementById('didactic-live-pill');
+const didacticEmojiIcon = document.getElementById('didactic-emoji-icon');
+const didacticPromptText = document.getElementById('didactic-prompt-text');
 
-let selectedCharId = 'diegoaz_jr';
-let myPlayer = null;
-const otherPlayers = {};
-let familyVaultCoins = 500;
-let activeBubbles = {};
-let particles = [];
-let gameTime = 0;
+const neonToast = document.getElementById('neon-toast');
+const toastTitle = document.getElementById('toast-title');
+const toastSubtitle = document.getElementById('toast-subtitle');
 
-// Objetos interactivos en el vecindario
-const soccerBall = { x: 550, y: 1100, vx: 0, vy: 0, radius: 10 };
+const mobileTapSurface = document.getElementById('mobile-tap-surface');
+const victoryModal = document.getElementById('victory-modal');
+const btnNextLevel = document.getElementById('btn-next-level');
 
-// ANIMALES DIDÁCTICOS VIVOS EN EL VECINDARIO
-const townAnimals = [
-  { id: 'dog', name: 'Toby', type: 'PERRO', emoji: '🐶', sound: 'dog', x: 680, y: 1040, phrase: '¡Soy el PERRO Toby y hago Guau-Guau!' },
-  { id: 'cat', name: 'Misi', type: 'GATO', emoji: '🐱', sound: 'cat', x: 740, y: 1080, phrase: '¡Soy la GATITA Misi y hago Miau-Miau!' },
-  { id: 'duck', name: 'Lucas', type: 'PATO', emoji: '🦆', sound: 'duck', x: 820, y: 1120, phrase: '¡Soy el PATO Lucas y hago Cua-Cua!' },
-  { id: 'cow', name: 'Margarita', type: 'VACA', emoji: '🐮', sound: 'cow', x: 420, y: 1180, phrase: '¡Soy la VACA Margarita y doy leche rica: Muuu!' },
-  { id: 'sheep', name: 'Copito', type: 'OVEJA', emoji: '🐑', sound: 'sheep', x: 480, y: 1220, phrase: '¡Soy la OVEJA Copito y tengo lana suave: Beee!' }
-];
-
-let streetCoins = [
-  { x: 920, y: 680, collected: false },
-  { x: 1080, y: 680, collected: false },
-  { x: 1000, y: 520, collected: false },
-  { x: 1000, y: 840, collected: false },
-  { x: 1300, y: 680, collected: false },
-  { x: 700, y: 680, collected: false },
-  { x: 550, y: 1050, collected: false }
-];
-
-// ==========================================
-// SISTEMA DE AUDIO (EFECTOS Y ANIMALES SINTETIZADOS)
-// ==========================================
-let audioEnabled = true;
+// =========================================================
+// CONFIGURACIÓN DE AUDIO SINTETIZADO & BEAT SYNTHWAVE
+// =========================================================
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
+let musicEnabled = true;
+let sfxEnabled = true;
+let vibrationEnabled = true;
+let beatTimer = null;
+let beatStep = 0;
+const BPM = 126;
+const BEAT_INTERVAL = (60 / BPM) * 1000 / 4; // semicorcheas
 
 function initAudio() {
-  if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!audioCtx) {
+    audioCtx = new AudioCtx();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
+// Síntesis de efectos de sonido estilo Geometry Dash
 function playSfx(type) {
-  if (!audioEnabled) return;
+  if (!sfxEnabled) return;
   try {
     initAudio();
     const now = audioCtx.currentTime;
@@ -117,1362 +79,1338 @@ function playSfx(type) {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
 
-    if (type === 'coin') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(987, now);
-      osc.frequency.setValueAtTime(1318, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
-    } else if (type === 'dog') {
-      // Ladrido perro
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.linearRampToValueAtTime(560, now + 0.06);
-      osc.frequency.linearRampToValueAtTime(320, now + 0.15);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
-      osc.start(now); osc.stop(now + 0.16);
-    } else if (type === 'cat') {
-      // Miau gato agudo
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(650, now);
-      osc.frequency.linearRampToValueAtTime(880, now + 0.15);
-      osc.frequency.linearRampToValueAtTime(540, now + 0.35);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
-      osc.start(now); osc.stop(now + 0.35);
-    } else if (type === 'duck') {
-      // Cua cua pato nasal
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.setValueAtTime(260, now + 0.08);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
-      osc.start(now); osc.stop(now + 0.18);
-    } else if (type === 'cow') {
-      // Muuu vaca grave
+    if (type === 'jump') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.linearRampToValueAtTime(140, now + 0.4);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
-      osc.start(now); osc.stop(now + 0.45);
-    } else if (type === 'sheep') {
-      // Beee oveja con trémolo
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(320, now);
-      osc.frequency.linearRampToValueAtTime(350, now + 0.15);
-      osc.frequency.linearRampToValueAtTime(300, now + 0.35);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.38);
-      osc.start(now); osc.stop(now + 0.38);
-    } else if (type === 'chicken') {
-      // Co-co gallina
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(450, now);
-      osc.frequency.setValueAtTime(520, now + 0.06);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-      osc.start(now); osc.stop(now + 0.15);
-    } else if (type === 'correct') {
-      // Acierto didáctico alegre
-      [523, 659, 783, 1046].forEach((f, idx) => {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.type = 'triangle';
-        o.frequency.setValueAtTime(f, now + idx * 0.07);
-        g.gain.setValueAtTime(0.18, now + idx * 0.07);
-        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.22);
-        o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.22);
-      });
-    } else if (type === 'kick') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(140, now);
-      osc.frequency.exponentialRampToValueAtTime(25, now + 0.14);
-      gain.gain.setValueAtTime(0.3, now);
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(540, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
       osc.start(now); osc.stop(now + 0.14);
-    } else if (type === 'fanfare') {
-      [523, 659, 783, 1046].forEach((f, idx) => {
+    } else if (type === 'orb') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587, now);
+      osc.frequency.setValueAtTime(880, now + 0.08);
+      osc.frequency.setValueAtTime(1174, now + 0.16);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'portal') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(950, now + 0.25);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+      osc.start(now); osc.stop(now + 0.28);
+    } else if (type === 'gate_correct') {
+      [523, 659, 783, 1046, 1318].forEach((f, idx) => {
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
         o.type = 'triangle';
-        o.frequency.setValueAtTime(f, now + idx * 0.08);
-        g.gain.setValueAtTime(0.18, now + idx * 0.08);
-        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.22);
-        o.start(now + idx * 0.08); o.stop(now + idx * 0.08 + 0.22);
+        o.frequency.setValueAtTime(f, now + idx * 0.06);
+        g.gain.setValueAtTime(0.18, now + idx * 0.06);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.06 + 0.2);
+        o.start(now + idx * 0.06); o.stop(now + idx * 0.06 + 0.2);
       });
+    } else if (type === 'shield') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.2);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+      osc.start(now); osc.stop(now + 0.28);
     }
   } catch (e) {}
 }
 
-btnAudioToggle.addEventListener('click', () => {
-  audioEnabled = !audioEnabled;
-  btnAudioToggle.innerText = audioEnabled ? '🔊' : '🔇';
-});
+// Bucle musical Synthwave sintetizado (cero descargas, ligero y rítmico)
+function startSynthwaveMusic() {
+  if (beatTimer) clearInterval(beatTimer);
+  beatTimer = setInterval(() => {
+    if (!musicEnabled || !audioCtx) return;
+    try {
+      const now = audioCtx.currentTime;
+      const step = beatStep % 16;
+      beatStep++;
 
-// ==========================================
-// MOTOR DE VOZ SINTETIZADA (TEXT-TO-SPEECH)
-// Permite que Diego Jr. (4 años) juegue sin saber leer
-// ==========================================
-let lastSpokenText = '¡Hola Diego Junior! Toca un botón arriba para jugar.';
-let spanishVoices = [];
+      // Bombo potente en compases 0, 4, 8, 12 (Four-on-the-floor)
+      if (step === 0 || step === 4 || step === 8 || step === 12) {
+        const kickOsc = audioCtx.createOscillator();
+        const kickGain = audioCtx.createGain();
+        kickOsc.connect(kickGain); kickGain.connect(audioCtx.destination);
+        kickOsc.frequency.setValueAtTime(140, now);
+        kickOsc.frequency.exponentialRampToValueAtTime(32, now + 0.09);
+        kickGain.gain.setValueAtTime(0.26, now);
+        kickGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        kickOsc.start(now); kickOsc.stop(now + 0.1);
 
-function refreshVoices() {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    const allVoices = window.speechSynthesis.getVoices();
-    spanishVoices = allVoices.filter(v => v.lang && (v.lang.toLowerCase().startsWith('es') || v.lang.includes('ES')));
+        // Pulso visual sutil en el bombo
+        triggerBeatPulse();
+      }
+
+      // Bajo rodante Cyberpunk en semicorcheas
+      const bassNotes = [110, 110, 130, 110, 146, 110, 130, 164, 110, 110, 130, 110, 146, 164, 196, 130];
+      const bassFreq = bassNotes[step];
+      const bassOsc = audioCtx.createOscillator();
+      const bassGain = audioCtx.createGain();
+      bassOsc.connect(bassGain); bassGain.connect(audioCtx.destination);
+      bassOsc.type = 'sawtooth';
+      bassOsc.frequency.setValueAtTime(bassFreq, now);
+      bassGain.gain.setValueAtTime(0.07, now);
+      bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      bassOsc.start(now); bassOsc.stop(now + 0.08);
+
+      // Chiptune Arpegio brillante en compases pares
+      if (step % 2 === 0) {
+        const arpNotes = [440, 523, 659, 783, 880, 1046, 880, 659];
+        const arpFreq = arpNotes[(step / 2) % arpNotes.length];
+        const arpOsc = audioCtx.createOscillator();
+        const arpGain = audioCtx.createGain();
+        arpOsc.connect(arpGain); arpGain.connect(audioCtx.destination);
+        arpOsc.type = 'square';
+        arpOsc.frequency.setValueAtTime(arpFreq, now);
+        arpGain.gain.setValueAtTime(0.03, now);
+        arpGain.gain.exponentialRampToValueAtTime(0.005, now + 0.07);
+        arpOsc.start(now); arpOsc.stop(now + 0.07);
+      }
+    } catch (e) {}
+  }, BEAT_INTERVAL);
+}
+
+// =========================================================
+// SISTEMA DE VIBRACIÓN HÁPTICA Y SACUDIDA DE PANTALLA
+// =========================================================
+let screenShakeMagnitude = 0;
+
+function triggerScreenShake(amount = 8) {
+  screenShakeMagnitude = Math.max(screenShakeMagnitude, amount);
+  if (gameContainer) {
+    gameContainer.classList.remove('screen-shake');
+    void gameContainer.offsetWidth; // reflow
+    gameContainer.classList.add('screen-shake');
+    setTimeout(() => {
+      gameContainer.classList.remove('screen-shake');
+    }, 180);
   }
 }
 
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  refreshVoices();
+function triggerHaptic(pattern = [40, 25, 40]) {
+  if (vibrationEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {}
+  }
+}
+
+function triggerBeatPulse() {
+  if (gameContainer) {
+    gameContainer.classList.add('beat-pulse');
+    setTimeout(() => {
+      gameContainer.classList.remove('beat-pulse');
+    }, 150);
+  }
+}
+
+// =========================================================
+// SINTETIZADOR DE VOZ EDUCATIVO (TEXT-TO-SPEECH)
+// Permite que Diego Jr. (4 años) escuche todo sin saber leer
+// =========================================================
+let lastSpokenPrompt = '¡Rebota en los orbes para contar!';
+let spanishVoices = [];
+
+function loadVoices() {
+  if ('speechSynthesis' in window) {
+    spanishVoices = window.speechSynthesis.getVoices().filter(v =>
+      v.lang && (v.lang.toLowerCase().startsWith('es') || v.lang.includes('ES'))
+    );
+  }
+}
+if ('speechSynthesis' in window) {
+  loadVoices();
   if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = refreshVoices;
+    window.speechSynthesis.onvoiceschanged = loadVoices;
   }
 }
 
 function speak(text, pitch = 1.15, rate = 0.95) {
-  lastSpokenText = text;
-  if (voiceTranscript) {
-    voiceTranscript.innerText = text;
-  }
-  if (!audioEnabled || !('speechSynthesis' in window)) return;
-
+  lastSpokenPrompt = text;
+  if (!('speechSynthesis' in window)) return;
   try {
-    window.speechSynthesis.cancel(); // Detener cualquier locución en curso
+    window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'es-ES';
-    utter.rate = rate;   // Ritmo pausado y claro para un niño de 4 años
-    utter.pitch = pitch; // Tono alegre y cálido
+    utter.pitch = pitch;
+    utter.rate = rate;
 
-    if (!spanishVoices.length) refreshVoices();
+    if (!spanishVoices.length) loadVoices();
     if (spanishVoices.length > 0) {
-      const friendlyVoice = spanishVoices.find(v => /sabina|monica|paulina|lucia|laura|helena|spanish|mexico/i.test(v.name)) || spanishVoices[0];
-      if (friendlyVoice) utter.voice = friendlyVoice;
+      const friendly = spanishVoices.find(v => /sabina|monica|paulina|lucia|laura|helena|spanish/i.test(v.name)) || spanishVoices[0];
+      if (friendly) utter.voice = friendly;
     }
-
-    const speakerIcon = document.querySelector('.speaker-anim');
-    if (speakerIcon) speakerIcon.classList.add('talking');
-
-    utter.onend = () => {
-      if (speakerIcon) speakerIcon.classList.remove('talking');
-    };
-    utter.onerror = () => {
-      if (speakerIcon) speakerIcon.classList.remove('talking');
-    };
-
     window.speechSynthesis.speak(utter);
-  } catch (e) {
-    console.warn('Speech error:', e);
-  }
+  } catch (e) {}
 }
 
-// ==========================================
-// MOTOR DIDÁCTICO Y EDUCATIVO
-// ==========================================
+// =========================================================
+// PERSONAJES Y ESTADO DEL JUGADOR
+// =========================================================
+let selectedHeroId = 'diegoaz_jr';
+let isKidShieldActive = true;
 
-// Pestañas didácticas con narración instantánea
-learnTabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    initAudio();
-    playSfx('kick');
-    learnTabBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    const tabId = btn.getAttribute('data-tab');
-    document.querySelectorAll('.learn-content-view').forEach(view => view.classList.add('hidden'));
-    const target = document.getElementById(`tab-${tabId}`);
-    if (target) target.classList.remove('hidden');
-
-    if (tabId === 'junior-animals') {
-      speak('¡Animales del barrio! Toca cualquier animal para escuchar cómo hace.');
-    } else if (tabId === 'junior-numbers') {
-      initNumberQuest();
-    } else if (tabId === 'junior-colors') {
-      initColorQuest();
-    } else if (tabId === 'vicky-math') {
-      initMathQuest();
-    }
-  });
-});
-
-// 1. ANIMALES INTERACTIVOS CON VOZ Y SONIDO
-const animalVoiceLines = {
-  dog: '¡El perro Toby! ¡Hace guau guau!',
-  cat: '¡La gatita Misi! ¡Hace miau miau!',
-  duck: '¡El pato Lucas! ¡Hace cua cua!',
-  cow: '¡La vaca Margarita! ¡Hace muuu y nos da leche rica!',
-  sheep: '¡La oveja Copito! ¡Hace beee y tiene lana suave!',
-  chicken: '¡La gallina Turuleca! ¡Hace co co co!'
+const HERO_DEFS = {
+  diegoaz_jr: {
+    id: 'diegoaz_jr',
+    name: 'Diegoaz Jr.',
+    role: 'Cadete Espacial (4 años)',
+    primaryColor: '#facc15', // Amarillo Dorado
+    secondaryColor: '#38bdf8', // Cian
+    trailColor: '#facc15',
+    face: 'demon_cute'
+  },
+  vicky_vicky: {
+    id: 'vicky_vicky',
+    name: 'Vicky Vicky',
+    role: 'Científica Neón (10 años)',
+    primaryColor: '#f43f5e', // Rosa Neón / Magenta
+    secondaryColor: '#06b6d4', // Cian
+    trailColor: '#ec4899',
+    face: 'cat_cute'
+  },
+  diegoaz: {
+    id: 'diegoaz',
+    name: 'Diego (Papá)',
+    role: 'Guía & Piloto Mayor',
+    primaryColor: '#10b981', // Verde Esmeralda Neón
+    secondaryColor: '#f59e0b', // Ámbar
+    trailColor: '#10b981',
+    face: 'glasses_pro'
+  }
 };
 
-document.querySelectorAll('.animal-card').forEach(card => {
-  card.addEventListener('click', () => {
-    initAudio();
-    const aType = card.getAttribute('data-animal');
-    playSfx(aType);
-    const title = card.getAttribute('data-title') || 'Animal';
-    showAlert(`🎉 ¡${title}! (+5🪙)`);
-    rewardCoins(5);
+let myPlayer = {
+  x: 100,
+  y: 0,
+  vy: 0,
+  rot: 0,
+  size: 42,
+  mode: 'cube', // 'cube' o 'ship'
+  isGrounded: false,
+  isHoldingJump: false,
+  isAlive: true,
+  shieldTimer: 0,
+  score: 0,
+  coins: 100,
+  speed: 8.5,
+  distance: 0
+};
 
-    const voiceLine = animalVoiceLines[aType] || `¡${title}!`;
-    speak(voiceLine);
-  });
-});
+const otherPlayers = {};
+let particles = [];
+let shockwaves = [];
+let floatingEmojis = [];
 
-// 2. NÚMEROS Y CONTEO (JUNIOR 4 AÑOS)
-let currentCountTarget = 3;
-const countItemTypes = [
-  { emoji: '🍎', nameSing: 'manzana', namePlur: 'manzanas' },
-  { emoji: '⭐', nameSing: 'estrella', namePlur: 'estrellas' },
-  { emoji: '🚗', nameSing: 'carrito', namePlur: 'carritos' },
-  { emoji: '🦆', nameSing: 'patito', namePlur: 'patitos' },
-  { emoji: '⚽', nameSing: 'pelota', namePlur: 'pelotas' }
-];
-let currentItemObj = countItemTypes[0];
+// =========================================================
+// PISTA Y GENERACIÓN DEL MUNDO GEOMÉTRICO (GEOMETRY DASH)
+// =========================================================
+const LEVEL_LENGTH = 9000; // Longitud total de la carrera en px
+let floorY = 0; // Calculado según tamaño del canvas
+let obstacles = [];
+let jumpOrbs = [];
+let portals = [];
+let mathGates = [];
+let countingOrbs = [];
 
-function initNumberQuest() {
-  currentCountTarget = Math.floor(Math.random() * 5) + 1;
-  currentItemObj = countItemTypes[Math.floor(Math.random() * countItemTypes.length)];
-  let displayStr = '';
-  for (let i = 0; i < currentCountTarget; i++) {
-    displayStr += currentItemObj.emoji + ' ';
-  }
-  if (numberItemsDisplay) numberItemsDisplay.innerText = displayStr;
-  if (numberFeedback) numberFeedback.classList.add('hidden');
+// Generador de la pista sincrónica neón
+function generateTrack(seed = 421337) {
+  obstacles = [];
+  jumpOrbs = [];
+  portals = [];
+  mathGates = [];
+  countingOrbs = [];
 
-  const phrase = `¿Cuántas ${currentItemObj.namePlur} ves? ¡Cuéntalas con tu dedito y toca el número!`;
-  if (numberQuestText) numberQuestText.innerText = phrase;
-  speak(phrase);
-}
-
-document.querySelectorAll('.num-choice-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    initAudio();
-    const chosen = parseInt(btn.getAttribute('data-num'));
-    if (chosen === currentCountTarget) {
-      playSfx('correct');
-      if (numberFeedback) {
-        numberFeedback.className = 'learn-feedback-box';
-        numberFeedback.innerText = `⭐ ¡EXCELENTE DIEGO JR.! ¡Hay ${chosen}! (+15🪙)`;
-        numberFeedback.classList.remove('hidden');
-      }
-      rewardCoins(15);
-      const itemName = chosen === 1 ? currentItemObj.nameSing : currentItemObj.namePlur;
-      speak(`¡Excelente Diego Junior! ¡Hay ${chosen} ${itemName}! ¡Ganaste quince monedas!`);
-      setTimeout(initNumberQuest, 3200);
-    } else {
-      playSfx('kick');
-      if (numberFeedback) {
-        numberFeedback.className = 'learn-feedback-box error';
-        numberFeedback.innerText = `💡 Tocaste el ${chosen}. Cuenta despacito con tu dedito.`;
-        numberFeedback.classList.remove('hidden');
-      }
-      speak(`Tocaste el número ${chosen}. ¡Casi casi! Vuelve a contar con tu dedito.`);
-    }
-  });
-});
-
-// 3. COLORES BRILLANTES (JUNIOR 4 AÑOS)
-const colorsList = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
-let currentColorTarget = 'AZUL';
-
-function initColorQuest() {
-  currentColorTarget = colorsList[Math.floor(Math.random() * colorsList.length)];
-  if (colorQuestText) colorQuestText.innerText = `¡Toca el color ${currentColorTarget}!`;
-  if (colorFeedback) colorFeedback.classList.add('hidden');
-  speak(`¡Diego Junior, busca el color ${currentColorTarget.toLowerCase()}!`);
-}
-
-document.querySelectorAll('.color-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    initAudio();
-    const chosen = btn.getAttribute('data-color');
-    if (chosen === currentColorTarget) {
-      playSfx('correct');
-      if (colorFeedback) {
-        colorFeedback.className = 'learn-feedback-box';
-        colorFeedback.innerText = `🎨 ¡CORRECTO! ¡Ese es el ${chosen}! (+15🪙)`;
-        colorFeedback.classList.remove('hidden');
-      }
-      rewardCoins(15);
-      speak(`¡Muy bien Diego Junior! ¡Ese es el color ${chosen.toLowerCase()}! ¡Ganaste quince monedas!`);
-      setTimeout(initColorQuest, 3000);
-    } else {
-      playSfx('kick');
-      if (colorFeedback) {
-        colorFeedback.className = 'learn-feedback-box error';
-        colorFeedback.innerText = `💡 Ese es el ${chosen}. ¡Busca el ${currentColorTarget}!`;
-        colorFeedback.classList.remove('hidden');
-      }
-      speak(`Ese es el color ${chosen.toLowerCase()}. ¡Busca el color ${currentColorTarget.toLowerCase()}!`);
-    }
-  });
-});
-
-// 4. OPERACIONES MATEMÁTICAS (VICKY 10 AÑOS & PAPÁ)
-let currentMathAnswer = 8;
-
-function initMathQuest() {
-  const isMult = Math.random() < 0.35;
-  let a, b, symbol, opSpoken;
-
-  if (isMult) {
-    a = Math.floor(Math.random() * 6) + 2;
-    b = Math.floor(Math.random() * 6) + 2;
-    symbol = '×';
-    opSpoken = 'por';
-    currentMathAnswer = a * b;
-  } else {
-    const isSum = Math.random() < 0.6;
-    if (isSum) {
-      a = Math.floor(Math.random() * 20) + 5;
-      b = Math.floor(Math.random() * 15) + 3;
-      symbol = '+';
-      opSpoken = 'más';
-      currentMathAnswer = a + b;
-    } else {
-      a = Math.floor(Math.random() * 25) + 10;
-      b = Math.floor(Math.random() * a) + 1;
-      symbol = '-';
-      opSpoken = 'menos';
-      currentMathAnswer = a - b;
-    }
-  }
-
-  mathQuestion.innerText = `${a} ${symbol} ${b} = ?`;
-  mathFeedback.classList.add('hidden');
-  speak(`Pregunta para Vicky: ¿Cuánto es ${a} ${opSpoken} ${b}?`);
-
-  const options = [currentMathAnswer, currentMathAnswer + (Math.random() < 0.5 ? 2 : -2), currentMathAnswer + (Math.random() < 0.5 ? 5 : -3)];
-  options.sort(() => Math.random() - 0.5);
-
-  mathOptionsRow.innerHTML = '';
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'math-choice-btn';
-    btn.innerText = opt;
-    btn.addEventListener('click', () => {
-      initAudio();
-      if (opt === currentMathAnswer) {
-        playSfx('correct');
-        mathFeedback.className = 'learn-feedback-box';
-        mathFeedback.innerText = `🏆 ¡BRILIANTE VICKY! ${a} ${symbol} ${b} = ${currentMathAnswer} (+25🪙)`;
-        mathFeedback.classList.remove('hidden');
-        rewardCoins(25);
-        speak(`¡Brillante Vicky! ${a} ${opSpoken} ${b} es ${currentMathAnswer}. ¡Ganaste veinticinco monedas!`);
-        setTimeout(initMathQuest, 3200);
-      } else {
-        playSfx('kick');
-        mathFeedback.className = 'learn-feedback-box error';
-        mathFeedback.innerText = `💡 ¡Casi! Revisa el cálculo e inténtalo de nuevo.`;
-        mathFeedback.classList.remove('hidden');
-        speak(`¡Casi Vicky! Revisa el cálculo e inténtalo de nuevo.`);
-      }
+  // 1. Orbes de conteo para Diego Jr. (1 al 5) en los primeros 1800px
+  const countPositions = [350, 650, 950, 1250, 1550];
+  countPositions.forEach((pos, idx) => {
+    countingOrbs.push({
+      x: pos,
+      y: -110,
+      radius: 26,
+      num: idx + 1,
+      collected: false,
+      color: '#facc15'
     });
-    mathOptionsRow.appendChild(btn);
   });
-}
 
-function rewardCoins(amount) {
-  if (!myPlayer) return;
-  myPlayer.coins += amount;
-  familyVaultCoins += amount;
-  playerCoinsVal.innerText = myPlayer.coins;
-  familyVaultVal.innerText = familyVaultCoins;
-  playSfx('coin');
-}
+  // 2. Obstáculos Neón (Púas y Pilares como en la foto)
+  const spikePattern = [
+    { x: 500, type: 'spike', count: 1 },
+    { x: 800, type: 'spike', count: 2 },
+    { x: 1100, type: 'pillar', h: 90, w: 50 },
+    { x: 1400, type: 'spike', count: 2 },
+    { x: 1700, type: 'pendulum', h: 140 }, // Péndulo colgante como en la foto
+    { x: 2000, type: 'platform', h: 100, w: 220 },
+    { x: 2400, type: 'spike', count: 3 },
+    { x: 2700, type: 'pillar', h: 130, w: 50 }
+  ];
 
-// Abrir / Cerrar modal didáctico
-function openDidacticModal() {
-  initAudio();
-  playSfx('coin');
-  didacticModal.classList.remove('hidden');
-
-  if (selectedCharId === 'diegoaz_jr') {
-    speak('¡Hola Diego Junior! Toca un botón arriba para jugar con los animales, los números o los colores.');
-  } else {
-    speak('¡Hola familia! Elijan un juego de aprendizaje.');
-  }
-}
-
-btnOpenLearn.addEventListener('click', openDidacticModal);
-
-btnCloseLearn.addEventListener('click', () => {
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  didacticModal.classList.add('hidden');
-});
-
-if (btnRepeatVoice) {
-  btnRepeatVoice.addEventListener('click', () => {
-    initAudio();
-    speak(lastSpokenText || '¡Toca un botón de arriba para jugar!');
+  spikePattern.forEach(sp => {
+    obstacles.push(sp);
   });
-}
 
-// ==========================================
-// SPRITES Y RETRATOS PIXEL ART OFICIALES
-// ==========================================
-const spriteCache = {};
+  // 3. Primer Portal de Transformación a NAVE ESPACIAL en x = 2850 (Como en la foto)
+  portals.push({
+    x: 2850,
+    y: -140,
+    w: 55,
+    h: 170,
+    targetMode: 'ship',
+    type: 'ship_portal',
+    color: '#ff007f',
+    label: '🛸 NAVE ESPACIAL'
+  });
 
-function createOffscreen(w, h, renderFn) {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const cctx = c.getContext('2d');
-  cctx.imageSmoothingEnabled = false;
-  renderFn(cctx);
-  return c;
-}
+  // Pista de vuelo en nave espacial (x: 2900 a 4800)
+  for (let sx = 3100; sx < 4700; sx += 320) {
+    obstacles.push({
+      x: sx,
+      type: 'hanging_stalactite',
+      h: Math.floor(Math.sin(sx) * 40 + 90)
+    });
+    // Orbes en el aire para volar entre ellos
+    jumpOrbs.push({
+      x: sx + 150,
+      y: -150 + Math.cos(sx) * 45,
+      radius: 20,
+      color: '#00f0ff'
+    });
+  }
 
-function drawCharacterPortrait(pctx, charId) {
-  pctx.fillStyle = '#1e293b'; pctx.fillRect(0, 0, 64, 64);
-  pctx.fillStyle = '#334155'; pctx.fillRect(2, 2, 60, 60);
+  // 4. Portal de regreso a Cubo en x = 4850
+  portals.push({
+    x: 4850,
+    y: -140,
+    w: 55,
+    h: 170,
+    targetMode: 'cube',
+    type: 'cube_portal',
+    color: '#10b981',
+    label: '🟩 CUBO'
+  });
 
-  if (charId === 'diegoaz') {
-    pctx.fillStyle = '#2f5233'; pctx.fillRect(10, 44, 44, 20);
-    pctx.fillStyle = '#3e6b43'; pctx.fillRect(12, 46, 40, 18);
-    pctx.fillStyle = '#181a20'; pctx.fillRect(26, 46, 12, 18);
-    pctx.fillStyle = '#5c3317'; pctx.fillRect(18, 44, 6, 20);
-    pctx.fillStyle = '#9c6644'; pctx.fillRect(24, 38, 16, 8);
-    pctx.fillStyle = '#b07d58'; pctx.fillRect(18, 18, 28, 24);
-    pctx.fillStyle = '#2e1d13'; pctx.fillRect(14, 10, 36, 14);
-    pctx.fillStyle = '#422c1e'; pctx.fillRect(16, 12, 32, 8);
-    pctx.fillStyle = '#8a817c'; pctx.fillRect(20, 12, 10, 3);
-    pctx.fillStyle = '#6b635b'; pctx.fillRect(18, 32, 28, 12);
-    pctx.fillStyle = '#b07d58'; pctx.fillRect(26, 34, 12, 3);
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(21, 22, 9, 7); pctx.fillRect(34, 22, 9, 7);
-    pctx.fillRect(30, 24, 4, 2);
-    pctx.fillStyle = '#7dd3fc'; pctx.fillRect(23, 24, 5, 3); pctx.fillRect(36, 24, 5, 3);
-  } else if (charId === 'vicky_vicky') {
-    pctx.fillStyle = '#2e1d13'; pctx.fillRect(12, 10, 40, 32);
-    pctx.fillStyle = '#422c1e'; pctx.fillRect(14, 12, 36, 24);
-    pctx.fillStyle = '#38bdf8'; pctx.fillRect(14, 44, 36, 5);
-    pctx.fillStyle = '#c084fc'; pctx.fillRect(14, 49, 36, 5);
-    pctx.fillStyle = '#f472b6'; pctx.fillRect(14, 54, 36, 5);
-    pctx.fillStyle = '#fde047'; pctx.fillRect(14, 59, 36, 5);
-    pctx.fillStyle = '#b07d58'; pctx.fillRect(20, 18, 24, 22);
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 24, 4, 5); pctx.fillRect(36, 24, 4, 5);
-    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 24, 2, 2); pctx.fillRect(37, 24, 2, 2);
-    pctx.fillStyle = '#dc2626'; pctx.fillRect(28, 33, 8, 3);
-  } else if (charId === 'diegoaz_jr') {
-    pctx.fillStyle = '#1d4ed8'; pctx.fillRect(14, 46, 36, 18);
-    pctx.fillStyle = '#2563eb'; pctx.fillRect(18, 44, 8, 20); pctx.fillRect(38, 44, 8, 20);
-    pctx.fillStyle = '#facc15'; pctx.fillRect(21, 48, 3, 3); pctx.fillRect(41, 48, 3, 3);
-    pctx.fillStyle = '#ef4444'; pctx.fillRect(12, 46, 6, 10); pctx.fillRect(46, 46, 6, 10);
-    pctx.fillStyle = '#fed7aa'; pctx.fillRect(18, 20, 28, 22);
-    pctx.fillStyle = '#ca8a04'; pctx.fillRect(16, 10, 32, 14);
-    pctx.fillStyle = '#facc15'; pctx.fillRect(18, 12, 28, 10);
-    pctx.fillStyle = '#fef08a'; pctx.fillRect(20, 12, 14, 4);
-    pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 26, 4, 5); pctx.fillRect(36, 26, 4, 5);
-    pctx.fillStyle = '#38bdf8'; pctx.fillRect(25, 27, 3, 3); pctx.fillRect(37, 27, 3, 3);
-    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 26, 2, 2); pctx.fillRect(37, 26, 2, 2);
-    pctx.fillStyle = '#dc2626'; pctx.fillRect(28, 34, 8, 3);
+  // 5. Puertas Matemáticas Turbo para Vicky y Familia (x = 5400 y 6800)
+  mathGates.push({
+    x: 5400,
+    question: '5 + 3 = ?',
+    spoken: '¡Pregunta de matemáticas para Vicky! ¿Cuánto es 5 más 3?',
+    top: { label: '5 + 3 = 8', correct: true, val: 8 },
+    bottom: { label: '5 + 3 = 10', correct: false, val: 10 },
+    cleared: false
+  });
+
+  mathGates.push({
+    x: 6800,
+    question: '6 × 4 = ?',
+    spoken: '¡Multiplicación para Vicky y la familia! ¿Cuánto es 6 por 4?',
+    top: { label: '6 × 4 = 20', correct: false, val: 20 },
+    bottom: { label: '6 × 4 = 24', correct: true, val: 24 },
+    cleared: false
+  });
+
+  // Obstáculos finales hacia la meta
+  for (let fx = 7300; fx < 8800; fx += 280) {
+    obstacles.push({
+      x: fx,
+      type: 'spike',
+      count: (fx % 560 === 0) ? 2 : 1
+    });
+    jumpOrbs.push({
+      x: fx + 140,
+      y: -120,
+      radius: 22,
+      color: '#facc15'
+    });
   }
 }
 
-['diegoaz', 'vicky_vicky', 'diegoaz_jr'].forEach(cId => {
-  const canvasEl = document.getElementById(cId === 'diegoaz' ? 'portrait-diegoaz' : (cId === 'vicky_vicky' ? 'portrait-vicky' : 'portrait-junior'));
-  if (canvasEl) {
-    const pctx = canvasEl.getContext('2d');
-    pctx.imageSmoothingEnabled = false;
-    drawCharacterPortrait(pctx, cId);
-  }
-});
-
-function updateMiniHudPortrait() {
-  const pctx = hudMiniPortrait.getContext('2d');
-  pctx.imageSmoothingEnabled = false;
-  pctx.clearRect(0, 0, 28, 28);
+// =========================================================
+// RENDERIZADO DE ICONOS Y CUBOS NEÓN CON EXPRESIONES
+// =========================================================
+function drawNeonCubeIcon(pctx, size, color, secColor, faceType, angle = 0, isShip = false) {
   pctx.save();
-  pctx.scale(28 / 64, 28 / 64);
-  drawCharacterPortrait(pctx, selectedCharId);
+  pctx.translate(size / 2, size / 2);
+  pctx.rotate(angle);
+
+  const half = size / 2;
+
+  if (isShip) {
+    // NAVE ESPACIAL / COHETE (Como en el centro de la foto del usuario)
+    // Cuerpo aerodinámico amarillo
+    pctx.fillStyle = color;
+    pctx.beginPath();
+    pctx.moveTo(half - 4, 0);
+    pctx.lineTo(-half + 4, -half + 10);
+    pctx.lineTo(-half + 8, 0);
+    pctx.lineTo(-half + 4, half - 10);
+    pctx.closePath();
+    pctx.fill();
+
+    pctx.strokeStyle = '#ffffff';
+    pctx.lineWidth = 2.5;
+    pctx.stroke();
+
+    // Alas / Alerones cian
+    pctx.fillStyle = secColor;
+    pctx.beginPath();
+    pctx.moveTo(-half + 6, -half + 8);
+    pctx.lineTo(-half - 6, -half - 4);
+    pctx.lineTo(-half + 14, 0);
+    pctx.closePath();
+    pctx.fill();
+
+    // Cabina azul luminosa
+    pctx.fillStyle = '#38bdf8';
+    pctx.fillRect(-2, -6, 12, 12);
+    pctx.strokeStyle = '#ffffff';
+    pctx.lineWidth = 1.5;
+    pctx.strokeRect(-2, -6, 12, 12);
+
+    // Propulsor trasero con fuego neón
+    pctx.fillStyle = '#f97316';
+    pctx.fillRect(-half - 4, -4, 8, 8);
+  } else {
+    // CUBO ESTILO GEOMETRY DASH
+    // Cuerpo exterior con brillo neón
+    pctx.fillStyle = color;
+    pctx.fillRect(-half, -half, size, size);
+
+    // Borde brillante blanco
+    pctx.strokeStyle = '#ffffff';
+    pctx.lineWidth = 3;
+    pctx.strokeRect(-half, -half, size, size);
+
+    // Marco interior secundario
+    pctx.strokeStyle = secColor;
+    pctx.lineWidth = 2.5;
+    pctx.strokeRect(-half + 5, -half + 5, size - 10, size - 10);
+
+    // Centro del cubo
+    pctx.fillStyle = '#0f172a';
+    pctx.fillRect(-half + 8, -half + 8, size - 16, size - 16);
+
+    // Expresión de la cara (Demon / Cute / Glasses)
+    if (faceType === 'demon_cute') {
+      // Ojos pícaros luminosos cian (Como el de la foto del usuario)
+      pctx.fillStyle = '#38bdf8';
+      pctx.beginPath();
+      pctx.moveTo(-half + 10, -half + 12);
+      pctx.lineTo(-half + 17, -half + 17);
+      pctx.lineTo(-half + 10, -half + 17);
+      pctx.closePath();
+      pctx.fill();
+
+      pctx.beginPath();
+      pctx.moveTo(half - 10, -half + 12);
+      pctx.lineTo(half - 17, -half + 17);
+      pctx.lineTo(half - 10, -half + 17);
+      pctx.closePath();
+      pctx.fill();
+
+      // Sonrisa picarona con colmillitos
+      pctx.strokeStyle = '#38bdf8';
+      pctx.lineWidth = 2;
+      pctx.beginPath();
+      pctx.moveTo(-8, 5);
+      pctx.lineTo(-4, 9);
+      pctx.lineTo(0, 5);
+      pctx.lineTo(4, 9);
+      pctx.lineTo(8, 5);
+      pctx.stroke();
+    } else if (faceType === 'cat_cute') {
+      // Ojitos tiernos redondos de Vicky
+      pctx.fillStyle = '#ec4899';
+      pctx.beginPath();
+      pctx.arc(-7, -4, 4, 0, Math.PI * 2);
+      pctx.arc(7, -4, 4, 0, Math.PI * 2);
+      pctx.fill();
+      pctx.fillStyle = '#ffffff';
+      pctx.beginPath();
+      pctx.arc(-6, -5, 1.5, 0, Math.PI * 2);
+      pctx.arc(8, -5, 1.5, 0, Math.PI * 2);
+      pctx.fill();
+
+      // Sonrisita de gato
+      pctx.strokeStyle = '#ec4899';
+      pctx.lineWidth = 1.8;
+      pctx.beginPath();
+      pctx.arc(-3, 4, 3, 0, Math.PI);
+      pctx.arc(3, 4, 3, 0, Math.PI);
+      pctx.stroke();
+    } else {
+      // Gafas cibernéticas de Diego Papá
+      pctx.fillStyle = '#10b981';
+      pctx.fillRect(-12, -7, 10, 8);
+      pctx.fillRect(2, -7, 10, 8);
+      pctx.fillRect(-2, -5, 4, 3);
+      pctx.strokeStyle = '#ffffff';
+      pctx.lineWidth = 1.5;
+      pctx.strokeRect(-12, -7, 10, 8);
+      pctx.strokeRect(2, -7, 10, 8);
+
+      // Sonrisa de mentor
+      pctx.strokeStyle = '#10b981';
+      pctx.lineWidth = 2;
+      pctx.beginPath();
+      pctx.moveTo(-6, 6);
+      pctx.lineTo(6, 6);
+      pctx.stroke();
+    }
+  }
+
   pctx.restore();
 }
 
-function getCharacterSprite(charId, dir, frame) {
-  const key = `${charId}_${dir}_${frame}`;
-  if (spriteCache[key]) return spriteCache[key];
-
-  const c = createOffscreen(18, 34, (sctx) => {
-    const isStepL = (frame === 1);
-    const isStepR = (frame === 2);
-    const bob = (frame > 0) ? -1 : 0;
-
-    if (charId === 'diegoaz') {
-      sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 30, 10, 3);
-      sctx.fillStyle = '#262d38';
-      sctx.fillRect(5, 20 + bob, 3, 7 + (isStepL ? -1 : 0));
-      sctx.fillRect(10, 20 + bob, 3, 7 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#422817';
-      sctx.fillRect(4, 27 + (isStepL ? -1 : 0), 4, 3);
-      sctx.fillRect(10, 27 + (isStepR ? -1 : 0), 4, 3);
-      sctx.fillStyle = '#335937';
-      sctx.fillRect(4, 12 + bob, 10, 9);
-      sctx.fillStyle = '#181a20';
-      sctx.fillRect(7, 12 + bob, 4, 9);
-      sctx.fillStyle = '#5c3317';
-      sctx.fillRect(dir === 'right' ? 9 : 5, 12 + bob, 2, 9);
-      sctx.fillStyle = '#b07d58';
-      sctx.fillRect(5, 4 + bob, 8, 8);
-      sctx.fillStyle = '#362215';
-      sctx.fillRect(4, 2 + bob, 10, 4);
-
-      if (dir === 'down') {
-        sctx.fillStyle = '#7a7067';
-        sctx.fillRect(5, 8 + bob, 8, 4);
-        sctx.fillStyle = '#0f172a';
-        sctx.fillRect(5, 5 + bob, 3, 3); sctx.fillRect(10, 5 + bob, 3, 3);
-        sctx.fillStyle = '#7dd3fc';
-        sctx.fillRect(6, 6 + bob, 1, 1); sctx.fillRect(11, 6 + bob, 1, 1);
-      } else if (dir === 'up') {
-        sctx.fillStyle = '#362215';
-        sctx.fillRect(4, 3 + bob, 10, 9);
-        sctx.fillStyle = '#5c3317';
-        sctx.fillRect(4, 15 + bob, 4, 5);
-      } else {
-        sctx.fillStyle = '#7a7067';
-        sctx.fillRect(dir === 'right' ? 9 : 4, 8 + bob, 5, 4);
-        sctx.fillStyle = '#0f172a';
-        sctx.fillRect(dir === 'right' ? 10 : 5, 5 + bob, 3, 3);
-      }
-
-    } else if (charId === 'vicky_vicky') {
-      sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 29, 10, 3);
-      sctx.fillStyle = '#2563eb';
-      sctx.fillRect(5, 20 + bob, 3, 7 + (isStepL ? -1 : 0));
-      sctx.fillRect(10, 20 + bob, 3, 7 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#f472b6';
-      sctx.fillRect(4, 27 + (isStepL ? -1 : 0), 4, 3);
-      sctx.fillRect(10, 27 + (isStepR ? -1 : 0), 4, 3);
-      sctx.fillStyle = '#ffffff';
-      sctx.fillRect(4, 29 + (isStepL ? -1 : 0), 4, 1);
-      sctx.fillRect(10, 29 + (isStepR ? -1 : 0), 4, 1);
-
-      sctx.fillStyle = '#38bdf8'; sctx.fillRect(4, 12 + bob, 10, 2);
-      sctx.fillStyle = '#c084fc'; sctx.fillRect(4, 14 + bob, 10, 2);
-      sctx.fillStyle = '#f472b6'; sctx.fillRect(4, 16 + bob, 10, 2);
-      sctx.fillStyle = '#fde047'; sctx.fillRect(4, 18 + bob, 10, 2);
-
-      sctx.fillStyle = '#362215';
-      sctx.fillRect(3, 2 + bob, 12, 10);
-      sctx.fillStyle = '#b07d58';
-      sctx.fillRect(5, 5 + bob, 8, 7);
-
-      if (dir === 'down') {
-        sctx.fillStyle = '#0f172a';
-        sctx.fillRect(6, 7 + bob, 1, 2); sctx.fillRect(11, 7 + bob, 1, 2);
-      } else if (dir === 'up') {
-        sctx.fillStyle = '#362215';
-        sctx.fillRect(3, 3 + bob, 12, 10);
-        sctx.fillStyle = '#854d0e';
-        sctx.fillRect(6, 13 + bob, 6, 7);
-      } else {
-        sctx.fillStyle = '#854d0e';
-        sctx.fillRect(dir === 'right' ? 3 : 11, 13 + bob, 4, 6);
-      }
-
-    } else {
-      sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 27, 10, 3);
-      sctx.fillStyle = '#fed7aa';
-      sctx.fillRect(6, 19 + bob, 2, 5 + (isStepL ? -1 : 0));
-      sctx.fillRect(10, 19 + bob, 2, 5 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#ef4444';
-      sctx.fillRect(5, 24 + (isStepL ? -1 : 0), 3, 3);
-      sctx.fillRect(10, 24 + (isStepR ? -1 : 0), 3, 3);
-
-      sctx.fillStyle = '#2563eb';
-      sctx.fillRect(5, 14 + bob, 8, 7);
-      sctx.fillStyle = '#1d4ed8';
-      sctx.fillRect(5, 12 + bob, 2, 4); sctx.fillRect(11, 12 + bob, 2, 4);
-      sctx.fillStyle = '#fbbf24';
-      sctx.fillRect(5, 15 + bob, 1, 1); sctx.fillRect(12, 15 + bob, 1, 1);
-
-      sctx.fillStyle = '#facc15';
-      sctx.fillRect(4, 4 + bob, 10, 6);
-      sctx.fillStyle = '#ca8a04';
-      sctx.fillRect(4, 3 + bob, 10, 2);
-      sctx.fillStyle = '#fed7aa';
-      sctx.fillRect(5, 6 + bob, 8, 6);
-
-      if (dir === 'down') {
-        sctx.fillStyle = '#0f172a';
-        sctx.fillRect(6, 8 + bob, 1, 2); sctx.fillRect(11, 8 + bob, 1, 2);
-      } else if (dir === 'up') {
-        sctx.fillStyle = '#facc15';
-        sctx.fillRect(4, 4 + bob, 10, 9);
-      }
-    }
-  });
-
-  spriteCache[key] = c;
-  return c;
+// Pre-renderizar retratos en los canvas de selección
+function renderHeroPreviews() {
+  const pJr = document.getElementById('prev-diego-jr');
+  if (pJr) {
+    const c = pJr.getContext('2d');
+    c.clearRect(0, 0, 70, 70);
+    drawNeonCubeIcon(c, 52, HERO_DEFS.diegoaz_jr.primaryColor, HERO_DEFS.diegoaz_jr.secondaryColor, HERO_DEFS.diegoaz_jr.face);
+  }
+  const pVi = document.getElementById('prev-vicky');
+  if (pVi) {
+    const c = pVi.getContext('2d');
+    c.clearRect(0, 0, 70, 70);
+    drawNeonCubeIcon(c, 52, HERO_DEFS.vicky_vicky.primaryColor, HERO_DEFS.vicky_vicky.secondaryColor, HERO_DEFS.vicky_vicky.face);
+  }
+  const pDa = document.getElementById('prev-diego');
+  if (pDa) {
+    const c = pDa.getContext('2d');
+    c.clearRect(0, 0, 70, 70);
+    drawNeonCubeIcon(c, 52, HERO_DEFS.diegoaz.primaryColor, HERO_DEFS.diegoaz.secondaryColor, HERO_DEFS.diegoaz.face);
+  }
 }
+renderHeroPreviews();
 
-// ==========================================
-// REDIMENSIÓN RESPONSIVE
-// ==========================================
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const isMobile = window.innerWidth < 768;
-  zoomScale = isMobile ? 1.35 : 1.25;
-  ctx.imageSmoothingEnabled = false;
-}
-window.addEventListener('resize', resizeCanvas);
-window.addEventListener('orientationchange', resizeCanvas);
-resizeCanvas();
-
-portraitCards.forEach(card => {
+// Selección de corredor en UI
+heroCards.forEach(card => {
   card.addEventListener('click', () => {
-    initAudio();
-    playSfx('kick');
-    portraitCards.forEach(c => c.classList.remove('active'));
+    heroCards.forEach(c => c.classList.remove('active'));
     card.classList.add('active');
-    selectedCharId = card.getAttribute('data-char');
+    selectedHeroId = card.getAttribute('data-id');
+    initAudio();
+    playSfx('orb');
   });
 });
 
-btnStart.addEventListener('click', () => {
+chkKidShield.addEventListener('change', (e) => {
+  isKidShieldActive = e.target.checked;
+});
+
+// Iniciar carrera
+btnStartRace.addEventListener('click', () => {
   initAudio();
-  playSfx('fanfare');
-  modalSelect.classList.add('hidden');
+  playSfx('portal');
+  startSynthwaveMusic();
+
+  const heroDef = HERO_DEFS[selectedHeroId];
+  hudName.innerText = heroDef.name;
+
+  // Dibujar mini cubo en el HUD
+  const hctx = hudCubeIcon.getContext('2d');
+  hctx.clearRect(0, 0, 32, 32);
+  drawNeonCubeIcon(hctx, 28, heroDef.primaryColor, heroDef.secondaryColor, heroDef.face);
+
+  selectModal.classList.add('hidden');
   gameContainer.classList.remove('hidden');
   resizeCanvas();
 
-  updateMiniHudPortrait();
-  hudPlayerName.innerText = selectedCharId === 'diegoaz' ? 'Diegoaz' : (selectedCharId === 'vicky_vicky' ? 'Vicky' : 'Diego Jr.');
-
-  socket.emit('join_game', { characterId: selectedCharId });
-});
-
-btnToggleReactions.addEventListener('click', () => {
-  quickReactions.classList.toggle('hidden');
-});
-
-document.querySelectorAll('.urban-reaction-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const snd = btn.getAttribute('data-sound');
-    const msg = btn.getAttribute('data-msg');
-    playSfx(snd || 'coin');
-    quickReactions.classList.add('hidden');
-    if (myPlayer) socket.emit('send_chat', msg);
+  // Conectar a Socket.io
+  socket.emit('join_game', {
+    characterId: selectedHeroId,
+    color: heroDef.primaryColor
   });
-});
 
-btnOpenHouseShop.addEventListener('click', () => {
-  playSfx('coin');
-  houseShopModal.classList.remove('hidden');
-});
-btnCloseShop.addEventListener('click', () => {
-  houseShopModal.classList.add('hidden');
-});
+  generateTrack();
 
-// ==========================================
-// MULTIJUGADOR SINCRONIZADO
-// ==========================================
-socket.on('init_state', (data) => {
-  myPlayer = data.self;
-  camera.x = myPlayer.x;
-  camera.y = myPlayer.y;
-
-  for (const sId in data.players) {
-    if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
-  }
-  playerCoinsVal.innerText = myPlayer.coins;
-  familyVaultVal.innerText = familyVaultCoins;
-  showAlert(`¡Bienvenido al Barrio Az, ${myPlayer.name}!`);
-});
-
-socket.on('player_joined', (p) => {
-  if (p.socketId !== socket.id) {
-    otherPlayers[p.socketId] = p;
-    showAlert(`👋 ¡${p.name} se unió al barrio!`);
-    playSfx('fanfare');
-  }
-});
-
-socket.on('player_moved', (data) => {
-  if (data.socketId === socket.id) return;
-  if (otherPlayers[data.socketId]) {
-    const p = otherPlayers[data.socketId];
-    p.x = data.x;
-    p.y = data.y;
-    p.direction = data.direction;
-    p.isMoving = data.isMoving;
+  // Bienvenida por voz
+  if (selectedHeroId === 'diegoaz_jr') {
+    speak('¡Hola Diego Junior! Toca la pantalla para saltar y cuenta los orbes numéricos.');
   } else {
-    otherPlayers[data.socketId] = data;
+    speak('¡Bienvenidos a la carrera neón en familia!');
   }
 });
 
-socket.on('ball_updated', (b) => {
-  soccerBall.x = b.x;
-  soccerBall.y = b.y;
-  soccerBall.vx = b.vx;
-  soccerBall.vy = b.vy;
-});
+// =========================================================
+// FÍSICAS, SALTO Y CONTROL DEL JUGADOR (ONE-TOUCH CONTROLS)
+// =========================================================
+const GRAVITY = 0.88;
+const JUMP_FORCE = -15.5;
+const SHIP_THRUST = -0.72;
+const SHIP_GRAVITY = 0.48;
 
-socket.on('player_left', (data) => {
-  if (otherPlayers[data.socketId]) {
-    showAlert(`🚪 ${otherPlayers[data.socketId].name} salió.`);
-    delete otherPlayers[data.socketId];
+function triggerJump() {
+  if (!myPlayer.isAlive) return;
+
+  if (myPlayer.mode === 'cube') {
+    if (myPlayer.isGrounded) {
+      myPlayer.vy = JUMP_FORCE;
+      myPlayer.isGrounded = false;
+      playSfx('jump');
+      triggerScreenShake(6);
+      triggerHaptic([35]);
+      spawnJumpParticles(myPlayer.x, floorY);
+
+      socket.emit('player_action', { type: 'jump', x: myPlayer.x, y: myPlayer.y });
+    }
   }
-});
+}
 
-socket.on('chat_received', (data) => {
-  activeBubbles[data.socketId] = {
-    text: data.text,
-    time: Date.now() + 4500
-  };
-  if (data.text.includes('🐶')) playSfx('dog');
-  else if (data.text.includes('🐱')) playSfx('cat');
-  else if (data.text.includes('🦆')) playSfx('duck');
-  else if (data.text.includes('⚽')) playSfx('fanfare');
-  else playSfx('coin');
-});
-
-// ==========================================
-// CONTROLES Y JOYSTICK
-// ==========================================
-let joystickActive = false;
-let joystickId = null;
-let moveDir = { x: 0, y: 0 };
-const keys = { up: false, down: false, left: false, right: false };
-
-function handleTouchStart(e) {
-  e.preventDefault();
+// Controles táctiles pantalla completa
+function onInputStart(e) {
+  if (e) e.preventDefault();
   initAudio();
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    joystickActive = true;
-    joystickId = t.identifier;
-    updateJoystickPos(t.clientX, t.clientY);
-    break;
-  }
+  myPlayer.isHoldingJump = true;
+  triggerJump();
 }
 
-function handleTouchMove(e) {
-  if (!joystickActive) return;
-  e.preventDefault();
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    if (t.identifier === joystickId) {
-      updateJoystickPos(t.clientX, t.clientY);
-      break;
-    }
-  }
+function onInputEnd(e) {
+  if (e) e.preventDefault();
+  myPlayer.isHoldingJump = false;
 }
 
-function handleTouchEnd(e) {
-  if (!joystickActive) return;
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    if (e.changedTouches[i].identifier === joystickId) {
-      joystickActive = false;
-      joystickId = null;
-      joystickKnob.style.transform = 'translate(0px, 0px)';
-      moveDir.x = 0;
-      moveDir.y = 0;
-      break;
-    }
-  }
+if (mobileTapSurface) {
+  mobileTapSurface.addEventListener('touchstart', onInputStart, { passive: false });
+  mobileTapSurface.addEventListener('touchend', onInputEnd, { passive: false });
+  mobileTapSurface.addEventListener('mousedown', onInputStart);
+  mobileTapSurface.addEventListener('mouseup', onInputEnd);
 }
-
-function updateJoystickPos(cx, cy) {
-  const rect = joystickRing.getBoundingClientRect();
-  const rx = rect.left + rect.width / 2;
-  const ry = rect.top + rect.height / 2;
-  let dx = cx - rx;
-  let dy = cy - ry;
-  const dist = Math.hypot(dx, dy);
-  const maxR = 36;
-
-  if (dist > maxR) {
-    dx = (dx / dist) * maxR;
-    dy = (dy / dist) * maxR;
-  }
-
-  joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-  moveDir.x = dx / maxR;
-  moveDir.y = dy / maxR;
-}
-
-joystickArea.addEventListener('touchstart', handleTouchStart, { passive: false });
-window.addEventListener('touchmove', handleTouchMove, { passive: false });
-window.addEventListener('touchend', handleTouchEnd);
-window.addEventListener('touchcancel', handleTouchEnd);
 
 window.addEventListener('keydown', (e) => {
-  initAudio();
-  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
-  if (e.key === 'e' || e.key === 'E' || e.key === ' ') doAction();
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+    if (!myPlayer.isHoldingJump) {
+      initAudio();
+      myPlayer.isHoldingJump = true;
+      triggerJump();
+    }
+  }
 });
 
 window.addEventListener('keyup', (e) => {
-  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+    myPlayer.isHoldingJump = false;
+  }
 });
 
-// ==========================================
-// INTERACCIONES EN EL MUNDO
-// ==========================================
-let currentInteractType = null;
-let currentNearbyAnimal = null;
+// =========================================================
+// ACTUALIZACIÓN DE FÍSICAS Y COLISIONES
+// =========================================================
+function updatePlayer() {
+  if (!myPlayer.isAlive) return;
 
-function checkProximities() {
-  if (!myPlayer) return;
-  currentInteractType = null;
-  currentNearbyAnimal = null;
+  // Avance horizontal continuo
+  myPlayer.distance += myPlayer.speed;
+  myPlayer.x = myPlayer.distance + 120;
 
-  // 1. Rincón de Juegos y Aprendizaje en la Plaza
-  const distSchool = Math.hypot(myPlayer.x - 1140, myPlayer.y - 580);
-  if (distSchool < 70) {
-    currentInteractType = 'academy';
-    setActionButton('🧸', 'JUGAR');
-    locationBadge.innerText = 'Rincón de Juegos 🧸';
-    return;
-  }
+  // Modo Cubo vs Modo Nave
+  if (myPlayer.mode === 'cube') {
+    myPlayer.vy += GRAVITY;
+    myPlayer.y += myPlayer.vy;
 
-  // 2. Animales didácticos en el parque
-  for (const an of townAnimals) {
-    const distA = Math.hypot(myPlayer.x - an.x, myPlayer.y - an.y);
-    if (distA < 55) {
-      currentInteractType = 'animal';
-      currentNearbyAnimal = an;
-      setActionButton(an.emoji, an.name.toUpperCase());
-      locationBadge.innerText = `Parque: ${an.type}`;
-      return;
+    // Colisión con el suelo
+    if (myPlayer.y >= 0) {
+      myPlayer.y = 0;
+      myPlayer.vy = 0;
+      myPlayer.isGrounded = true;
+      // Ajustar rotación exacta a múltiplos de 90° al caer
+      myPlayer.rot = Math.round(myPlayer.rot / (Math.PI / 2)) * (Math.PI / 2);
+    } else {
+      myPlayer.isGrounded = false;
+      // Rotar continuamente en el aire (Geometry Dash spin)
+      myPlayer.rot += 0.14;
     }
+  } else if (myPlayer.mode === 'ship') {
+    // Físicas de Nave Espacial (mantener presionado para volar hacia arriba)
+    if (myPlayer.isHoldingJump) {
+      myPlayer.vy += SHIP_THRUST;
+    } else {
+      myPlayer.vy += SHIP_GRAVITY;
+    }
+
+    myPlayer.vy = Math.max(-9, Math.min(8.5, myPlayer.vy));
+    myPlayer.y += myPlayer.vy;
+
+    // Límites de vuelo de nave
+    const ceilingLimit = -260;
+    if (myPlayer.y < ceilingLimit) {
+      myPlayer.y = ceilingLimit;
+      myPlayer.vy = 0;
+    }
+    if (myPlayer.y > -20) {
+      myPlayer.y = -20;
+      myPlayer.vy = 0;
+    }
+
+    // Inclinación aerodinámica de la nave según su velocidad vertical
+    myPlayer.rot = (myPlayer.vy / 10) * 0.45;
   }
 
-  // 3. Parada de autobús
-  const distBus = Math.hypot(myPlayer.x - 1020, myPlayer.y - 650);
-  if (distBus < 65) {
-    currentInteractType = 'bus_stop';
-    setActionButton('🚏', 'PARADA');
-    locationBadge.innerText = 'Parada de Autobús';
-    return;
+  // Generar estela de partículas de cuadritos neón (como en la foto)
+  spawnTrailParticle(myPlayer.x - 16, floorY + myPlayer.y - 10, HERO_DEFS[selectedHeroId].primaryColor);
+
+  // 1. Detección de Orbes de Conteo para Diego Jr. (1, 2, 3, 4, 5)
+  countingOrbs.forEach(orb => {
+    if (!orb.collected) {
+      const dist = Math.hypot(myPlayer.x - orb.x, (floorY + myPlayer.y) - (floorY + orb.y));
+      if (dist < orb.radius + myPlayer.size / 2) {
+        orb.collected = true;
+        myPlayer.vy = JUMP_FORCE * 0.95; // Rebote asistido
+        playSfx('orb');
+        triggerScreenShake(7);
+        triggerHaptic([45, 20, 45]);
+        spawnShockwave(orb.x, floorY + orb.y, orb.color);
+
+        // Locución en voz alta del número
+        const numWords = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco'];
+        const word = numWords[orb.num - 1] || `${orb.num}`;
+        didacticEmojiIcon.innerText = '🔢';
+        didacticPromptText.innerText = `¡Número ${orb.num} (${word})!`;
+        speak(`¡${word}!`, 1.25);
+
+        if (orb.num === 5) {
+          showCelebrationToast('⭐ ¡EXCELENTE DIEGO JR.!', '¡Contaste hasta 5! (+20🪙)');
+          rewardCoins(20);
+        }
+      }
+    }
+  });
+
+  // 2. Detección de Portales de Transformación
+  portals.forEach(portal => {
+    if (Math.abs(myPlayer.x - portal.x) < 30) {
+      if (myPlayer.mode !== portal.targetMode) {
+        myPlayer.mode = portal.targetMode;
+        playSfx('portal');
+        triggerScreenShake(12);
+        triggerHaptic([60, 30, 60]);
+        spawnShockwave(portal.x, floorY + portal.y, portal.color);
+
+        didacticEmojiIcon.innerText = portal.targetMode === 'ship' ? '🛸' : '🟩';
+        didacticPromptText.innerText = portal.label;
+
+        if (portal.targetMode === 'ship') {
+          speak('¡Portal de Nave Espacial! ¡Mantén pulsada la pantalla para volar!');
+        } else {
+          speak('¡De vuelta al Cubo Saltarín!');
+        }
+      }
+    }
+  });
+
+  // 3. Detección de Puertas Matemáticas (Para Vicky y Familia)
+  mathGates.forEach(gate => {
+    if (!gate.cleared && Math.abs(myPlayer.x - gate.x) < 40) {
+      gate.cleared = true;
+      const isTop = myPlayer.y < -130;
+      const chosen = isTop ? gate.top : gate.bottom;
+
+      if (chosen.correct) {
+        playSfx('gate_correct');
+        triggerScreenShake(14);
+        triggerHaptic([80, 40, 80]);
+        showCelebrationToast('🏆 ¡BRILIANTE VICKY VICKY!', `${chosen.label} (+25🪙 & Super Turbo)`);
+        rewardCoins(25);
+        myPlayer.speed = 11.5; // Super Turbo
+        setTimeout(() => { myPlayer.speed = 8.5; }, 4000);
+        speak(`¡Brillante Vicky! ${gate.question.replace(' = ?', '')} es ${chosen.val}. ¡Super turbo activado!`);
+      } else {
+        triggerScreenShake(6);
+        speak(`¡Casi Vicky! La respuesta correcta era ${gate.top.correct ? gate.top.val : gate.bottom.val}.`);
+      }
+    }
+  });
+
+  // 4. Detección de Obstáculos y Púas
+  const playerScreenY = floorY + myPlayer.y;
+  obstacles.forEach(obs => {
+    const ox = obs.x;
+    if (Math.abs(myPlayer.x - ox) < 25) {
+      let isHit = false;
+
+      if (obs.type === 'spike') {
+        if (playerScreenY > floorY - 26) {
+          isHit = true;
+        }
+      } else if (obs.type === 'hanging_stalactite') {
+        const stalactiteBottom = floorY - 260 + obs.h;
+        if (playerScreenY - myPlayer.size / 2 < stalactiteBottom) {
+          isHit = true;
+        }
+      }
+
+      if (isHit) {
+        handleObstacleHit();
+      }
+    }
+  });
+
+  // 5. Barra de progreso multijugador
+  const progressRatio = Math.min(1, myPlayer.distance / LEVEL_LENGTH);
+  raceProgressFill.style.width = `${(progressRatio * 100).toFixed(1)}%`;
+  markerSelf.style.left = `${(progressRatio * 100).toFixed(1)}%`;
+  racePercentVal.innerText = `${Math.floor(progressRatio * 100)}%`;
+
+  // Comprobar victoria
+  if (myPlayer.distance >= LEVEL_LENGTH && victoryModal.classList.contains('hidden')) {
+    victoryModal.classList.remove('hidden');
+    playSfx('gate_correct');
+    speak('¡Felicitaciones familia! ¡Completaron la carrera en el mundo Neón!');
   }
 
-  // 4. Bancos del parque
-  const distBench = Math.hypot(myPlayer.x - 870, myPlayer.y - 650);
-  if (distBench < 60) {
-    currentInteractType = 'bench';
-    setActionButton('🛋️', 'SENTARSE');
-    locationBadge.innerText = 'Bancos de la Plaza';
-    return;
-  }
-
-  // 5. Pelota de fútbol
-  const distBall = Math.hypot(myPlayer.x - soccerBall.x, myPlayer.y - soccerBall.y);
-  if (distBall < 50) {
-    locationBadge.innerText = 'Parque & Fútbol';
-  }
-
-  btnActionMain.classList.remove('pulse');
-  actionBtnEmoji.innerText = '✨';
-  actionBtnLabel.innerText = 'TOCAR';
+  // Notificar progreso a Socket.io
+  socket.emit('player_progress', {
+    distance: myPlayer.distance,
+    y: myPlayer.y,
+    vy: myPlayer.vy,
+    rot: myPlayer.rot,
+    mode: myPlayer.mode,
+    isAlive: myPlayer.isAlive,
+    score: myPlayer.score,
+    speed: myPlayer.speed
+  });
 }
 
-function setActionButton(emoji, label) {
-  btnActionMain.classList.add('pulse');
-  actionBtnEmoji.innerText = emoji;
-  actionBtnLabel.innerText = label;
-}
+function handleObstacleHit() {
+  if (myPlayer.shieldTimer > 0) return; // Inmune temporalmente
 
-btnActionMain.addEventListener('click', () => { doAction(); });
+  triggerScreenShake(12);
+  triggerHaptic([100]);
 
-function doAction() {
-  if (!currentInteractType) {
-    playSfx('kick');
-    spawnEmojiBubble(myPlayer.x, myPlayer.y - 45, '✨ ¡Hola!');
-    return;
-  }
-
-  if (currentInteractType === 'academy') {
-    openDidacticModal();
-  } else if (currentInteractType === 'animal' && currentNearbyAnimal) {
-    playSfx(currentNearbyAnimal.sound);
-    showAlert(currentNearbyAnimal.phrase);
-    spawnEmojiBubble(myPlayer.x, myPlayer.y - 45, `${currentNearbyAnimal.emoji} ¡${currentNearbyAnimal.name}!`);
-    rewardCoins(5);
-    speak(currentNearbyAnimal.phrase);
-  } else if (currentInteractType === 'bus_stop') {
-    playSfx('coin');
-    showAlert('🚏 ¡Ruta 42 del Barrio Az en camino!');
-  } else if (currentInteractType === 'bench') {
-    playSfx('coin');
-    showAlert('🛋️ Descansando en el banco del parque...');
-  }
-}
-
-function showAlert(text) {
-  alertText.innerText = text;
-  alertBanner.classList.remove('hidden');
-  clearTimeout(showAlert.timer);
-  showAlert.timer = setTimeout(() => {
-    alertBanner.classList.add('hidden');
-  }, 3200);
-}
-
-function spawnEmojiBubble(x, y, text) {
-  activeBubbles[socket.id] = { text, time: Date.now() + 3500 };
-}
-
-// ==========================================
-// LOOP DE FÍSICA Y ACTUALIZACIÓN
-// ==========================================
-let lastMoveSent = 0;
-let stepAnim = 0;
-
-function update() {
-  gameTime += 0.03;
-  if (!myPlayer) return;
-
-  let speed = 3.8;
-  if (selectedCharId === 'diegoaz_jr') speed = 4.6;
-
-  let vx = 0;
-  let vy = 0;
-
-  if (joystickActive) {
-    vx = moveDir.x * speed;
-    vy = moveDir.y * speed;
+  if (isKidShieldActive) {
+    // MODO PROTECTOR INFANTIL: Protege a Diego Jr. con burbuja neón sin frustración
+    myPlayer.shieldTimer = 90; // Frames de inmunidad
+    myPlayer.vy = -10; // Rebote seguro hacia arriba
+    playSfx('shield');
+    spawnShockwave(myPlayer.x, floorY + myPlayer.y, '#38bdf8');
+    speak('¡Escudo protector activado! ¡Tú puedes Diego Junior!', 1.2);
   } else {
-    if (keys.up) vy -= speed;
-    if (keys.down) vy += speed;
-    if (keys.left) vx -= speed;
-    if (keys.right) vx += speed;
-    if (vx !== 0 && vy !== 0) {
-      vx *= 0.7071;
-      vy *= 0.7071;
-    }
+    // Respawn suave a corta distancia atrás
+    myPlayer.distance = Math.max(0, myPlayer.distance - 260);
+    myPlayer.y = 0;
+    myPlayer.vy = 0;
+    myPlayer.shieldTimer = 60;
+    playSfx('shield');
   }
+}
 
-  const isMoving = Math.hypot(vx, vy) > 0.3;
-  if (isMoving) {
-    stepAnim += 0.24;
-    myPlayer.x = Math.max(50, Math.min(WORLD_WIDTH - 50, myPlayer.x + vx));
-    myPlayer.y = Math.max(50, Math.min(WORLD_HEIGHT - 50, myPlayer.y + vy));
+function rewardCoins(amount) {
+  myPlayer.coins += amount;
+  hudCoins.innerText = myPlayer.coins;
+  socket.emit('save_reward', { coins: amount });
+}
 
-    if (Math.abs(vx) > Math.abs(vy)) myPlayer.direction = vx > 0 ? 'right' : 'left';
-    else myPlayer.direction = vy > 0 ? 'down' : 'up';
-  }
-  myPlayer.isMoving = isMoving;
+function showCelebrationToast(title, subtitle) {
+  toastTitle.innerText = title;
+  toastSubtitle.innerText = subtitle;
+  neonToast.classList.remove('hidden');
+  clearTimeout(showCelebrationToast.timer);
+  showCelebrationToast.timer = setTimeout(() => {
+    neonToast.classList.add('hidden');
+  }, 2600);
+}
 
-  // Cámara centrada zoom 1.35x
-  const targetCamX = myPlayer.x - (canvas.width / zoomScale) / 2;
-  const targetCamY = myPlayer.y - (canvas.height / zoomScale) / 2;
-  camera.x += (targetCamX - camera.x) * 0.15;
-  camera.y += (targetCamY - camera.y) * 0.15;
+// =========================================================
+// SISTEMA DE PARTÍCULAS NEÓN Y ONDAS DE CHOQUE
+// =========================================================
+function spawnTrailParticle(x, y, color) {
+  particles.push({
+    x: x + (Math.random() - 0.5) * 6,
+    y: y + (Math.random() - 0.5) * 6,
+    vx: -myPlayer.speed * 0.45,
+    vy: (Math.random() - 0.5) * 2,
+    size: Math.random() * 6 + 5,
+    color: color,
+    alpha: 0.9,
+    rot: Math.random() * Math.PI
+  });
+}
 
-  const now = Date.now();
-  if (now - lastMoveSent > 33) {
-    socket.emit('player_move', {
-      x: myPlayer.x,
-      y: myPlayer.y,
-      direction: myPlayer.direction,
-      isMoving: myPlayer.isMoving
+function spawnJumpParticles(x, y) {
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 8 - 2,
+      vy: (Math.random() - 0.5) * 4 - 3,
+      size: Math.random() * 5 + 4,
+      color: '#ffffff',
+      alpha: 1,
+      rot: Math.random() * Math.PI
     });
-    lastMoveSent = now;
-  }
-
-  // Pelota de fútbol
-  const distBall = Math.hypot(myPlayer.x - soccerBall.x, myPlayer.y - soccerBall.y);
-  if (distBall < 24) {
-    const angle = Math.atan2(soccerBall.y - myPlayer.y, soccerBall.x - myPlayer.x);
-    soccerBall.vx = Math.cos(angle) * 8.5;
-    soccerBall.vy = Math.sin(angle) * 8.5;
-    playSfx('kick');
-    socket.emit('kick_ball', soccerBall);
-  }
-
-  soccerBall.x += soccerBall.vx;
-  soccerBall.y += soccerBall.vy;
-  soccerBall.vx *= 0.94;
-  soccerBall.vy *= 0.94;
-
-  // Monedas
-  streetCoins.forEach(coin => {
-    if (!coin.collected) {
-      const distC = Math.hypot(myPlayer.x - coin.x, myPlayer.y - coin.y);
-      if (distC < 24) {
-        coin.collected = true;
-        rewardCoins(10);
-        showAlert('🪙 +10 Monedas recogidas!');
-        setTimeout(() => { coin.collected = false; }, 18000);
-      }
-    }
-  });
-
-  checkProximities();
-}
-
-// ==========================================
-// RENDERIZADO VISUAL
-// ==========================================
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  ctx.save();
-  ctx.scale(zoomScale, zoomScale);
-  ctx.translate(-camera.x, -camera.y);
-
-  // 1. DIBUJAR TERRENO URBANO
-  drawUrbanTerrain();
-
-  // 2. DIBUJAR PROPS URBANOS Y ANIMALES
-  drawUrbanProps();
-
-  // 3. JUGADORES REMOTOS
-  for (const sId in otherPlayers) {
-    drawPlayer(otherPlayers[sId], sId);
-  }
-
-  // 4. JUGADOR LOCAL
-  if (myPlayer) {
-    drawPlayer(myPlayer, socket.id, true);
-  }
-
-  // 5. GLOBOS DE TEXTO
-  drawBubbles();
-
-  ctx.restore();
-}
-
-function drawUrbanTerrain() {
-  // Césped verde vivo con flores silvestres
-  ctx.fillStyle = '#3f7a2d';
-  ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-  ctx.fillStyle = '#2f5c22';
-  for (let x = 0; x < WORLD_WIDTH; x += 48) {
-    for (let y = 0; y < WORLD_HEIGHT; y += 48) {
-      if ((x * 3 + y * 7) % 5 === 0) {
-        ctx.fillRect(x + 4, y + 4, 12, 8);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 10, y + 6, 2, 2); // margarita
-        ctx.fillStyle = '#60a5fa'; ctx.fillRect(x + 16, y + 8, 2, 2); // flor azul
-        ctx.fillStyle = '#2f5c22';
-      }
-    }
-  }
-
-  // Avenidas de Asfalto con líneas viales
-  drawAsphaltRoad(0, 700, WORLD_WIDTH, 140);
-  drawAsphaltRoad(940, 0, 140, WORLD_HEIGHT);
-
-  // Aceras de baldosas con bordillo
-  drawSidewalk(0, 640, WORLD_WIDTH, 60);
-  drawSidewalk(0, 840, WORLD_WIDTH, 60);
-  drawSidewalk(880, 0, 60, WORLD_HEIGHT);
-  drawSidewalk(1080, 0, 60, WORLD_HEIGHT);
-
-  // Plaza Central de Concreto con Grietas
-  drawCrackedConcretePlaza(1140, 500, 240, 200);
-
-  // Puesto de la Academia Didáctica
-  drawAcademyStation(1140, 500);
-
-  // Bordes de tierra
-  ctx.fillStyle = '#9e6c38';
-  ctx.fillRect(0, 636, WORLD_WIDTH, 4);
-  ctx.fillRect(0, 900, WORLD_WIDTH, 4);
-}
-
-function drawAsphaltRoad(x, y, w, h) {
-  ctx.fillStyle = '#2b2d35';
-  ctx.fillRect(x, y, w, h);
-
-  if (w > h) {
-    ctx.fillStyle = '#eab308';
-    ctx.fillRect(x, y + 6, w, 2); ctx.fillRect(x, y + 10, w, 2);
-    ctx.fillRect(x, y + h - 12, w, 2); ctx.fillRect(x, y + h - 8, w, 2);
-    ctx.fillStyle = '#f8fafc';
-    for (let px = x + 10; px < x + w; px += 36) {
-      ctx.fillRect(px, y + h / 2 - 2, 20, 4);
-    }
-  } else {
-    ctx.fillStyle = '#eab308';
-    ctx.fillRect(x + 6, y, 2, h); ctx.fillRect(x + 10, y, 2, h);
-    ctx.fillRect(x + w - 12, y, 2, h); ctx.fillRect(x + w - 8, y, 2, h);
-    ctx.fillStyle = '#f8fafc';
-    for (let py = y + 10; py < y + h; py += 36) {
-      ctx.fillRect(x + w / 2 - 2, py, 4, 20);
-    }
   }
 }
 
-function drawSidewalk(x, y, w, h) {
-  ctx.fillStyle = '#beb5a8';
-  ctx.fillRect(x, y, w, h);
-
-  ctx.strokeStyle = '#9c9285';
-  ctx.lineWidth = 1;
-  for (let px = x; px <= x + w; px += 16) {
-    ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px, y + h); ctx.stroke();
-  }
-  for (let py = y; py <= y + h; py += 16) {
-    ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + w, py); ctx.stroke();
-  }
-
-  ctx.fillStyle = '#6e675b';
-  if (w > h) ctx.fillRect(x, y + h - 4, w, 4);
-  else ctx.fillRect(x + w - 4, y, 4, h);
-}
-
-function drawCrackedConcretePlaza(x, y, w, h) {
-  ctx.fillStyle = '#a89f91';
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#736b5e';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
-
-  ctx.beginPath();
-  ctx.moveTo(x + w / 2, y); ctx.lineTo(x + w / 2, y + h);
-  ctx.moveTo(x, y + h / 2); ctx.lineTo(x + w, y + h / 2);
-  ctx.stroke();
-
-  // Grietas orgánicas
-  ctx.strokeStyle = '#5a5347';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 20, y + 10); ctx.lineTo(x + 40, y + 30); ctx.lineTo(x + 35, y + 50);
-  ctx.moveTo(x + w - 30, y + 20); ctx.lineTo(x + w - 50, y + 45);
-  ctx.moveTo(x + 45, y + h - 20); ctx.lineTo(x + 60, y + h - 45);
-  ctx.stroke();
-}
-
-function drawAcademyStation(x, y) {
-  // Puesto de Juguetes y Aprendizaje (100% visual para Diego Jr. 4 años)
-  const boothX = x + 15;
-  const boothY = y + 10;
-
-  // Base de mostrador colorida
-  ctx.fillStyle = '#92400e';
-  ctx.fillRect(boothX, boothY + 22, 110, 26);
-  ctx.fillStyle = '#d97706';
-  ctx.fillRect(boothX + 3, boothY + 25, 104, 20);
-
-  // Toldo rayado estilo feria / juguetería
-  const stripes = ['#ef4444', '#ffffff', '#3b82f6', '#ffffff', '#10b981', '#ffffff', '#ef4444'];
-  const sWidth = 110 / stripes.length;
-  stripes.forEach((color, i) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(boothX + i * sWidth, boothY, sWidth + 1, 14);
-  });
-
-  // Postes
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(boothX + 2, boothY + 14, 4, 10);
-  ctx.fillRect(boothX + 104, boothY + 14, 4, 10);
-
-  // Iconos gigantes de juguetes y colores (Fácil de entender sin leer)
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('🧸', boothX + 25, boothY + 22);
-  ctx.fillText('🎨', boothX + 55, boothY + 22);
-  ctx.fillText('🔢', boothX + 85, boothY + 22);
-  ctx.textAlign = 'start';
-
-  // Letrero con Osito
-  ctx.fillStyle = '#fef08a';
-  ctx.font = 'bold 6px "Press Start 2P"';
-  ctx.fillText('🧸 JUGUETES', boothX + 20, boothY + 39);
-}
-
-function drawUrbanProps() {
-  drawParkBench(870, 650);
-  drawParkBench(1160, 650);
-  drawBusStop(1020, 636);
-  drawFireHydrant(930, 672);
-  drawTrashCan(950, 668);
-  drawVictorianStreetLamp(970, 642);
-  drawVictorianStreetLamp(1280, 642);
-  drawStopSign(890, 676);
-  drawPedestrianSign(1120, 676);
-  drawBrickPlanterBox(1180, 666);
-  drawTrashBagsAndBoxes(850, 668);
-
-  // Pelota de fútbol
-  drawSoccerBall();
-
-  // ANIMALES DIDÁCTICOS VIVOS EN EL PARQUE
-  townAnimals.forEach(an => {
-    drawAnimalInPark(an);
-  });
-
-  // Monedas
-  streetCoins.forEach(coin => {
-    if (!coin.collected) {
-      ctx.fillStyle = '#facc15'; ctx.fillRect(coin.x - 5, coin.y - 5, 10, 10);
-      ctx.fillStyle = '#ca8a04'; ctx.fillRect(coin.x - 3, coin.y - 3, 6, 6);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(coin.x - 1, coin.y - 1, 2, 2);
-    }
+function spawnShockwave(x, y, color) {
+  shockwaves.push({
+    x: x,
+    y: y,
+    radius: 10,
+    maxRadius: 75,
+    color: color,
+    alpha: 1
   });
 }
 
-function drawParkBench(x, y) {
-  ctx.fillStyle = '#6b3b24';
-  ctx.fillRect(x, y, 42, 6); ctx.fillRect(x, y + 8, 42, 6);
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(x + 4, y + 14, 3, 6); ctx.fillRect(x + 35, y + 14, 3, 6);
-}
+function updateAndDrawParticles(camX) {
+  // Partículas de estela
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.alpha -= 0.035;
+    p.size *= 0.96;
 
-function drawBusStop(x, y) {
-  ctx.fillStyle = '#1e3a8a'; ctx.fillRect(x, y, 64, 5);
-  ctx.fillStyle = 'rgba(56, 189, 248, 0.4)'; ctx.fillRect(x + 2, y + 5, 60, 24);
-  ctx.fillStyle = '#334155'; ctx.fillRect(x, y + 5, 3, 26); ctx.fillRect(x + 61, y + 5, 3, 26);
-  ctx.fillStyle = '#facc15'; ctx.fillRect(x + 44, y + 8, 12, 16);
-  ctx.fillStyle = '#854d0e'; ctx.fillRect(x + 10, y + 22, 32, 4);
-}
-
-function drawFireHydrant(x, y) {
-  ctx.fillStyle = '#dc2626'; ctx.fillRect(x, y + 4, 10, 14); ctx.fillRect(x - 2, y + 8, 14, 4);
-  ctx.fillStyle = '#991b1b'; ctx.fillRect(x + 2, y + 1, 6, 3);
-}
-
-function drawTrashCan(x, y) {
-  ctx.fillStyle = '#64748b'; ctx.fillRect(x, y + 2, 12, 14);
-  ctx.fillStyle = '#475569'; ctx.fillRect(x - 1, y, 14, 3);
-  ctx.fillStyle = '#334155'; ctx.fillRect(x + 3, y + 4, 2, 10); ctx.fillRect(x + 7, y + 4, 2, 10);
-}
-
-function drawVictorianStreetLamp(x, y) {
-  ctx.fillStyle = '#1e293b'; ctx.fillRect(x, y, 4, 38); ctx.fillRect(x - 3, y + 36, 10, 3);
-  ctx.fillRect(x - 6, y + 4, 6, 3);
-  ctx.fillStyle = 'rgba(253, 224, 71, 0.3)';
-  ctx.beginPath(); ctx.arc(x - 6, y + 8, 16, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fde047'; ctx.fillRect(x - 8, y + 6, 6, 7);
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(x - 9, y + 4, 8, 2);
-}
-
-function drawStopSign(x, y) {
-  ctx.fillStyle = '#64748b'; ctx.fillRect(x + 5, y + 12, 2, 22);
-  ctx.fillStyle = '#dc2626'; ctx.fillRect(x, y + 2, 12, 8); ctx.fillRect(x + 2, y, 8, 12);
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 4px sans-serif'; ctx.fillText('PARE', x + 1, y + 8);
-}
-
-function drawPedestrianSign(x, y) {
-  ctx.fillStyle = '#64748b'; ctx.fillRect(x + 5, y + 12, 2, 22);
-  ctx.fillStyle = '#2563eb'; ctx.fillRect(x, y, 12, 12);
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 1, y + 1, 10, 10);
-  ctx.fillStyle = '#2563eb'; ctx.fillText('🚸', x + 1, y + 9);
-}
-
-function drawBrickPlanterBox(x, y) {
-  ctx.fillStyle = '#991b1b'; ctx.fillRect(x, y + 8, 38, 8);
-  ctx.fillStyle = '#15803d';
-  ctx.beginPath();
-  ctx.arc(x + 8, y + 6, 7, 0, Math.PI * 2);
-  ctx.arc(x + 19, y + 5, 8, 0, Math.PI * 2);
-  ctx.arc(x + 30, y + 6, 7, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawTrashBagsAndBoxes(x, y) {
-  ctx.fillStyle = '#0f172a';
-  ctx.beginPath(); ctx.arc(x + 6, y + 8, 6, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#92400e'; ctx.fillRect(x + 12, y + 4, 10, 10);
-}
-
-function drawSoccerBall() {
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath(); ctx.arc(soccerBall.x, soccerBall.y, soccerBall.radius, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = '#0f172a'; ctx.font = '9px sans-serif';
-  ctx.fillText('⚽', soccerBall.x - 5, soccerBall.y + 4);
-}
-
-// Dibujar animales didácticos en el parque
-function drawAnimalInPark(an) {
-  // Sombra
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-  ctx.beginPath(); ctx.ellipse(an.x, an.y + 10, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Emoji grande del animal
-  ctx.font = '22px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(an.emoji, an.x, an.y + 6);
-
-  // Nombre del animal
-  ctx.font = 'bold 6px "Press Start 2P"';
-  ctx.fillStyle = '#fef08a';
-  ctx.fillText(`${an.name}`, an.x, an.y - 14);
-  ctx.textAlign = 'start';
-}
-
-function drawPlayer(p, sId, isSelf = false) {
-  const x = Math.round(p.x);
-  const y = Math.round(p.y);
-  const dir = p.direction || 'down';
-
-  let frame = 0;
-  if (p.isMoving) {
-    const cycle = Math.floor(stepAnim) % 4;
-    if (cycle === 1) frame = 1;
-    else if (cycle === 3) frame = 2;
-  }
-
-  const sprite = getCharacterSprite(p.id, dir, frame);
-  ctx.drawImage(sprite, x - 9, y - 28);
-
-  ctx.font = 'bold 7px "Press Start 2P"';
-  ctx.textAlign = 'center';
-  const tagW = ctx.measureText(p.name).width + 8;
-
-  ctx.fillStyle = isSelf ? 'rgba(22, 101, 52, 0.9)' : 'rgba(15, 23, 42, 0.85)';
-  ctx.fillRect(x - tagW / 2, y - 36, tagW, 11);
-  ctx.strokeStyle = isSelf ? '#86efac' : '#38bdf8';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x - tagW / 2, y - 36, tagW, 11);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(p.name, x, y - 28);
-  ctx.textAlign = 'start';
-}
-
-function drawBubbles() {
-  const now = Date.now();
-  for (const sId in activeBubbles) {
-    const b = activeBubbles[sId];
-    if (now > b.time) {
-      delete activeBubbles[sId];
+    if (p.alpha <= 0 || p.size < 1) {
+      particles.splice(i, 1);
       continue;
     }
-    const p = (sId === socket.id ? myPlayer : otherPlayers[sId]);
-    if (p) {
-      const bx = p.x;
-      const by = p.y - 44;
-      ctx.font = 'bold 7px "Press Start 2P"';
-      ctx.textAlign = 'center';
-      const tw = ctx.measureText(b.text).width + 12;
 
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(bx - tw / 2, by - 12, tw, 16);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(bx - tw / 2, by - 12, tw, 16);
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 8;
+    ctx.translate(p.x - camX, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+    ctx.restore();
+  }
 
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillText(b.text, bx, by);
-      ctx.textAlign = 'start';
+  // Ondas de choque circulares
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const s = shockwaves[i];
+    s.radius += 4.5;
+    s.alpha -= 0.045;
+
+    if (s.alpha <= 0 || s.radius >= s.maxRadius) {
+      shockwaves.splice(i, 1);
+      continue;
     }
+
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.strokeStyle = s.color;
+    ctx.shadowColor = s.color;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(s.x - camX, s.y, s.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
-// Bucle
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
+// =========================================================
+// RENDERIZADO PRINCIPAL (CANVAS 60 FPS)
+// =========================================================
+function drawGame() {
+  requestAnimationFrame(drawGame);
+
+  const w = canvas.width;
+  const h = canvas.height;
+  floorY = h * 0.76;
+
+  updatePlayer();
+
+  if (myPlayer.shieldTimer > 0) myPlayer.shieldTimer--;
+
+  // Cámara centrada en el jugador
+  const camX = myPlayer.x - w * 0.28;
+
+  // 1. FONDO ESPACIAL CYBERPUNK (Exacto a la foto)
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#0a031e');
+  bgGrad.addColorStop(0.5, '#170b3b');
+  bgGrad.addColorStop(1, '#28115e');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Cuadrícula neón en perspectiva (Cyber Grid)
+  ctx.strokeStyle = 'rgba(139, 92, 246, 0.16)';
+  ctx.lineWidth = 1.2;
+  const gridOffsetX = -(camX * 0.3) % 40;
+  for (let x = gridOffsetX; x < w; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, floorY);
+    ctx.stroke();
+  }
+  for (let y = 0; y < floorY; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // 2. SUELO GEOMÉTRICO CON BORDE NEÓN
+  const floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
+  floorGrad.addColorStop(0, '#1e1145');
+  floorGrad.addColorStop(1, '#09041a');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, floorY, w, h - floorY);
+
+  // Línea superior del suelo brillante
+  ctx.strokeStyle = '#00f0ff';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#00f0ff';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(0, floorY);
+  ctx.lineTo(w, floorY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Patrón geométrico del suelo (Dientes de sierra inferiores como en la foto)
+  ctx.fillStyle = '#150933';
+  const sawStep = 30;
+  const sawOffset = -(camX) % sawStep;
+  for (let sx = sawOffset; sx < w; sx += sawStep) {
+    ctx.beginPath();
+    ctx.moveTo(sx, floorY + 4);
+    ctx.lineTo(sx + sawStep / 2, floorY + 16);
+    ctx.lineTo(sx + sawStep, floorY + 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 3. RENDERIZAR OBSTÁCULOS (Púas, Pilares, Péndulo)
+  obstacles.forEach(obs => {
+    const rx = obs.x - camX;
+    if (rx < -150 || rx > w + 150) return;
+
+    if (obs.type === 'spike') {
+      const spWidth = 26;
+      for (let i = 0; i < obs.count; i++) {
+        const sx = rx + i * spWidth;
+        // Púa neón (Triángulo con gradiente interior y contorno brillante)
+        ctx.fillStyle = '#0f0a21';
+        ctx.beginPath();
+        ctx.moveTo(sx, floorY);
+        ctx.lineTo(sx + spWidth / 2, floorY - 30);
+        ctx.lineTo(sx + spWidth, floorY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    } else if (obs.type === 'pillar') {
+      // Pilar de bloques futuristas con gradiente (Como en la foto)
+      const pGrad = ctx.createLinearGradient(0, floorY, 0, floorY - obs.h);
+      pGrad.addColorStop(0, '#0f0a21');
+      pGrad.addColorStop(1, '#e2e8f0');
+      ctx.fillStyle = pGrad;
+      ctx.fillRect(rx, floorY - obs.h, obs.w, obs.h);
+
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rx, floorY - obs.h, obs.w, obs.h);
+    } else if (obs.type === 'pendulum') {
+      // Péndulo colgante con cadena (Como en la foto del usuario)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(rx + 20, 0);
+      ctx.lineTo(rx + 20, obs.h);
+      ctx.stroke();
+
+      // Púa invertida del péndulo
+      ctx.fillStyle = '#0f0a21';
+      ctx.beginPath();
+      ctx.moveTo(rx, obs.h);
+      ctx.lineTo(rx + 20, obs.h + 40);
+      ctx.lineTo(rx + 40, obs.h);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (obs.type === 'hanging_stalactite') {
+      // Estalactita de techo en modo nave
+      ctx.fillStyle = '#1e1145';
+      ctx.fillRect(rx, floorY - 260, 30, obs.h);
+      ctx.strokeStyle = '#ff007f';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rx, floorY - 260, 30, obs.h);
+    }
+  });
+
+  // 4. RENDERIZAR ORBES DE CONTEO Y ORBES DE SALTO
+  countingOrbs.forEach(orb => {
+    const rx = orb.x - camX;
+    if (rx < -100 || rx > w + 100 || orb.collected) return;
+
+    ctx.save();
+    ctx.shadowColor = orb.color;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = orb.color;
+    ctx.beginPath();
+    ctx.arc(rx, floorY + orb.y, orb.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Número visible en el orbe
+    ctx.fillStyle = '#020617';
+    ctx.font = 'bold 16px "Orbitron", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(orb.num, rx, floorY + orb.y);
+    ctx.restore();
+  });
+
+  jumpOrbs.forEach(orb => {
+    const rx = orb.x - camX;
+    if (rx < -100 || rx > w + 100) return;
+
+    ctx.save();
+    ctx.shadowColor = orb.color;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = 'rgba(15, 10, 33, 0.7)';
+    ctx.beginPath();
+    ctx.arc(rx, floorY + orb.y, orb.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = orb.color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // 5. RENDERIZAR PORTALES DE TRANSFORMACIÓN (Hexágono Neón como en la foto)
+  portals.forEach(portal => {
+    const rx = portal.x - camX;
+    if (rx < -120 || rx > w + 120) return;
+
+    ctx.save();
+    ctx.shadowColor = portal.color;
+    ctx.shadowBlur = 20;
+
+    // Marco hexagonal alargado
+    ctx.strokeStyle = portal.color;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(rx - portal.w / 2, floorY + portal.y, portal.w, portal.h);
+
+    // Barras de energía horizontales
+    ctx.fillStyle = portal.color;
+    for (let by = floorY + portal.y + 12; by < floorY + portal.y + portal.h - 10; by += 18) {
+      ctx.fillRect(rx - portal.w / 2 + 6, by, portal.w - 12, 4);
+    }
+
+    // Texto de portal
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 8px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText(portal.label, rx, floorY + portal.y - 12);
+    ctx.restore();
+  });
+
+  // 6. RENDERIZAR PUERTAS MATEMÁTICAS (Para Vicky y Familia)
+  mathGates.forEach(gate => {
+    const rx = gate.x - camX;
+    if (rx < -160 || rx > w + 160) return;
+
+    // Puerta Superior
+    ctx.fillStyle = gate.top.correct ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.fillRect(rx - 60, floorY - 220, 120, 60);
+    ctx.strokeRect(rx - 60, floorY - 220, 120, 60);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px "Orbitron", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(gate.top.label, rx, floorY - 185);
+
+    // Puerta Inferior
+    ctx.fillStyle = gate.bottom.correct ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)';
+    ctx.fillRect(rx - 60, floorY - 120, 120, 60);
+    ctx.strokeRect(rx - 60, floorY - 120, 120, 60);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(gate.bottom.label, rx, floorY - 85);
+  });
+
+  // 7. RENDERIZAR OTROS JUGADORES (MULTIJUGADOR EN TIEMPO REAL)
+  Object.values(otherPlayers).forEach(other => {
+    const orx = (other.distance + 120) - camX;
+    if (orx < -100 || orx > w + 100) return;
+
+    const ory = floorY + (other.y || 0) - myPlayer.size / 2;
+    ctx.save();
+    ctx.translate(orx, ory);
+
+    // Nombre flotante con halo
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px "Orbitron", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = other.color || '#38bdf8';
+    ctx.shadowBlur = 8;
+    ctx.fillText(other.name, 0, -myPlayer.size / 2 - 8);
+
+    // Render de cubo u nave del compañero
+    const isOtherShip = other.mode === 'ship';
+    drawNeonCubeIcon(ctx, myPlayer.size, other.color || '#38bdf8', '#ffffff', 'demon_cute', other.rot || 0, isOtherShip);
+    ctx.restore();
+  });
+
+  // 8. RENDERIZAR JUGADOR ACTUAL (CON SOMBRA NEÓN Y ESCUDO)
+  const px = myPlayer.x - camX;
+  const py = floorY + myPlayer.y - myPlayer.size / 2;
+
+  ctx.save();
+  ctx.translate(px, py);
+
+  // Escudo protector de energía para Diego Jr.
+  if (myPlayer.shieldTimer > 0) {
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.arc(0, 0, myPlayer.size * 0.85, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Nombre del jugador
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 9px "Orbitron", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = HERO_DEFS[selectedHeroId].primaryColor;
+  ctx.shadowBlur = 8;
+  ctx.fillText(HERO_DEFS[selectedHeroId].name, 0, -myPlayer.size / 2 - 8);
+
+  const isShipMode = myPlayer.mode === 'ship';
+  drawNeonCubeIcon(ctx, myPlayer.size, HERO_DEFS[selectedHeroId].primaryColor, HERO_DEFS[selectedHeroId].secondaryColor, HERO_DEFS[selectedHeroId].face, myPlayer.rot, isShipMode);
+
+  ctx.restore();
+
+  // 9. DIBUJAR PARTÍCULAS Y ONDAS DE CHOQUE
+  updateAndDrawParticles(camX);
 }
 
-gameLoop();
+// Redimensionar canvas adaptativo
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+// =========================================================
+// EVENTOS MULTIJUGADOR SOCKET.IO
+// =========================================================
+socket.on('init_state', (data) => {
+  if (data.players) {
+    Object.keys(data.players).forEach(sockId => {
+      if (sockId !== socket.id) {
+        otherPlayers[sockId] = data.players[sockId];
+      }
+    });
+    updateOtherPlayerMarkers();
+  }
+});
+
+socket.on('player_joined', (pData) => {
+  if (pData.socketId !== socket.id) {
+    otherPlayers[pData.socketId] = pData;
+    updateOtherPlayerMarkers();
+  }
+});
+
+socket.on('player_updated', (pData) => {
+  if (pData.socketId !== socket.id) {
+    otherPlayers[pData.socketId] = pData;
+    updateOtherPlayerMarkers();
+  }
+});
+
+socket.on('player_left', (pData) => {
+  delete otherPlayers[pData.socketId];
+  updateOtherPlayerMarkers();
+});
+
+socket.on('reaction_received', (data) => {
+  // Mostrar emoji flotante en pantalla
+  showFloatingEmoji(data.emoji, data.name);
+  playSfx('orb');
+});
+
+function updateOtherPlayerMarkers() {
+  if (!markerOthersContainer) return;
+  markerOthersContainer.innerHTML = '';
+  Object.values(otherPlayers).forEach(p => {
+    const ratio = Math.min(1, (p.distance || 0) / LEVEL_LENGTH);
+    const m = document.createElement('div');
+    m.className = 'other-runner-marker';
+    m.style.left = `${(ratio * 100).toFixed(1)}%`;
+    m.style.backgroundColor = p.color || '#ec4899';
+    m.title = p.name;
+    markerOthersContainer.appendChild(m);
+  });
+}
+
+function showFloatingEmoji(emoji, sender) {
+  const div = document.createElement('div');
+  div.style.position = 'absolute';
+  div.style.left = `${Math.random() * 60 + 20}%`;
+  div.style.bottom = '90px';
+  div.style.fontSize = '32px';
+  div.style.pointerEvents = 'none';
+  div.style.zIndex = '90';
+  div.style.animation = 'toastPop 0.25s ease-out, bannerFloat 1.2s forwards';
+  div.innerText = emoji;
+  document.body.appendChild(div);
+  setTimeout(() => { div.remove(); }, 1200);
+}
+
+// Botones de reacciones rápidas
+document.querySelectorAll('.btn-react-emoji').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const emoji = btn.getAttribute('data-emoji');
+    socket.emit('send_reaction', emoji);
+    showFloatingEmoji(emoji, 'Tú');
+  });
+});
+
+// Botones de herramientas del HUD
+btnSpeakRepeat.addEventListener('click', () => {
+  speak(lastSpokenPrompt);
+});
+
+btnMusicToggle.addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  btnMusicToggle.classList.toggle('active', musicEnabled);
+  btnMusicToggle.innerText = musicEnabled ? '🎵' : '🔇';
+});
+
+btnVibrateToggle.addEventListener('click', () => {
+  vibrationEnabled = !vibrationEnabled;
+  btnVibrateToggle.classList.toggle('active', vibrationEnabled);
+});
+
+btnNextLevel.addEventListener('click', () => {
+  victoryModal.classList.add('hidden');
+  myPlayer.distance = 0;
+  generateTrack();
+  speak('¡Siguiente nivel iniciado! ¡A toda velocidad!');
+});
+
+// Iniciar bucle de dibujo
+requestAnimationFrame(drawGame);

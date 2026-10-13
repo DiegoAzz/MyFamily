@@ -3,279 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a051b">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#2b2d35">
-  <title>El Barrio Az - RPG Familiar y Didáctico</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Geometry Family: Neon Dash</title>
+  <!-- Fuentes Arcade y Cyberpunk de Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Press+Start+2P&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- MODAL DE SELECCIÓN DE PERSONAJES -->
-  <div id="character-select-modal" class="modal-overlay">
-    <div class="urban-dialog-box select-dialog">
-      <div class="dialog-banner">
-        <h2>EL BARRIO AZ</h2>
-        <span class="sub-banner">¡Toca tu personaje!</span>
+  <!-- MODAL DE SELECCIÓN DE PERSONAJE NEÓN -->
+  <div id="character-select-modal" class="neon-modal-overlay">
+    <div class="neon-dialog-box">
+      <div class="cyber-header">
+        <h1 class="glitch-title" data-text="GEOMETRY AZ">GEOMETRY AZ</h1>
+        <p class="subtitle-neon">⚡ NEON FAMILY RUNNER ⚡</p>
       </div>
 
-      <div class="urban-portraits-row">
-        <!-- Diegoaz (Papá) -->
-        <div class="portrait-card" data-char="diegoaz">
-          <div class="portrait-frame">
-            <canvas id="portrait-diegoaz" width="64" height="64" class="pixel-portrait-canvas"></canvas>
+      <p class="select-hero-prompt">ELIGE TU CORREDOR NEÓN:</p>
+
+      <div class="hero-cards-grid">
+        <!-- Diego Junior (4 años) -->
+        <div class="hero-card active" data-id="diegoaz_jr" data-color="#facc15" data-sec="#38bdf8">
+          <div class="hero-cube-preview">
+            <canvas id="prev-diego-jr" width="70" height="70" class="neon-cube-canvas"></canvas>
           </div>
-          <div class="portrait-name">Diegoaz</div>
-          <span class="portrait-tag">Papá (46)</span>
+          <span class="hero-name">Diego Jr.</span>
+          <span class="hero-badge badge-jr">⭐ 4 AÑOS</span>
+          <span class="hero-feature">Escudo + Números</span>
         </div>
 
-        <!-- Vicky Vicky (Hija) -->
-        <div class="portrait-card" data-char="vicky_vicky">
-          <div class="portrait-frame">
-            <canvas id="portrait-vicky" width="64" height="64" class="pixel-portrait-canvas"></canvas>
+        <!-- Vicky Vicky (10 años) -->
+        <div class="hero-card" data-id="vicky_vicky" data-color="#f43f5e" data-sec="#06b6d4">
+          <div class="hero-cube-preview">
+            <canvas id="prev-vicky" width="70" height="70" class="neon-cube-canvas"></canvas>
           </div>
-          <div class="portrait-name">Vicky Vicky</div>
-          <span class="portrait-tag">Hija (10)</span>
+          <span class="hero-name">Vicky Vicky</span>
+          <span class="hero-badge badge-vicky">🚀 10 AÑOS</span>
+          <span class="hero-feature">Turbo + Matemáticas</span>
         </div>
 
-        <!-- Diegoaz Jr. (Hijo) -->
-        <div class="portrait-card active" data-char="diegoaz_jr">
-          <div class="portrait-frame">
-            <canvas id="portrait-junior" width="64" height="64" class="pixel-portrait-canvas"></canvas>
+        <!-- Diego Papá (46 años) -->
+        <div class="hero-card" data-id="diegoaz" data-color="#10b981" data-sec="#f59e0b">
+          <div class="hero-cube-preview">
+            <canvas id="prev-diego" width="70" height="70" class="neon-cube-canvas"></canvas>
           </div>
-          <div class="portrait-name">Diegoaz Jr.</div>
-          <span class="portrait-tag">Hijo (4)</span>
+          <span class="hero-name">Diego (Papá)</span>
+          <span class="hero-badge badge-dad">👑 GUÍA</span>
+          <span class="hero-feature">Piloto Cyber</span>
         </div>
       </div>
 
-      <button id="btn-start-game" class="urban-btn-primary">
-        ▶ ¡A JUGAR!
+      <div class="assist-toggle-row">
+        <label class="assist-switch" title="Protege a los más pequeños para que nunca pierdan y sigan jugando">
+          <input type="checkbox" id="chk-kid-shield" checked>
+          <span class="slider-neon"></span>
+          <span class="assist-label">🛡️ Modo Protector (Para Diego Jr. - Rebote seguro)</span>
+        </label>
+      </div>
+
+      <button id="btn-start-race" class="btn-neon-action">
+        <span>▶ ¡A CORRER EN FAMILIA!</span>
       </button>
+
+      <div class="controls-hint">
+        <span>📱 <b>Celular:</b> Toca la pantalla para saltar / Mantén para volar con la nave</span>
+        <span>💻 <b>PC:</b> Barra Espaciadora o Clic del ratón</span>
+      </div>
     </div>
   </div>
 
-  <!-- JUEGO FULLSCREEN -->
+  <!-- CONTENEDOR PRINCIPAL DEL JUEGO -->
   <div id="game-container" class="hidden">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD SUPERIOR ELEGANTE Y COMPACTO -->
-    <header id="urban-hud">
-      <!-- Izquierda: Retrato del jugador activo -->
-      <div class="hud-player-badge">
-        <canvas id="hud-mini-portrait" width="28" height="28" class="hud-mini-canvas"></canvas>
-        <div class="hud-player-info">
-          <span id="hud-player-name" class="hud-name-text">Diego Jr.</span>
-          <span id="location-badge" class="hud-zone-text">Avenida Central</span>
+    <!-- HUD SUPERIOR ENERGÉTICO NEÓN -->
+    <header id="neon-hud">
+      <!-- Izquierda: Estado del jugador actual -->
+      <div class="hud-left-player">
+        <canvas id="hud-cube-icon" width="32" height="32" class="hud-mini-cube"></canvas>
+        <div class="hud-player-meta">
+          <span id="hud-name" class="hud-player-title">Diego Jr.</span>
+          <div class="hud-stats-row">
+            <span class="coin-pill"><span class="coin-icon">🪙</span> <span id="hud-coins">100</span></span>
+            <span class="speed-pill">⚡ <span id="hud-speed">1.0x</span></span>
+          </div>
         </div>
       </div>
 
-      <!-- Derecha: Dinero y Bóveda -->
-      <div class="hud-wallet-badge">
-        <div class="wallet-row">
-          <span class="gold-coin-icon">🪙</span>
-          <span id="player-coins-val" class="wallet-num">100</span>
+      <!-- Centro: Barra de progreso de la carrera multijugador -->
+      <div class="hud-center-race">
+        <div class="race-track-bar">
+          <div id="race-progress-fill" class="race-track-fill"></div>
+          <!-- Marcadores de corredores en la barra -->
+          <div id="marker-self" class="race-runner-marker self-marker" title="Tú"></div>
+          <div id="marker-others-container"></div>
+          <span class="finish-flag-icon">🏁</span>
         </div>
-        <div class="wallet-row vault-row" title="Bóveda Familiar">
-          <span class="vault-icon">🏦</span>
-          <span id="family-vault-val" class="wallet-num">500</span>
+        <div class="race-percent-text">
+          <span id="race-percent-val">0%</span>
         </div>
       </div>
 
-      <!-- Herramientas Rápidas -->
-      <div class="hud-action-icons">
-        <!-- BOTÓN DE JUGUETES Y APRENDIZAJE VISUAL CON OSITO 🧸 -->
-        <button id="btn-open-learn" class="hud-circle-tool special-toy-btn" title="Juegos y Aprendizaje">🧸</button>
-        <button id="btn-audio-toggle" class="hud-circle-tool" title="Sonido">🔊</button>
-        <button id="btn-open-house-shop" class="hud-circle-tool" title="Tienda">🛒</button>
+      <!-- Derecha: Herramientas didácticas y audio -->
+      <div class="hud-right-tools">
+        <!-- Botón de voz para repetir pregunta/figura -->
+        <button id="btn-speak-repeat" class="hud-tool-btn" title="Repetir voz didáctica">🔊</button>
+        <!-- Música synthwave -->
+        <button id="btn-music-toggle" class="hud-tool-btn" title="Música Neón">🎵</button>
+        <!-- Vibración on/off -->
+        <button id="btn-vibrate-toggle" class="hud-tool-btn active" title="Vibración háptica">📳</button>
       </div>
     </header>
 
-    <!-- TOAST DE MENSAJES -->
-    <div id="alert-banner" class="urban-toast hidden">
-      <span id="alert-text">¡Bienvenido al Barrio Az!</span>
+    <!-- BANNER DE RETO DIDÁCTICO ACTIVO (NÚMEROS, COLORES, MATEMÁTICAS) -->
+    <div id="didactic-live-pill" class="neon-live-banner">
+      <span id="didactic-emoji-icon" class="pill-icon">🔢</span>
+      <span id="didactic-prompt-text" class="pill-text">¡Rebota en los orbes para contar 1, 2, 3!</span>
     </div>
 
-    <!-- CONTROLES TÁCTILES LIMPIOS -->
-    <div id="mobile-controls">
-      <div id="joystick-area">
-        <div id="joystick-ring">
-          <div id="joystick-knob"></div>
-        </div>
-      </div>
+    <!-- TOAST DE FELICITACIÓN Y PREMIO -->
+    <div id="neon-toast" class="neon-celebration-toast hidden">
+      <span id="toast-title" class="toast-headline">⭐ ¡EXCELENTE DIEGO JR.!</span>
+      <span id="toast-subtitle" class="toast-subline">+15 Monedas Ganadas</span>
+    </div>
 
-      <div id="buttons-area">
-        <button id="btn-toggle-reactions" class="urban-mini-btn" aria-label="Reacciones">💬</button>
-        <button id="btn-action-main" class="urban-action-btn" aria-label="Acción">
-          <span id="action-btn-emoji">✨</span>
-          <span id="action-btn-label">TOCAR</span>
+    <!-- REACCIONES MULTIJUGADOR FLOTANTES -->
+    <div id="reaction-bar" class="hud-reaction-bar">
+      <button class="btn-react-emoji" data-emoji="🔥">🔥</button>
+      <button class="btn-react-emoji" data-emoji="🚀">🚀</button>
+      <button class="btn-react-emoji" data-emoji="⭐">⭐</button>
+      <button class="btn-react-emoji" data-emoji="🎉">🎉</button>
+      <button class="btn-react-emoji" data-emoji="💖">💖</button>
+    </div>
+
+    <!-- BOTÓN TÁCTIL GRANDE PARA CELULAR (ONE-TOUCH JUMP) -->
+    <div id="mobile-tap-surface" class="mobile-jump-overlay">
+      <div id="tap-indicator-ripple" class="tap-ripple-prompt">
+        <span class="tap-emoji-symbol">👆</span>
+        <span class="tap-label-text">TOCA PARA SALTAR O VOLAR</span>
+      </div>
+    </div>
+
+    <!-- MODAL DE VICTORIA / CHECKPOINT -->
+    <div id="victory-modal" class="neon-modal-overlay hidden">
+      <div class="neon-dialog-box victory-box">
+        <h2 class="victory-title">🏆 ¡CARRERA COMPLETADA!</h2>
+        <p class="victory-msg">¡La Familia Az conquistó el mundo Neón!</p>
+        <div class="victory-stats">
+          <div class="v-stat-card">
+            <span class="v-stat-num" id="v-coins-earned">+50</span>
+            <span class="v-stat-lbl">🪙 Monedas</span>
+          </div>
+          <div class="v-stat-card">
+            <span class="v-stat-num" id="v-math-cleared">100%</span>
+            <span class="v-stat-lbl">⭐ Didáctica</span>
+          </div>
+        </div>
+        <button id="btn-next-level" class="btn-neon-action">
+          <span>⚡ ¡SIGUIENTE NIVEL NEÓN!</span>
         </button>
       </div>
     </div>
-
-    <!-- REACCIONES RÁPIDAS -->
-    <div id="quick-reactions" class="hidden">
-      <button class="urban-reaction-pill" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
-      <button class="urban-reaction-pill" data-sound="duck" data-msg="¡Mira los patitos! 🦆">🦆 Patos</button>
-      <button class="urban-reaction-pill" data-sound="dog" data-msg="¡Perrito Toby! 🐶">🐶 Toby</button>
-      <button class="urban-reaction-pill" data-sound="cat" data-msg="¡La gatita Misi! 🐱">🐱 Misi</button>
-      <button class="urban-reaction-pill" data-sound="goal" data-msg="¡Golazo! ⚽">⚽ Fútbol</button>
-    </div>
-
-    <!-- ============================================== -->
-    <!-- CAJA DE JUGUETES Y APRENDIZAJE 100% POR VOZ    -->
-    <!-- (Para niños de 4 años que NO leen todavía)     -->
-    <!-- ============================================== -->
-    <div id="didactic-modal" class="modal-overlay hidden">
-      <div class="urban-dialog-box learn-dialog-box">
-        <div class="dialog-banner">
-          <h2>🧸 JUEGOS DE APRENDIZAJE</h2>
-          <button id="btn-close-learn" class="close-urban-btn">✖</button>
-        </div>
-
-        <!-- BOTÓN DE VOZ PARA REPETIR LO QUE DICE LA GUÍA -->
-        <button id="btn-repeat-voice" class="voice-repeat-bar" title="Toca para escuchar">
-          <span class="speaker-anim">🔊</span> <span id="voice-transcript">¡Toca para escuchar la voz!</span>
-        </button>
-
-        <!-- Pestañas Visuales con Iconos Gigantes (Sin necesidad de leer) -->
-        <div class="learn-tabs">
-          <button class="tab-btn active" data-tab="junior-animals">
-            <span class="tab-icon">🐶</span>
-            <span class="tab-label">ANIMALES</span>
-          </button>
-          <button class="tab-btn" data-tab="junior-numbers">
-            <span class="tab-icon">🔢</span>
-            <span class="tab-label">1 2 3</span>
-          </button>
-          <button class="tab-btn" data-tab="junior-colors">
-            <span class="tab-icon">🎨</span>
-            <span class="tab-label">COLORES</span>
-          </button>
-          <button class="tab-btn" data-tab="vicky-math">
-            <span class="tab-icon">➕</span>
-            <span class="tab-label">VICKY</span>
-          </button>
-        </div>
-
-        <!-- 1. ANIMALES Y SONIDOS REALES -->
-        <div id="tab-junior-animals" class="learn-content-view">
-          <div class="animals-grid">
-            <button class="animal-card" data-animal="dog" data-title="El Perro">
-              <span class="animal-emoji">🐶</span>
-              <span class="animal-name">El Perro</span>
-              <span class="animal-sound-label">Guau Guau</span>
-            </button>
-            <button class="animal-card" data-animal="cat" data-title="El Gato">
-              <span class="animal-emoji">🐱</span>
-              <span class="animal-name">El Gato</span>
-              <span class="animal-sound-label">Miau Miau</span>
-            </button>
-            <button class="animal-card" data-animal="duck" data-title="El Pato">
-              <span class="animal-emoji">🦆</span>
-              <span class="animal-name">El Pato</span>
-              <span class="animal-sound-label">Cua Cua</span>
-            </button>
-            <button class="animal-card" data-animal="cow" data-title="La Vaca">
-              <span class="animal-emoji">🐮</span>
-              <span class="animal-name">La Vaca</span>
-              <span class="animal-sound-label">Muuu</span>
-            </button>
-            <button class="animal-card" data-animal="sheep" data-title="La Oveja">
-              <span class="animal-emoji">🐑</span>
-              <span class="animal-name">La Oveja</span>
-              <span class="animal-sound-label">Beeee</span>
-            </button>
-            <button class="animal-card" data-animal="chicken" data-title="La Gallina">
-              <span class="animal-emoji">🐔</span>
-              <span class="animal-name">La Gallina</span>
-              <span class="animal-sound-label">Co Co Co</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 2. NÚMEROS Y CONTEO VISUAL -->
-        <div id="tab-junior-numbers" class="learn-content-view hidden">
-          <div id="number-quest-text" class="learn-instruction">¿Cuántos objetos hay? ¡Cuéntalos con tu dedito!</div>
-          <div id="number-items-display" class="visual-counting-area">
-            🍎 🍎 🍎
-          </div>
-          <div class="numbers-choice-grid">
-            <button class="num-choice-btn" data-num="1">1</button>
-            <button class="num-choice-btn" data-num="2">2</button>
-            <button class="num-choice-btn" data-num="3">3</button>
-            <button class="num-choice-btn" data-num="4">4</button>
-            <button class="num-choice-btn" data-num="5">5</button>
-          </div>
-          <div id="number-feedback" class="learn-feedback-box hidden"></div>
-        </div>
-
-        <!-- 3. COLORES BRILLANTES -->
-        <div id="tab-junior-colors" class="learn-content-view hidden">
-          <div id="color-quest-text" class="learn-instruction">¡Diego Jr., busca el color!</div>
-          <div class="colors-choice-grid">
-            <button class="color-btn" style="background: #ef4444;" data-color="ROJO">🔴 ROJO</button>
-            <button class="color-btn" style="background: #3b82f6;" data-color="AZUL">🔵 AZUL</button>
-            <button class="color-btn" style="background: #22c55e;" data-color="VERDE">🟢 VERDE</button>
-            <button class="color-btn" style="background: #facc15; color:#0f172a;" data-color="AMARILLO">🟡 AMARILLO</button>
-          </div>
-          <div id="color-feedback" class="learn-feedback-box hidden"></div>
-        </div>
-
-        <!-- 4. OPERACIONES MATEMÁTICAS (VICKY 10 AÑOS & PAPÁ) -->
-        <div id="tab-vicky-math" class="learn-content-view hidden">
-          <div id="math-problem-box" class="math-display-card">
-            <span id="math-question">5 + 3 = ?</span>
-          </div>
-          <div id="math-options-row" class="math-choice-grid"></div>
-          <div id="math-feedback" class="learn-feedback-box hidden"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TIENDA / MEJORAS DEL BARRIO -->
-    <div id="house-shop-modal" class="modal-overlay hidden">
-      <div class="urban-dialog-box shop-modal-box">
-        <div class="dialog-banner">
-          <h2>TIENDA DEL VECINDARIO</h2>
-          <button id="btn-close-shop" class="close-urban-btn">✖</button>
-        </div>
-        <p class="dialog-desc">Mejoras comunitarias para la familia:</p>
-
-        <div class="urban-shop-grid">
-          <div class="shop-slot" data-item="tv" data-cost="150">
-            <span class="slot-icon">📺</span>
-            <div class="slot-title">Tele Smart</div>
-            <span class="slot-price">🪙 150</span>
-            <button class="btn-buy-urban" id="buy-tv">Comprar</button>
-          </div>
-          <div class="shop-slot" data-item="pool" data-cost="400">
-            <span class="slot-icon">🏊</span>
-            <div class="slot-title">Piscina Jardín</div>
-            <span class="slot-price">🪙 400</span>
-            <button class="btn-buy-urban" id="buy-pool">Comprar</button>
-          </div>
-          <div class="shop-slot" data-item="car" data-cost="600">
-            <span class="slot-icon">🚗</span>
-            <div class="slot-title">Auto Familiar</div>
-            <span class="slot-price">🪙 600</span>
-            <button class="btn-buy-urban" id="buy-car">Comprar</button>
-          </div>
-          <div class="shop-slot" data-item="pizza_oven" data-cost="200">
-            <span class="slot-icon">🍕</span>
-            <div class="slot-title">Horno Pizza</div>
-            <span class="slot-price">🪙 200</span>
-            <button class="btn-buy-urban" id="buy-oven">Comprar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Motor del Juego -->
   <script src="game.js"></script>
 </body>
 </html>

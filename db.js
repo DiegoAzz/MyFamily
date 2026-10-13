@@ -214,10 +214,19 @@ async function getFamilyVault() {
   }
 }
 
+async function updatePlayerCoins(id, coins) {
+  if (isPostgres) {
+    await db.query('UPDATE players SET coins = $1, last_seen = CURRENT_TIMESTAMP WHERE id = $2', [coins, id]);
+  } else {
+    db.prepare('UPDATE players SET coins = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?').run(coins, id);
+  }
+}
+
 module.exports = {
   initDatabase,
   getPlayer,
   updatePlayerState,
+  updatePlayerCoins,
   getMissions,
   completeMission,
   getFamilyVault
