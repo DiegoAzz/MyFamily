@@ -40,6 +40,8 @@ const btnCloseShop = document.getElementById('btn-close-shop');
 const btnOpenLearn = document.getElementById('btn-open-learn');
 const didacticModal = document.getElementById('didactic-modal');
 const btnCloseLearn = document.getElementById('btn-close-learn');
+const btnRepeatVoice = document.getElementById('btn-repeat-voice');
+const voiceTranscript = document.getElementById('voice-transcript');
 const learnTabBtns = document.querySelectorAll('.tab-btn');
 const numberQuestText = document.getElementById('number-quest-text');
 const numberItemsDisplay = document.getElementById('number-items-display');
@@ -213,10 +215,67 @@ btnAudioToggle.addEventListener('click', () => {
 });
 
 // ==========================================
+// MOTOR DE VOZ SINTETIZADA (TEXT-TO-SPEECH)
+// Permite que Diego Jr. (4 años) juegue sin saber leer
+// ==========================================
+let lastSpokenText = '¡Hola Diego Junior! Toca un botón arriba para jugar.';
+let spanishVoices = [];
+
+function refreshVoices() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    const allVoices = window.speechSynthesis.getVoices();
+    spanishVoices = allVoices.filter(v => v.lang && (v.lang.toLowerCase().startsWith('es') || v.lang.includes('ES')));
+  }
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  refreshVoices();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+}
+
+function speak(text, pitch = 1.15, rate = 0.95) {
+  lastSpokenText = text;
+  if (voiceTranscript) {
+    voiceTranscript.innerText = text;
+  }
+  if (!audioEnabled || !('speechSynthesis' in window)) return;
+
+  try {
+    window.speechSynthesis.cancel(); // Detener cualquier locución en curso
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'es-ES';
+    utter.rate = rate;   // Ritmo pausado y claro para un niño de 4 años
+    utter.pitch = pitch; // Tono alegre y cálido
+
+    if (!spanishVoices.length) refreshVoices();
+    if (spanishVoices.length > 0) {
+      const friendlyVoice = spanishVoices.find(v => /sabina|monica|paulina|lucia|laura|helena|spanish|mexico/i.test(v.name)) || spanishVoices[0];
+      if (friendlyVoice) utter.voice = friendlyVoice;
+    }
+
+    const speakerIcon = document.querySelector('.speaker-anim');
+    if (speakerIcon) speakerIcon.classList.add('talking');
+
+    utter.onend = () => {
+      if (speakerIcon) speakerIcon.classList.remove('talking');
+    };
+    utter.onerror = () => {
+      if (speakerIcon) speakerIcon.classList.remove('talking');
+    };
+
+    window.speechSynthesis.speak(utter);
+  } catch (e) {
+    console.warn('Speech error:', e);
+  }
+}
+
+// ==========================================
 // MOTOR DIDÁCTICO Y EDUCATIVO
 // ==========================================
 
-// Pestañas didácticas
+// Pestañas didácticas con narración instantánea
 learnTabBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     initAudio();
@@ -229,38 +288,66 @@ learnTabBtns.forEach(btn => {
     const target = document.getElementById(`tab-${tabId}`);
     if (target) target.classList.remove('hidden');
 
-    if (tabId === 'junior-numbers') initNumberQuest();
-    else if (tabId === 'junior-colors') initColorQuest();
-    else if (tabId === 'vicky-math') initMathQuest();
+    if (tabId === 'junior-animals') {
+      speak('¡Animales del barrio! Toca cualquier animal para escuchar cómo hace.');
+    } else if (tabId === 'junior-numbers') {
+      initNumberQuest();
+    } else if (tabId === 'junior-colors') {
+      initColorQuest();
+    } else if (tabId === 'vicky-math') {
+      initMathQuest();
+    }
   });
 });
 
-// 1. ANIMALES INTERACTIVOS
+// 1. ANIMALES INTERACTIVOS CON VOZ Y SONIDO
+const animalVoiceLines = {
+  dog: '¡El perro Toby! ¡Hace guau guau!',
+  cat: '¡La gatita Misi! ¡Hace miau miau!',
+  duck: '¡El pato Lucas! ¡Hace cua cua!',
+  cow: '¡La vaca Margarita! ¡Hace muuu y nos da leche rica!',
+  sheep: '¡La oveja Copito! ¡Hace beee y tiene lana suave!',
+  chicken: '¡La gallina Turuleca! ¡Hace co co co!'
+};
+
 document.querySelectorAll('.animal-card').forEach(card => {
   card.addEventListener('click', () => {
     initAudio();
     const aType = card.getAttribute('data-animal');
     playSfx(aType);
-    const animalName = card.querySelector('.animal-name').innerText;
-    showAlert(`🎉 ¡Aprendiste el ${animalName}! (+5🪙)`);
+    const title = card.getAttribute('data-title') || 'Animal';
+    showAlert(`🎉 ¡${title}! (+5🪙)`);
     rewardCoins(5);
+
+    const voiceLine = animalVoiceLines[aType] || `¡${title}!`;
+    speak(voiceLine);
   });
 });
 
 // 2. NÚMEROS Y CONTEO (JUNIOR 4 AÑOS)
 let currentCountTarget = 3;
-const countEmojis = ['🍎', '⭐', '🚗', '🦆', '⚽'];
+const countItemTypes = [
+  { emoji: '🍎', nameSing: 'manzana', namePlur: 'manzanas' },
+  { emoji: '⭐', nameSing: 'estrella', namePlur: 'estrellas' },
+  { emoji: '🚗', nameSing: 'carrito', namePlur: 'carritos' },
+  { emoji: '🦆', nameSing: 'patito', namePlur: 'patitos' },
+  { emoji: '⚽', nameSing: 'pelota', namePlur: 'pelotas' }
+];
+let currentItemObj = countItemTypes[0];
 
 function initNumberQuest() {
   currentCountTarget = Math.floor(Math.random() * 5) + 1;
-  const emoji = countEmojis[Math.floor(Math.random() * countEmojis.length)];
+  currentItemObj = countItemTypes[Math.floor(Math.random() * countItemTypes.length)];
   let displayStr = '';
   for (let i = 0; i < currentCountTarget; i++) {
-    displayStr += emoji + ' ';
+    displayStr += currentItemObj.emoji + ' ';
   }
-  numberItemsDisplay.innerText = displayStr;
-  numberQuestText.innerText = `¿Cuántos objetos hay en pantalla?`;
-  numberFeedback.classList.add('hidden');
+  if (numberItemsDisplay) numberItemsDisplay.innerText = displayStr;
+  if (numberFeedback) numberFeedback.classList.add('hidden');
+
+  const phrase = `¿Cuántas ${currentItemObj.namePlur} ves? ¡Cuéntalas con tu dedito y toca el número!`;
+  if (numberQuestText) numberQuestText.innerText = phrase;
+  speak(phrase);
 }
 
 document.querySelectorAll('.num-choice-btn').forEach(btn => {
@@ -269,28 +356,36 @@ document.querySelectorAll('.num-choice-btn').forEach(btn => {
     const chosen = parseInt(btn.getAttribute('data-num'));
     if (chosen === currentCountTarget) {
       playSfx('correct');
-      numberFeedback.className = 'learn-feedback-box';
-      numberFeedback.innerText = `⭐ ¡EXCELENTE DIEGO JR.! ¡Hay ${chosen}! (+15🪙)`;
-      numberFeedback.classList.remove('hidden');
+      if (numberFeedback) {
+        numberFeedback.className = 'learn-feedback-box';
+        numberFeedback.innerText = `⭐ ¡EXCELENTE DIEGO JR.! ¡Hay ${chosen}! (+15🪙)`;
+        numberFeedback.classList.remove('hidden');
+      }
       rewardCoins(15);
-      setTimeout(initNumberQuest, 1800);
+      const itemName = chosen === 1 ? currentItemObj.nameSing : currentItemObj.namePlur;
+      speak(`¡Excelente Diego Junior! ¡Hay ${chosen} ${itemName}! ¡Ganaste quince monedas!`);
+      setTimeout(initNumberQuest, 3200);
     } else {
       playSfx('kick');
-      numberFeedback.className = 'learn-feedback-box error';
-      numberFeedback.innerText = `💡 ¡Casi! Cuenta despacito con tu dedito.`;
-      numberFeedback.classList.remove('hidden');
+      if (numberFeedback) {
+        numberFeedback.className = 'learn-feedback-box error';
+        numberFeedback.innerText = `💡 Tocaste el ${chosen}. Cuenta despacito con tu dedito.`;
+        numberFeedback.classList.remove('hidden');
+      }
+      speak(`Tocaste el número ${chosen}. ¡Casi casi! Vuelve a contar con tu dedito.`);
     }
   });
 });
 
-// 3. COLORES (JUNIOR 4 AÑOS)
+// 3. COLORES BRILLANTES (JUNIOR 4 AÑOS)
 const colorsList = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
 let currentColorTarget = 'AZUL';
 
 function initColorQuest() {
   currentColorTarget = colorsList[Math.floor(Math.random() * colorsList.length)];
-  colorQuestText.innerText = `¡Toca el color ${currentColorTarget}!`;
-  colorFeedback.classList.add('hidden');
+  if (colorQuestText) colorQuestText.innerText = `¡Toca el color ${currentColorTarget}!`;
+  if (colorFeedback) colorFeedback.classList.add('hidden');
+  speak(`¡Diego Junior, busca el color ${currentColorTarget.toLowerCase()}!`);
 }
 
 document.querySelectorAll('.color-btn').forEach(btn => {
@@ -299,16 +394,22 @@ document.querySelectorAll('.color-btn').forEach(btn => {
     const chosen = btn.getAttribute('data-color');
     if (chosen === currentColorTarget) {
       playSfx('correct');
-      colorFeedback.className = 'learn-feedback-box';
-      colorFeedback.innerText = `🎨 ¡CORRECTO! ¡Ese es el ${chosen}! (+15🪙)`;
-      colorFeedback.classList.remove('hidden');
+      if (colorFeedback) {
+        colorFeedback.className = 'learn-feedback-box';
+        colorFeedback.innerText = `🎨 ¡CORRECTO! ¡Ese es el ${chosen}! (+15🪙)`;
+        colorFeedback.classList.remove('hidden');
+      }
       rewardCoins(15);
-      setTimeout(initColorQuest, 1800);
+      speak(`¡Muy bien Diego Junior! ¡Ese es el color ${chosen.toLowerCase()}! ¡Ganaste quince monedas!`);
+      setTimeout(initColorQuest, 3000);
     } else {
       playSfx('kick');
-      colorFeedback.className = 'learn-feedback-box error';
-      colorFeedback.innerText = `💡 Ese es el ${chosen}. ¡Busca el ${currentColorTarget}!`;
-      colorFeedback.classList.remove('hidden');
+      if (colorFeedback) {
+        colorFeedback.className = 'learn-feedback-box error';
+        colorFeedback.innerText = `💡 Ese es el ${chosen}. ¡Busca el ${currentColorTarget}!`;
+        colorFeedback.classList.remove('hidden');
+      }
+      speak(`Ese es el color ${chosen.toLowerCase()}. ¡Busca el color ${currentColorTarget.toLowerCase()}!`);
     }
   });
 });
@@ -318,12 +419,13 @@ let currentMathAnswer = 8;
 
 function initMathQuest() {
   const isMult = Math.random() < 0.35;
-  let a, b, symbol;
+  let a, b, symbol, opSpoken;
 
   if (isMult) {
     a = Math.floor(Math.random() * 6) + 2;
     b = Math.floor(Math.random() * 6) + 2;
     symbol = '×';
+    opSpoken = 'por';
     currentMathAnswer = a * b;
   } else {
     const isSum = Math.random() < 0.6;
@@ -331,19 +433,21 @@ function initMathQuest() {
       a = Math.floor(Math.random() * 20) + 5;
       b = Math.floor(Math.random() * 15) + 3;
       symbol = '+';
+      opSpoken = 'más';
       currentMathAnswer = a + b;
     } else {
       a = Math.floor(Math.random() * 25) + 10;
       b = Math.floor(Math.random() * a) + 1;
       symbol = '-';
+      opSpoken = 'menos';
       currentMathAnswer = a - b;
     }
   }
 
   mathQuestion.innerText = `${a} ${symbol} ${b} = ?`;
   mathFeedback.classList.add('hidden');
+  speak(`Pregunta para Vicky: ¿Cuánto es ${a} ${opSpoken} ${b}?`);
 
-  // Generar opciones con la correcta
   const options = [currentMathAnswer, currentMathAnswer + (Math.random() < 0.5 ? 2 : -2), currentMathAnswer + (Math.random() < 0.5 ? 5 : -3)];
   options.sort(() => Math.random() - 0.5);
 
@@ -360,12 +464,14 @@ function initMathQuest() {
         mathFeedback.innerText = `🏆 ¡BRILIANTE VICKY! ${a} ${symbol} ${b} = ${currentMathAnswer} (+25🪙)`;
         mathFeedback.classList.remove('hidden');
         rewardCoins(25);
-        setTimeout(initMathQuest, 1800);
+        speak(`¡Brillante Vicky! ${a} ${opSpoken} ${b} es ${currentMathAnswer}. ¡Ganaste veinticinco monedas!`);
+        setTimeout(initMathQuest, 3200);
       } else {
         playSfx('kick');
         mathFeedback.className = 'learn-feedback-box error';
         mathFeedback.innerText = `💡 ¡Casi! Revisa el cálculo e inténtalo de nuevo.`;
         mathFeedback.classList.remove('hidden');
+        speak(`¡Casi Vicky! Revisa el cálculo e inténtalo de nuevo.`);
       }
     });
     mathOptionsRow.appendChild(btn);
@@ -382,15 +488,31 @@ function rewardCoins(amount) {
 }
 
 // Abrir / Cerrar modal didáctico
-btnOpenLearn.addEventListener('click', () => {
+function openDidacticModal() {
   initAudio();
   playSfx('coin');
   didacticModal.classList.remove('hidden');
-});
+
+  if (selectedCharId === 'diegoaz_jr') {
+    speak('¡Hola Diego Junior! Toca un botón arriba para jugar con los animales, los números o los colores.');
+  } else {
+    speak('¡Hola familia! Elijan un juego de aprendizaje.');
+  }
+}
+
+btnOpenLearn.addEventListener('click', openDidacticModal);
 
 btnCloseLearn.addEventListener('click', () => {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   didacticModal.classList.add('hidden');
 });
+
+if (btnRepeatVoice) {
+  btnRepeatVoice.addEventListener('click', () => {
+    initAudio();
+    speak(lastSpokenText || '¡Toca un botón de arriba para jugar!');
+  });
+}
 
 // ==========================================
 // SPRITES Y RETRATOS PIXEL ART OFICIALES
@@ -810,12 +932,12 @@ function checkProximities() {
   currentInteractType = null;
   currentNearbyAnimal = null;
 
-  // 1. Academia / Puesto Didáctico en la Plaza
+  // 1. Rincón de Juegos y Aprendizaje en la Plaza
   const distSchool = Math.hypot(myPlayer.x - 1140, myPlayer.y - 580);
   if (distSchool < 70) {
     currentInteractType = 'academy';
-    setActionButton('🎓', 'APRENDER');
-    locationBadge.innerText = 'Academia Didáctica';
+    setActionButton('🧸', 'JUGAR');
+    locationBadge.innerText = 'Rincón de Juegos 🧸';
     return;
   }
 
@@ -876,13 +998,13 @@ function doAction() {
   }
 
   if (currentInteractType === 'academy') {
-    playSfx('coin');
-    didacticModal.classList.remove('hidden');
+    openDidacticModal();
   } else if (currentInteractType === 'animal' && currentNearbyAnimal) {
     playSfx(currentNearbyAnimal.sound);
     showAlert(currentNearbyAnimal.phrase);
     spawnEmojiBubble(myPlayer.x, myPlayer.y - 45, `${currentNearbyAnimal.emoji} ¡${currentNearbyAnimal.name}!`);
     rewardCoins(5);
+    speak(currentNearbyAnimal.phrase);
   } else if (currentInteractType === 'bus_stop') {
     playSfx('coin');
     showAlert('🚏 ¡Ruta 42 del Barrio Az en camino!');
@@ -1129,16 +1251,41 @@ function drawCrackedConcretePlaza(x, y, w, h) {
 }
 
 function drawAcademyStation(x, y) {
-  // Puesto de la Academia Didáctica
-  ctx.fillStyle = '#0284c7';
-  ctx.fillRect(x + 20, y + 20, 100, 30);
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + 20, y + 20, 100, 30);
+  // Puesto de Juguetes y Aprendizaje (100% visual para Diego Jr. 4 años)
+  const boothX = x + 15;
+  const boothY = y + 10;
 
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = 'bold 7px "Press Start 2P"';
-  ctx.fillText('🎓 ACADEMIA', x + 26, y + 38);
+  // Base de mostrador colorida
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(boothX, boothY + 22, 110, 26);
+  ctx.fillStyle = '#d97706';
+  ctx.fillRect(boothX + 3, boothY + 25, 104, 20);
+
+  // Toldo rayado estilo feria / juguetería
+  const stripes = ['#ef4444', '#ffffff', '#3b82f6', '#ffffff', '#10b981', '#ffffff', '#ef4444'];
+  const sWidth = 110 / stripes.length;
+  stripes.forEach((color, i) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(boothX + i * sWidth, boothY, sWidth + 1, 14);
+  });
+
+  // Postes
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(boothX + 2, boothY + 14, 4, 10);
+  ctx.fillRect(boothX + 104, boothY + 14, 4, 10);
+
+  // Iconos gigantes de juguetes y colores (Fácil de entender sin leer)
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🧸', boothX + 25, boothY + 22);
+  ctx.fillText('🎨', boothX + 55, boothY + 22);
+  ctx.fillText('🔢', boothX + 85, boothY + 22);
+  ctx.textAlign = 'start';
+
+  // Letrero con Osito
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 6px "Press Start 2P"';
+  ctx.fillText('🧸 JUGUETES', boothX + 20, boothY + 39);
 }
 
 function drawUrbanProps() {
