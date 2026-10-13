@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#2b2d35">
-  <title>El Barrio Az - RPG Familiar</title>
+  <title>El Barrio Az - RPG Familiar y Didáctico</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,12 +14,12 @@
 </head>
 <body>
 
-  <!-- MODAL DE SELECCIÓN DE PERSONAJES (FIELES AL SPRITE SHEET) -->
+  <!-- MODAL DE SELECCIÓN DE PERSONAJES -->
   <div id="character-select-modal" class="modal-overlay">
     <div class="urban-dialog-box select-dialog">
       <div class="dialog-banner">
         <h2>EL BARRIO AZ</h2>
-        <span class="sub-banner">Elige tu personaje</span>
+        <span class="sub-banner">Aventura & Aprendizaje</span>
       </div>
 
       <div class="urban-portraits-row">
@@ -87,6 +87,8 @@
 
       <!-- Herramientas Rápidas -->
       <div class="hud-action-icons">
+        <!-- BOTÓN DIDÁCTICO PRINCIPAL (ESTRELLA DE APRENDIZAJE) -->
+        <button id="btn-open-learn" class="hud-circle-tool special-learn-btn" title="Aprender">🎓</button>
         <button id="btn-audio-toggle" class="hud-circle-tool" title="Sonido">🔊</button>
         <button id="btn-open-house-shop" class="hud-circle-tool" title="Tienda">🛒</button>
       </div>
@@ -117,10 +119,107 @@
     <!-- REACCIONES RÁPIDAS -->
     <div id="quick-reactions" class="hidden">
       <button class="urban-reaction-pill" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
-      <button class="urban-reaction-pill" data-sound="heart" data-msg="¡Al parque! 🌳">🌳 Parque</button>
+      <button class="urban-reaction-pill" data-sound="duck" data-msg="¡Mira los patitos! 🦆">🦆 Patos</button>
+      <button class="urban-reaction-pill" data-sound="dog" data-msg="¡Perrito Toby! 🐶">🐶 Toby</button>
+      <button class="urban-reaction-pill" data-sound="cat" data-msg="¡La gatita Misi! 🐱">🐱 Misi</button>
       <button class="urban-reaction-pill" data-sound="goal" data-msg="¡Golazo! ⚽">⚽ Fútbol</button>
-      <button class="urban-reaction-pill" data-sound="dog" data-msg="¡Perrito! 🐶">🐶 Toby</button>
-      <button class="urban-reaction-pill" data-sound="coin" data-msg="¡A reciclar! 📦">📦 Cajas</button>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL DIDÁCTICO Y EDUCATIVO (APRENDE JUGANDO) -->
+    <!-- ============================================== -->
+    <div id="didactic-modal" class="modal-overlay hidden">
+      <div class="urban-dialog-box learn-dialog-box">
+        <div class="dialog-banner">
+          <h2>🎓 ACADEMIA DEL BARRIO AZ</h2>
+          <button id="btn-close-learn" class="close-urban-btn">✖</button>
+        </div>
+
+        <!-- Pestañas de Aprendizaje -->
+        <div class="learn-tabs">
+          <button class="tab-btn active" data-tab="junior-animals">🐶 ANIMALES</button>
+          <button class="tab-btn" data-tab="junior-numbers">🔢 NÚMEROS</button>
+          <button class="tab-btn" data-tab="junior-colors">🎨 COLORES</button>
+          <button class="tab-btn" data-tab="vicky-math">➕ MATEMÁTICAS</button>
+        </div>
+
+        <!-- PANTALLA 1: ANIMALES Y SONIDOS (JUNIOR 4 AÑOS) -->
+        <div id="tab-junior-animals" class="learn-content-view">
+          <p class="learn-instruction">¡Toca un animal para escuchar su sonido y aprender!</p>
+          <div class="animals-grid">
+            <button class="animal-card" data-animal="dog">
+              <span class="animal-emoji">🐶</span>
+              <span class="animal-name">PERRO</span>
+              <span class="animal-sound-label">"¡Guau guau!"</span>
+            </button>
+            <button class="animal-card" data-animal="cat">
+              <span class="animal-emoji">🐱</span>
+              <span class="animal-name">GATO</span>
+              <span class="animal-sound-label">"¡Miau miau!"</span>
+            </button>
+            <button class="animal-card" data-animal="duck">
+              <span class="animal-emoji">🦆</span>
+              <span class="animal-name">PATO</span>
+              <span class="animal-sound-label">"¡Cua cua!"</span>
+            </button>
+            <button class="animal-card" data-animal="cow">
+              <span class="animal-emoji">🐮</span>
+              <span class="animal-name">VACA</span>
+              <span class="animal-sound-label">"¡Muuu!"</span>
+            </button>
+            <button class="animal-card" data-animal="sheep">
+              <span class="animal-emoji">🐑</span>
+              <span class="animal-name">OVEJA</span>
+              <span class="animal-sound-label">"¡Beeee!"</span>
+            </button>
+            <button class="animal-card" data-animal="chicken">
+              <span class="animal-emoji">🐔</span>
+              <span class="animal-name">GALLINA</span>
+              <span class="animal-sound-label">"¡Co-co-co!"</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PANTALLA 2: NÚMEROS Y CONTEO (JUNIOR 4 AÑOS) -->
+        <div id="tab-junior-numbers" class="learn-content-view hidden">
+          <p class="learn-instruction" id="number-quest-text">¿Cuántas manzanas hay?</p>
+          <div id="number-items-display" class="visual-counting-area">
+            🍎 🍎 🍎
+          </div>
+          <div class="numbers-choice-grid">
+            <button class="num-choice-btn" data-num="1">1</button>
+            <button class="num-choice-btn" data-num="2">2</button>
+            <button class="num-choice-btn" data-num="3">3</button>
+            <button class="num-choice-btn" data-num="4">4</button>
+            <button class="num-choice-btn" data-num="5">5</button>
+          </div>
+          <div id="number-feedback" class="learn-feedback-box hidden"></div>
+        </div>
+
+        <!-- PANTALLA 3: COLORES BRILLANTES (JUNIOR 4 AÑOS) -->
+        <div id="tab-junior-colors" class="learn-content-view hidden">
+          <p class="learn-instruction" id="color-quest-text">¡Toca el color AZUL!</p>
+          <div class="colors-choice-grid">
+            <button class="color-btn" style="background: #ef4444;" data-color="ROJO">ROJO</button>
+            <button class="color-btn" style="background: #3b82f6;" data-color="AZUL">AZUL</button>
+            <button class="color-btn" style="background: #22c55e;" data-color="VERDE">VERDE</button>
+            <button class="color-btn" style="background: #facc15; color:#0f172a;" data-color="AMARILLO">AMARILLO</button>
+          </div>
+          <div id="color-feedback" class="learn-feedback-box hidden"></div>
+        </div>
+
+        <!-- PANTALLA 4: OPERACIONES MATEMÁTICAS (VICKY 10 AÑOS & PAPÁ) -->
+        <div id="tab-vicky-math" class="learn-content-view hidden">
+          <p class="learn-instruction">¡Resuelve la operación para ganar monedas de oro!</p>
+          <div id="math-problem-box" class="math-display-card">
+            <span id="math-question">5 + 3 = ?</span>
+          </div>
+          <div id="math-options-row" class="math-choice-grid">
+            <!-- Botones dinámicos de respuesta -->
+          </div>
+          <div id="math-feedback" class="learn-feedback-box hidden"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TIENDA / MEJORAS DEL BARRIO -->

@@ -58,7 +58,7 @@ html, body {
   border: 3px solid #38bdf8;
   box-shadow: inset 2px 2px #0284c7, inset -2px -2px #0f172a;
   padding: 8px 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -66,7 +66,7 @@ html, body {
 }
 
 .dialog-banner h2 {
-  font-size: 13px;
+  font-size: 11px;
   color: #f8fafc;
   text-shadow: 2px 2px #0f172a;
 }
@@ -210,7 +210,7 @@ canvas#gameCanvas {
   align-items: center;
   gap: 6px;
   pointer-events: auto;
-  max-width: 50vw;
+  max-width: 48vw;
 }
 
 .hud-mini-canvas {
@@ -293,6 +293,18 @@ canvas#gameCanvas {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.special-learn-btn {
+  background: #0284c7;
+  border-color: #38bdf8;
+  animation: pulseGlow 1.8s infinite;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+  50% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.9); }
+  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
 }
 
 .hud-circle-tool:active {
@@ -469,16 +481,211 @@ canvas#gameCanvas {
   border-color: #38bdf8;
 }
 
-/* TIENDA */
-.shop-modal-box {
-  max-width: 500px;
+/* ============================================== */
+/* ESTILOS DE LA ACADEMIA DIDÁCTICA (APRENDIZAJE) */
+/* ============================================== */
+.learn-dialog-box {
+  max-width: 600px;
+  background: #1e293b;
+  border: 4px solid #38bdf8;
 }
 
-.dialog-desc {
-  font-size: 8px;
-  color: #94a3b8;
+.learn-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
   margin-bottom: 12px;
 }
+
+.tab-btn {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #cbd5e1;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 6px 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: #0284c7;
+  border-color: #7dd3fc;
+  color: #ffffff;
+  box-shadow: inset 1px 1px #38bdf8;
+}
+
+.learn-content-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.learn-content-view.hidden { display: none !important; }
+
+.learn-instruction {
+  font-size: 8px;
+  color: #facc15;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+/* ANIMALES GRID */
+.animals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.animal-card {
+  background: #0f172a;
+  border: 2px solid #475569;
+  border-radius: 6px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.animal-card:active {
+  transform: scale(0.95);
+  border-color: #facc15;
+  background: #1e293b;
+}
+
+.animal-emoji { font-size: 30px; margin-bottom: 4px; }
+.animal-name { font-size: 8px; color: #f8fafc; font-weight: bold; margin-bottom: 3px; }
+.animal-sound-label { font-size: 7px; color: #38bdf8; }
+
+/* NÚMEROS Y CONTEO */
+.visual-counting-area {
+  background: #0f172a;
+  border: 2px dashed #eab308;
+  border-radius: 8px;
+  padding: 14px 10px;
+  font-size: 28px;
+  letter-spacing: 6px;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.numbers-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.num-choice-btn {
+  background: #0284c7;
+  border: 3px solid #7dd3fc;
+  color: white;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 16px;
+  padding: 12px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #0369a1;
+}
+
+.num-choice-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0369a1;
+}
+
+/* COLORES */
+.colors-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.color-btn {
+  border: 3px solid #ffffff;
+  color: white;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  padding: 18px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.color-btn:active {
+  transform: scale(0.95);
+}
+
+/* MATEMÁTICAS */
+.math-display-card {
+  background: #0f172a;
+  border: 3px solid #38bdf8;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 16px;
+  color: #facc15;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.math-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.math-choice-btn {
+  background: #16a34a;
+  border: 3px solid #86efac;
+  color: white;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  padding: 12px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #052e16;
+}
+
+.math-choice-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #052e16;
+}
+
+.learn-feedback-box {
+  background: #15803d;
+  border: 2px solid #86efac;
+  color: #fef08a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 8px;
+  width: 100%;
+  animation: popIn 0.2s ease;
+}
+
+.learn-feedback-box.error {
+  background: #b91c1c;
+  border-color: #fca5a5;
+  color: #ffffff;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* TIENDA */
+.shop-modal-box { max-width: 500px; }
+.dialog-desc { font-size: 8px; color: #94a3b8; margin-bottom: 12px; }
 
 .urban-shop-grid {
   display: grid;

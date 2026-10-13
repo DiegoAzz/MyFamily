@@ -1,6 +1,6 @@
 // ==========================================
-// EL BARRIO AZ - MOTOR PIXEL ART URBANO
-// Inspirado en el Sprite Sheet y Tileset oficial
+// EL BARRIO AZ - MOTOR PIXEL ART URBANO & DIDÁCTICO
+// Enseña Números, Colores, Animales y Matemáticas
 // ==========================================
 
 const socket = io({
@@ -36,18 +36,31 @@ const houseShopModal = document.getElementById('house-shop-modal');
 const btnOpenHouseShop = document.getElementById('btn-open-house-shop');
 const btnCloseShop = document.getElementById('btn-close-shop');
 
+// Elementos Didácticos DOM
+const btnOpenLearn = document.getElementById('btn-open-learn');
+const didacticModal = document.getElementById('didactic-modal');
+const btnCloseLearn = document.getElementById('btn-close-learn');
+const learnTabBtns = document.querySelectorAll('.tab-btn');
+const numberQuestText = document.getElementById('number-quest-text');
+const numberItemsDisplay = document.getElementById('number-items-display');
+const numberFeedback = document.getElementById('number-feedback');
+const colorQuestText = document.getElementById('color-quest-text');
+const colorFeedback = document.getElementById('color-feedback');
+const mathQuestion = document.getElementById('math-question');
+const mathOptionsRow = document.getElementById('math-options-row');
+const mathFeedback = document.getElementById('math-feedback');
+
 // Joystick
 const joystickArea = document.getElementById('joystick-area');
 const joystickRing = document.getElementById('joystick-ring');
 const joystickKnob = document.getElementById('joystick-knob');
 
 // ==========================================
-// MUNDO Y ZOOM PERFECTO (SIN EXCESO DE ZOOM)
+// MUNDO Y ZOOM BALANCEADO (1.35x)
 // ==========================================
 const WORLD_WIDTH = 2000;
 const WORLD_HEIGHT = 1500;
 const camera = { x: 1000, y: 700 };
-// Zoom cómodo: 1.35x en móvil y 1.25x en PC para ver calles y casas completas
 let zoomScale = 1.35;
 
 let selectedCharId = 'diegoaz_jr';
@@ -58,9 +71,18 @@ let activeBubbles = {};
 let particles = [];
 let gameTime = 0;
 
-// Objetos del mundo urbano
+// Objetos interactivos en el vecindario
 const soccerBall = { x: 550, y: 1100, vx: 0, vy: 0, radius: 10 };
-const puppy = { x: 700, y: 1050, following: null };
+
+// ANIMALES DIDÁCTICOS VIVOS EN EL VECINDARIO
+const townAnimals = [
+  { id: 'dog', name: 'Toby', type: 'PERRO', emoji: '🐶', sound: 'dog', x: 680, y: 1040, phrase: '¡Soy el PERRO Toby y hago Guau-Guau!' },
+  { id: 'cat', name: 'Misi', type: 'GATO', emoji: '🐱', sound: 'cat', x: 740, y: 1080, phrase: '¡Soy la GATITA Misi y hago Miau-Miau!' },
+  { id: 'duck', name: 'Lucas', type: 'PATO', emoji: '🦆', sound: 'duck', x: 820, y: 1120, phrase: '¡Soy el PATO Lucas y hago Cua-Cua!' },
+  { id: 'cow', name: 'Margarita', type: 'VACA', emoji: '🐮', sound: 'cow', x: 420, y: 1180, phrase: '¡Soy la VACA Margarita y doy leche rica: Muuu!' },
+  { id: 'sheep', name: 'Copito', type: 'OVEJA', emoji: '🐑', sound: 'sheep', x: 480, y: 1220, phrase: '¡Soy la OVEJA Copito y tengo lana suave: Beee!' }
+];
+
 let streetCoins = [
   { x: 920, y: 680, collected: false },
   { x: 1080, y: 680, collected: false },
@@ -72,7 +94,306 @@ let streetCoins = [
 ];
 
 // ==========================================
-// GENERADOR DE SPRITES FIELES AL SPRITE SHEET
+// SISTEMA DE AUDIO (EFECTOS Y ANIMALES SINTETIZADOS)
+// ==========================================
+let audioEnabled = true;
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSfx(type) {
+  if (!audioEnabled) return;
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'coin') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(987, now);
+      osc.frequency.setValueAtTime(1318, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now); osc.stop(now + 0.25);
+    } else if (type === 'dog') {
+      // Ladrido perro
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.linearRampToValueAtTime(560, now + 0.06);
+      osc.frequency.linearRampToValueAtTime(320, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+      osc.start(now); osc.stop(now + 0.16);
+    } else if (type === 'cat') {
+      // Miau gato agudo
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(650, now);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.15);
+      osc.frequency.linearRampToValueAtTime(540, now + 0.35);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (type === 'duck') {
+      // Cua cua pato nasal
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.setValueAtTime(260, now + 0.08);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+      osc.start(now); osc.stop(now + 0.18);
+    } else if (type === 'cow') {
+      // Muuu vaca grave
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.linearRampToValueAtTime(140, now + 0.4);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+      osc.start(now); osc.stop(now + 0.45);
+    } else if (type === 'sheep') {
+      // Beee oveja con trémolo
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.linearRampToValueAtTime(350, now + 0.15);
+      osc.frequency.linearRampToValueAtTime(300, now + 0.35);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.38);
+      osc.start(now); osc.stop(now + 0.38);
+    } else if (type === 'chicken') {
+      // Co-co gallina
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.setValueAtTime(520, now + 0.06);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'correct') {
+      // Acierto didáctico alegre
+      [523, 659, 783, 1046].forEach((f, idx) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, now + idx * 0.07);
+        g.gain.setValueAtTime(0.18, now + idx * 0.07);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.22);
+        o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.22);
+      });
+    } else if (type === 'kick') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(25, now + 0.14);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+      osc.start(now); osc.stop(now + 0.14);
+    } else if (type === 'fanfare') {
+      [523, 659, 783, 1046].forEach((f, idx) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, now + idx * 0.08);
+        g.gain.setValueAtTime(0.18, now + idx * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.22);
+        o.start(now + idx * 0.08); o.stop(now + idx * 0.08 + 0.22);
+      });
+    }
+  } catch (e) {}
+}
+
+btnAudioToggle.addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  btnAudioToggle.innerText = audioEnabled ? '🔊' : '🔇';
+});
+
+// ==========================================
+// MOTOR DIDÁCTICO Y EDUCATIVO
+// ==========================================
+
+// Pestañas didácticas
+learnTabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    initAudio();
+    playSfx('kick');
+    learnTabBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const tabId = btn.getAttribute('data-tab');
+    document.querySelectorAll('.learn-content-view').forEach(view => view.classList.add('hidden'));
+    const target = document.getElementById(`tab-${tabId}`);
+    if (target) target.classList.remove('hidden');
+
+    if (tabId === 'junior-numbers') initNumberQuest();
+    else if (tabId === 'junior-colors') initColorQuest();
+    else if (tabId === 'vicky-math') initMathQuest();
+  });
+});
+
+// 1. ANIMALES INTERACTIVOS
+document.querySelectorAll('.animal-card').forEach(card => {
+  card.addEventListener('click', () => {
+    initAudio();
+    const aType = card.getAttribute('data-animal');
+    playSfx(aType);
+    const animalName = card.querySelector('.animal-name').innerText;
+    showAlert(`🎉 ¡Aprendiste el ${animalName}! (+5🪙)`);
+    rewardCoins(5);
+  });
+});
+
+// 2. NÚMEROS Y CONTEO (JUNIOR 4 AÑOS)
+let currentCountTarget = 3;
+const countEmojis = ['🍎', '⭐', '🚗', '🦆', '⚽'];
+
+function initNumberQuest() {
+  currentCountTarget = Math.floor(Math.random() * 5) + 1;
+  const emoji = countEmojis[Math.floor(Math.random() * countEmojis.length)];
+  let displayStr = '';
+  for (let i = 0; i < currentCountTarget; i++) {
+    displayStr += emoji + ' ';
+  }
+  numberItemsDisplay.innerText = displayStr;
+  numberQuestText.innerText = `¿Cuántos objetos hay en pantalla?`;
+  numberFeedback.classList.add('hidden');
+}
+
+document.querySelectorAll('.num-choice-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    initAudio();
+    const chosen = parseInt(btn.getAttribute('data-num'));
+    if (chosen === currentCountTarget) {
+      playSfx('correct');
+      numberFeedback.className = 'learn-feedback-box';
+      numberFeedback.innerText = `⭐ ¡EXCELENTE DIEGO JR.! ¡Hay ${chosen}! (+15🪙)`;
+      numberFeedback.classList.remove('hidden');
+      rewardCoins(15);
+      setTimeout(initNumberQuest, 1800);
+    } else {
+      playSfx('kick');
+      numberFeedback.className = 'learn-feedback-box error';
+      numberFeedback.innerText = `💡 ¡Casi! Cuenta despacito con tu dedito.`;
+      numberFeedback.classList.remove('hidden');
+    }
+  });
+});
+
+// 3. COLORES (JUNIOR 4 AÑOS)
+const colorsList = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
+let currentColorTarget = 'AZUL';
+
+function initColorQuest() {
+  currentColorTarget = colorsList[Math.floor(Math.random() * colorsList.length)];
+  colorQuestText.innerText = `¡Toca el color ${currentColorTarget}!`;
+  colorFeedback.classList.add('hidden');
+}
+
+document.querySelectorAll('.color-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    initAudio();
+    const chosen = btn.getAttribute('data-color');
+    if (chosen === currentColorTarget) {
+      playSfx('correct');
+      colorFeedback.className = 'learn-feedback-box';
+      colorFeedback.innerText = `🎨 ¡CORRECTO! ¡Ese es el ${chosen}! (+15🪙)`;
+      colorFeedback.classList.remove('hidden');
+      rewardCoins(15);
+      setTimeout(initColorQuest, 1800);
+    } else {
+      playSfx('kick');
+      colorFeedback.className = 'learn-feedback-box error';
+      colorFeedback.innerText = `💡 Ese es el ${chosen}. ¡Busca el ${currentColorTarget}!`;
+      colorFeedback.classList.remove('hidden');
+    }
+  });
+});
+
+// 4. OPERACIONES MATEMÁTICAS (VICKY 10 AÑOS & PAPÁ)
+let currentMathAnswer = 8;
+
+function initMathQuest() {
+  const isMult = Math.random() < 0.35;
+  let a, b, symbol;
+
+  if (isMult) {
+    a = Math.floor(Math.random() * 6) + 2;
+    b = Math.floor(Math.random() * 6) + 2;
+    symbol = '×';
+    currentMathAnswer = a * b;
+  } else {
+    const isSum = Math.random() < 0.6;
+    if (isSum) {
+      a = Math.floor(Math.random() * 20) + 5;
+      b = Math.floor(Math.random() * 15) + 3;
+      symbol = '+';
+      currentMathAnswer = a + b;
+    } else {
+      a = Math.floor(Math.random() * 25) + 10;
+      b = Math.floor(Math.random() * a) + 1;
+      symbol = '-';
+      currentMathAnswer = a - b;
+    }
+  }
+
+  mathQuestion.innerText = `${a} ${symbol} ${b} = ?`;
+  mathFeedback.classList.add('hidden');
+
+  // Generar opciones con la correcta
+  const options = [currentMathAnswer, currentMathAnswer + (Math.random() < 0.5 ? 2 : -2), currentMathAnswer + (Math.random() < 0.5 ? 5 : -3)];
+  options.sort(() => Math.random() - 0.5);
+
+  mathOptionsRow.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'math-choice-btn';
+    btn.innerText = opt;
+    btn.addEventListener('click', () => {
+      initAudio();
+      if (opt === currentMathAnswer) {
+        playSfx('correct');
+        mathFeedback.className = 'learn-feedback-box';
+        mathFeedback.innerText = `🏆 ¡BRILIANTE VICKY! ${a} ${symbol} ${b} = ${currentMathAnswer} (+25🪙)`;
+        mathFeedback.classList.remove('hidden');
+        rewardCoins(25);
+        setTimeout(initMathQuest, 1800);
+      } else {
+        playSfx('kick');
+        mathFeedback.className = 'learn-feedback-box error';
+        mathFeedback.innerText = `💡 ¡Casi! Revisa el cálculo e inténtalo de nuevo.`;
+        mathFeedback.classList.remove('hidden');
+      }
+    });
+    mathOptionsRow.appendChild(btn);
+  });
+}
+
+function rewardCoins(amount) {
+  if (!myPlayer) return;
+  myPlayer.coins += amount;
+  familyVaultCoins += amount;
+  playerCoinsVal.innerText = myPlayer.coins;
+  familyVaultVal.innerText = familyVaultCoins;
+  playSfx('coin');
+}
+
+// Abrir / Cerrar modal didáctico
+btnOpenLearn.addEventListener('click', () => {
+  initAudio();
+  playSfx('coin');
+  didacticModal.classList.remove('hidden');
+});
+
+btnCloseLearn.addEventListener('click', () => {
+  didacticModal.classList.add('hidden');
+});
+
+// ==========================================
+// SPRITES Y RETRATOS PIXEL ART OFICIALES
 // ==========================================
 const spriteCache = {};
 
@@ -86,95 +407,48 @@ function createOffscreen(w, h, renderFn) {
   return c;
 }
 
-// 1. RETRATOS DE DIÁLOGO (64x64)
 function drawCharacterPortrait(pctx, charId) {
-  pctx.fillStyle = '#1e293b';
-  pctx.fillRect(0, 0, 64, 64);
-  pctx.fillStyle = '#334155';
-  pctx.fillRect(2, 2, 60, 60);
+  pctx.fillStyle = '#1e293b'; pctx.fillRect(0, 0, 64, 64);
+  pctx.fillStyle = '#334155'; pctx.fillRect(2, 2, 60, 60);
 
   if (charId === 'diegoaz') {
-    // ---------------------------------------------
-    // DIEGOAZ (Papá - Gafas, barba recortada, chaqueta verde)
-    // ---------------------------------------------
-    // Chaqueta verde oliva / bosque abierta
     pctx.fillStyle = '#2f5233'; pctx.fillRect(10, 44, 44, 20);
     pctx.fillStyle = '#3e6b43'; pctx.fillRect(12, 46, 40, 18);
-    // Camiseta oscura interior
     pctx.fillStyle = '#181a20'; pctx.fillRect(26, 46, 12, 18);
-    // Correa bandolera cuero marrón cruzada
     pctx.fillStyle = '#5c3317'; pctx.fillRect(18, 44, 6, 20);
-
-    // Cuello y mandíbula
     pctx.fillStyle = '#9c6644'; pctx.fillRect(24, 38, 16, 8);
-    // Rostro tono piel cálido
     pctx.fillStyle = '#b07d58'; pctx.fillRect(18, 18, 28, 24);
-
-    // Cabello rizado / afro oscuro con toques canosos
     pctx.fillStyle = '#2e1d13'; pctx.fillRect(14, 10, 36, 14);
     pctx.fillStyle = '#422c1e'; pctx.fillRect(16, 12, 32, 8);
-    pctx.fillStyle = '#8a817c'; pctx.fillRect(20, 12, 10, 3); // canas sutiles
-
-    // Barba recortada elegante con toques grises
+    pctx.fillStyle = '#8a817c'; pctx.fillRect(20, 12, 10, 3);
     pctx.fillStyle = '#6b635b'; pctx.fillRect(18, 32, 28, 12);
-    pctx.fillStyle = '#b07d58'; pctx.fillRect(26, 34, 12, 3); // labio
-
-    // Gafas oscuras rectangulares
-    pctx.fillStyle = '#0f172a';
-    pctx.fillRect(21, 22, 9, 7); pctx.fillRect(34, 22, 9, 7); // montura
-    pctx.fillRect(30, 24, 4, 2); // puente
-    pctx.fillStyle = '#7dd3fc';
-    pctx.fillRect(23, 24, 5, 3); pctx.fillRect(36, 24, 5, 3); // cristales reflejo
-
+    pctx.fillStyle = '#b07d58'; pctx.fillRect(26, 34, 12, 3);
+    pctx.fillStyle = '#0f172a'; pctx.fillRect(21, 22, 9, 7); pctx.fillRect(34, 22, 9, 7);
+    pctx.fillRect(30, 24, 4, 2);
+    pctx.fillStyle = '#7dd3fc'; pctx.fillRect(23, 24, 5, 3); pctx.fillRect(36, 24, 5, 3);
   } else if (charId === 'vicky_vicky') {
-    // ---------------------------------------------
-    // VICKY VICKY (10 años - Cabello afro/rizado, sudadera arcoíris)
-    // ---------------------------------------------
-    // Cabello rizado abundante afro
     pctx.fillStyle = '#2e1d13'; pctx.fillRect(12, 10, 40, 32);
     pctx.fillStyle = '#422c1e'; pctx.fillRect(14, 12, 36, 24);
-
-    // Sudadera con rayas horizontales pastel arcoíris
-    pctx.fillStyle = '#38bdf8'; pctx.fillRect(14, 44, 36, 5); // cyan
-    pctx.fillStyle = '#c084fc'; pctx.fillRect(14, 49, 36, 5); // lila
-    pctx.fillStyle = '#f472b6'; pctx.fillRect(14, 54, 36, 5); // rosa
-    pctx.fillStyle = '#fde047'; pctx.fillRect(14, 59, 36, 5); // amarillo
-
-    // Rostro
+    pctx.fillStyle = '#38bdf8'; pctx.fillRect(14, 44, 36, 5);
+    pctx.fillStyle = '#c084fc'; pctx.fillRect(14, 49, 36, 5);
+    pctx.fillStyle = '#f472b6'; pctx.fillRect(14, 54, 36, 5);
+    pctx.fillStyle = '#fde047'; pctx.fillRect(14, 59, 36, 5);
     pctx.fillStyle = '#b07d58'; pctx.fillRect(20, 18, 24, 22);
-
-    // Ojos vivaces
     pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 24, 4, 5); pctx.fillRect(36, 24, 4, 5);
-    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 24, 2, 2); pctx.fillRect(37, 24, 2, 2); // brillo
-
-    // Sonrisa alegre
+    pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 24, 2, 2); pctx.fillRect(37, 24, 2, 2);
     pctx.fillStyle = '#dc2626'; pctx.fillRect(28, 33, 8, 3);
-
   } else if (charId === 'diegoaz_jr') {
-    // ---------------------------------------------
-    // DIEGOAZ JR. (4 años - Pelo rubio, peto/overol vaquero)
-    // ---------------------------------------------
-    // Peto azul vaquero con tirantes y botones dorados
     pctx.fillStyle = '#1d4ed8'; pctx.fillRect(14, 46, 36, 18);
-    pctx.fillStyle = '#2563eb'; pctx.fillRect(18, 44, 8, 20); pctx.fillRect(38, 44, 8, 20); // tirantes
-    pctx.fillStyle = '#facc15'; pctx.fillRect(21, 48, 3, 3);  pctx.fillRect(41, 48, 3, 3);  // botones dorados
-    // Camiseta a rayas visible en los hombros
+    pctx.fillStyle = '#2563eb'; pctx.fillRect(18, 44, 8, 20); pctx.fillRect(38, 44, 8, 20);
+    pctx.fillStyle = '#facc15'; pctx.fillRect(21, 48, 3, 3); pctx.fillRect(41, 48, 3, 3);
     pctx.fillStyle = '#ef4444'; pctx.fillRect(12, 46, 6, 10); pctx.fillRect(46, 46, 6, 10);
-
-    // Rostro infantil sonrosado
     pctx.fillStyle = '#fed7aa'; pctx.fillRect(18, 20, 28, 22);
-
-    // Pelo rubio brillante despeinado (como el sprite sheet)
     pctx.fillStyle = '#ca8a04'; pctx.fillRect(16, 10, 32, 14);
     pctx.fillStyle = '#facc15'; pctx.fillRect(18, 12, 28, 10);
-    pctx.fillStyle = '#fef08a'; pctx.fillRect(20, 12, 14, 4); // mechón luz
-
-    // Ojos azules grandes de niño
+    pctx.fillStyle = '#fef08a'; pctx.fillRect(20, 12, 14, 4);
     pctx.fillStyle = '#0f172a'; pctx.fillRect(24, 26, 4, 5); pctx.fillRect(36, 26, 4, 5);
     pctx.fillStyle = '#38bdf8'; pctx.fillRect(25, 27, 3, 3); pctx.fillRect(37, 27, 3, 3);
     pctx.fillStyle = '#ffffff'; pctx.fillRect(25, 26, 2, 2); pctx.fillRect(37, 26, 2, 2);
-
-    // Sonrisa tierna
     pctx.fillStyle = '#dc2626'; pctx.fillRect(28, 34, 8, 3);
   }
 }
@@ -198,7 +472,6 @@ function updateMiniHudPortrait() {
   pctx.restore();
 }
 
-// 2. GENERADOR DE SPRITES EXACTOS AL SPRITE SHEET (16x32)
 function getCharacterSprite(charId, dir, frame) {
   const key = `${charId}_${dir}_${frame}`;
   if (spriteCache[key]) return spriteCache[key];
@@ -209,54 +482,37 @@ function getCharacterSprite(charId, dir, frame) {
     const bob = (frame > 0) ? -1 : 0;
 
     if (charId === 'diegoaz') {
-      // ------------------------------------
-      // PAPÁ DIEGOAZ (Adulto con gafas, barba, chaqueta verde)
-      // ------------------------------------
-      // Sombra
       sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 30, 10, 3);
-
-      // Pantalones gris marengo y zapatos de vestir marrón
       sctx.fillStyle = '#262d38';
       sctx.fillRect(5, 20 + bob, 3, 7 + (isStepL ? -1 : 0));
       sctx.fillRect(10, 20 + bob, 3, 7 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#422817'; // zapatos marrones
+      sctx.fillStyle = '#422817';
       sctx.fillRect(4, 27 + (isStepL ? -1 : 0), 4, 3);
       sctx.fillRect(10, 27 + (isStepR ? -1 : 0), 4, 3);
-
-      // Chaqueta verde oliva / bosque
       sctx.fillStyle = '#335937';
       sctx.fillRect(4, 12 + bob, 10, 9);
-      // Camiseta negra interior
       sctx.fillStyle = '#181a20';
       sctx.fillRect(7, 12 + bob, 4, 9);
-      // Correa de bandolera cruzada
       sctx.fillStyle = '#5c3317';
       sctx.fillRect(dir === 'right' ? 9 : 5, 12 + bob, 2, 9);
-
-      // Cabeza / Piel
       sctx.fillStyle = '#b07d58';
       sctx.fillRect(5, 4 + bob, 8, 8);
-
-      // Pelo afro castaño oscuro con canas
       sctx.fillStyle = '#362215';
       sctx.fillRect(4, 2 + bob, 10, 4);
 
       if (dir === 'down') {
-        // Gafas y barba de frente
-        sctx.fillStyle = '#7a7067'; // barba con canas
+        sctx.fillStyle = '#7a7067';
         sctx.fillRect(5, 8 + bob, 8, 4);
-        sctx.fillStyle = '#0f172a'; // montura gafas
+        sctx.fillStyle = '#0f172a';
         sctx.fillRect(5, 5 + bob, 3, 3); sctx.fillRect(10, 5 + bob, 3, 3);
         sctx.fillStyle = '#7dd3fc';
-        sctx.fillRect(6, 6 + bob, 1, 1); sctx.fillRect(11, 6 + bob, 1, 1); // brillo gafas
+        sctx.fillRect(6, 6 + bob, 1, 1); sctx.fillRect(11, 6 + bob, 1, 1);
       } else if (dir === 'up') {
         sctx.fillStyle = '#362215';
-        sctx.fillRect(4, 3 + bob, 10, 9); // nuca
-        // Bolsa bandolera visible en espalda
+        sctx.fillRect(4, 3 + bob, 10, 9);
         sctx.fillStyle = '#5c3317';
         sctx.fillRect(4, 15 + bob, 4, 5);
       } else {
-        // Perfil
         sctx.fillStyle = '#7a7067';
         sctx.fillRect(dir === 'right' ? 9 : 4, 8 + bob, 5, 4);
         sctx.fillStyle = '#0f172a';
@@ -264,80 +520,60 @@ function getCharacterSprite(charId, dir, frame) {
       }
 
     } else if (charId === 'vicky_vicky') {
-      // ------------------------------------
-      // VICKY VICKY (10 años - Pelo afro, sudadera arcoíris, mochila)
-      // ------------------------------------
       sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 29, 10, 3);
-
-      // Pantalones vaqueros azul denim y zapatillas rosas
       sctx.fillStyle = '#2563eb';
       sctx.fillRect(5, 20 + bob, 3, 7 + (isStepL ? -1 : 0));
       sctx.fillRect(10, 20 + bob, 3, 7 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#f472b6'; // zapatillas rosas
+      sctx.fillStyle = '#f472b6';
       sctx.fillRect(4, 27 + (isStepL ? -1 : 0), 4, 3);
       sctx.fillRect(10, 27 + (isStepR ? -1 : 0), 4, 3);
-      sctx.fillStyle = '#ffffff'; // suela blanca
+      sctx.fillStyle = '#ffffff';
       sctx.fillRect(4, 29 + (isStepL ? -1 : 0), 4, 1);
       sctx.fillRect(10, 29 + (isStepR ? -1 : 0), 4, 1);
 
-      // Sudadera a rayas arcoíris (Cyan, Lila, Rosa, Amarillo)
       sctx.fillStyle = '#38bdf8'; sctx.fillRect(4, 12 + bob, 10, 2);
       sctx.fillStyle = '#c084fc'; sctx.fillRect(4, 14 + bob, 10, 2);
       sctx.fillStyle = '#f472b6'; sctx.fillRect(4, 16 + bob, 10, 2);
       sctx.fillStyle = '#fde047'; sctx.fillRect(4, 18 + bob, 10, 2);
 
-      // Pelo afro con volumen
       sctx.fillStyle = '#362215';
       sctx.fillRect(3, 2 + bob, 12, 10);
-
-      // Rostro
       sctx.fillStyle = '#b07d58';
       sctx.fillRect(5, 5 + bob, 8, 7);
 
       if (dir === 'down') {
         sctx.fillStyle = '#0f172a';
-        sctx.fillRect(6, 7 + bob, 1, 2); sctx.fillRect(11, 7 + bob, 1, 2); // ojos
+        sctx.fillRect(6, 7 + bob, 1, 2); sctx.fillRect(11, 7 + bob, 1, 2);
       } else if (dir === 'up') {
         sctx.fillStyle = '#362215';
         sctx.fillRect(3, 3 + bob, 12, 10);
-        // Mochila marrón en la espalda
         sctx.fillStyle = '#854d0e';
         sctx.fillRect(6, 13 + bob, 6, 7);
       } else {
-        // Mochila en vista lateral
         sctx.fillStyle = '#854d0e';
         sctx.fillRect(dir === 'right' ? 3 : 11, 13 + bob, 4, 6);
       }
 
     } else {
-      // ------------------------------------
-      // DIEGOAZ JR. (4 años - Rubio, peto vaquero, camiseta rayas)
-      // ------------------------------------
       sctx.fillStyle = 'rgba(0,0,0,0.35)'; sctx.fillRect(4, 27, 10, 3);
-
-      // Piernas y zapatillas rojas
-      sctx.fillStyle = '#fed7aa'; // piernas
+      sctx.fillStyle = '#fed7aa';
       sctx.fillRect(6, 19 + bob, 2, 5 + (isStepL ? -1 : 0));
       sctx.fillRect(10, 19 + bob, 2, 5 + (isStepR ? -1 : 0));
-      sctx.fillStyle = '#ef4444'; // tenis rojos
+      sctx.fillStyle = '#ef4444';
       sctx.fillRect(5, 24 + (isStepL ? -1 : 0), 3, 3);
       sctx.fillRect(10, 24 + (isStepR ? -1 : 0), 3, 3);
 
-      // Peto azul vaquero con tirantes
       sctx.fillStyle = '#2563eb';
       sctx.fillRect(5, 14 + bob, 8, 7);
-      sctx.fillStyle = '#1d4ed8'; // tirantes
+      sctx.fillStyle = '#1d4ed8';
       sctx.fillRect(5, 12 + bob, 2, 4); sctx.fillRect(11, 12 + bob, 2, 4);
-      sctx.fillStyle = '#fbbf24'; // botones dorados
+      sctx.fillStyle = '#fbbf24';
       sctx.fillRect(5, 15 + bob, 1, 1); sctx.fillRect(12, 15 + bob, 1, 1);
 
-      // Pelo rubio despeinado
       sctx.fillStyle = '#facc15';
       sctx.fillRect(4, 4 + bob, 10, 6);
       sctx.fillStyle = '#ca8a04';
       sctx.fillRect(4, 3 + bob, 10, 2);
-
-      // Rostro
       sctx.fillStyle = '#fed7aa';
       sctx.fillRect(5, 6 + bob, 8, 6);
 
@@ -361,7 +597,6 @@ function getCharacterSprite(charId, dir, frame) {
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  // Zoom confortable (1.35x en móvil para ver calles completas, sin exceso)
   const isMobile = window.innerWidth < 768;
   zoomScale = isMobile ? 1.35 : 1.25;
   ctx.imageSmoothingEnabled = false;
@@ -370,7 +605,6 @@ window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', resizeCanvas);
 resizeCanvas();
 
-// Selección de personajes
 portraitCards.forEach(card => {
   card.addEventListener('click', () => {
     initAudio();
@@ -402,10 +636,7 @@ document.querySelectorAll('.urban-reaction-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     const snd = btn.getAttribute('data-sound');
     const msg = btn.getAttribute('data-msg');
-    if (snd === 'dog') playSfx('bark');
-    else if (snd === 'goal') playSfx('fanfare');
-    else playSfx('coin');
-
+    playSfx(snd || 'coin');
     quickReactions.classList.add('hidden');
     if (myPlayer) socket.emit('send_chat', msg);
   });
@@ -417,75 +648,6 @@ btnOpenHouseShop.addEventListener('click', () => {
 });
 btnCloseShop.addEventListener('click', () => {
   houseShopModal.classList.add('hidden');
-});
-
-// ==========================================
-// AUDIO SINTETIZADO RETRO
-// ==========================================
-let audioEnabled = true;
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-
-function initAudio() {
-  if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-function playSfx(type) {
-  if (!audioEnabled) return;
-  try {
-    initAudio();
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    if (type === 'coin') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(987, now);
-      osc.frequency.setValueAtTime(1318, now + 0.08);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now);
-      osc.stop(now + 0.25);
-    } else if (type === 'kick') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(140, now);
-      osc.frequency.exponentialRampToValueAtTime(25, now + 0.14);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
-      osc.start(now);
-      osc.stop(now + 0.14);
-    } else if (type === 'bark') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.linearRampToValueAtTime(560, now + 0.06);
-      osc.frequency.linearRampToValueAtTime(320, now + 0.15);
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
-      osc.start(now);
-      osc.stop(now + 0.16);
-    } else if (type === 'fanfare') {
-      [523, 659, 783, 1046].forEach((f, idx) => {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g);
-        g.connect(audioCtx.destination);
-        o.type = 'triangle';
-        o.frequency.setValueAtTime(f, now + idx * 0.08);
-        g.gain.setValueAtTime(0.18, now + idx * 0.08);
-        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.22);
-        o.start(now + idx * 0.08);
-        o.stop(now + idx * 0.08 + 0.22);
-      });
-    }
-  } catch (e) {}
-}
-
-btnAudioToggle.addEventListener('click', () => {
-  audioEnabled = !audioEnabled;
-  btnAudioToggle.innerText = audioEnabled ? '🔊' : '🔇';
 });
 
 // ==========================================
@@ -544,7 +706,9 @@ socket.on('chat_received', (data) => {
     text: data.text,
     time: Date.now() + 4500
   };
-  if (data.text.includes('🐶')) playSfx('bark');
+  if (data.text.includes('🐶')) playSfx('dog');
+  else if (data.text.includes('🐱')) playSfx('cat');
+  else if (data.text.includes('🦆')) playSfx('duck');
   else if (data.text.includes('⚽')) playSfx('fanfare');
   else playSfx('coin');
 });
@@ -636,25 +800,48 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ==========================================
-// INTERACCIONES Y ACCIÓN
+// INTERACCIONES EN EL MUNDO
 // ==========================================
 let currentInteractType = null;
+let currentNearbyAnimal = null;
 
 function checkProximities() {
   if (!myPlayer) return;
   currentInteractType = null;
+  currentNearbyAnimal = null;
 
-  // Parada de autobús
-  const distBus = Math.hypot(myPlayer.x - 1100, myPlayer.y - 650);
-  if (distBus < 70) {
+  // 1. Academia / Puesto Didáctico en la Plaza
+  const distSchool = Math.hypot(myPlayer.x - 1140, myPlayer.y - 580);
+  if (distSchool < 70) {
+    currentInteractType = 'academy';
+    setActionButton('🎓', 'APRENDER');
+    locationBadge.innerText = 'Academia Didáctica';
+    return;
+  }
+
+  // 2. Animales didácticos en el parque
+  for (const an of townAnimals) {
+    const distA = Math.hypot(myPlayer.x - an.x, myPlayer.y - an.y);
+    if (distA < 55) {
+      currentInteractType = 'animal';
+      currentNearbyAnimal = an;
+      setActionButton(an.emoji, an.name.toUpperCase());
+      locationBadge.innerText = `Parque: ${an.type}`;
+      return;
+    }
+  }
+
+  // 3. Parada de autobús
+  const distBus = Math.hypot(myPlayer.x - 1020, myPlayer.y - 650);
+  if (distBus < 65) {
     currentInteractType = 'bus_stop';
     setActionButton('🚏', 'PARADA');
     locationBadge.innerText = 'Parada de Autobús';
     return;
   }
 
-  // Bancos del parque
-  const distBench = Math.hypot(myPlayer.x - 900, myPlayer.y - 650);
+  // 4. Bancos del parque
+  const distBench = Math.hypot(myPlayer.x - 870, myPlayer.y - 650);
   if (distBench < 60) {
     currentInteractType = 'bench';
     setActionButton('🛋️', 'SENTARSE');
@@ -662,15 +849,7 @@ function checkProximities() {
     return;
   }
 
-  // Perrito Toby
-  const distPuppy = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
-  if (distPuppy < 60) {
-    currentInteractType = 'puppy';
-    setActionButton('🐶', 'ACARICIAR');
-    return;
-  }
-
-  // Pelota de fútbol
+  // 5. Pelota de fútbol
   const distBall = Math.hypot(myPlayer.x - soccerBall.x, myPlayer.y - soccerBall.y);
   if (distBall < 50) {
     locationBadge.innerText = 'Parque & Fútbol';
@@ -696,16 +875,20 @@ function doAction() {
     return;
   }
 
-  if (currentInteractType === 'bus_stop') {
+  if (currentInteractType === 'academy') {
+    playSfx('coin');
+    didacticModal.classList.remove('hidden');
+  } else if (currentInteractType === 'animal' && currentNearbyAnimal) {
+    playSfx(currentNearbyAnimal.sound);
+    showAlert(currentNearbyAnimal.phrase);
+    spawnEmojiBubble(myPlayer.x, myPlayer.y - 45, `${currentNearbyAnimal.emoji} ¡${currentNearbyAnimal.name}!`);
+    rewardCoins(5);
+  } else if (currentInteractType === 'bus_stop') {
     playSfx('coin');
     showAlert('🚏 ¡Ruta 42 del Barrio Az en camino!');
   } else if (currentInteractType === 'bench') {
     playSfx('coin');
     showAlert('🛋️ Descansando en el banco del parque...');
-  } else if (currentInteractType === 'puppy') {
-    playSfx('bark');
-    puppy.following = socket.id;
-    showAlert('🐶 ¡Toby mueve la cola y te sigue feliz!');
   }
 }
 
@@ -715,7 +898,7 @@ function showAlert(text) {
   clearTimeout(showAlert.timer);
   showAlert.timer = setTimeout(() => {
     alertBanner.classList.add('hidden');
-  }, 3000);
+  }, 3200);
 }
 
 function spawnEmojiBubble(x, y, text) {
@@ -723,7 +906,7 @@ function spawnEmojiBubble(x, y, text) {
 }
 
 // ==========================================
-// LOOP DE ACTUALIZACIÓN (60 FPS)
+// LOOP DE FÍSICA Y ACTUALIZACIÓN
 // ==========================================
 let lastMoveSent = 0;
 let stepAnim = 0;
@@ -763,7 +946,7 @@ function update() {
   }
   myPlayer.isMoving = isMoving;
 
-  // Cámara centrada con zoom cómodo (1.35x)
+  // Cámara centrada zoom 1.35x
   const targetCamX = myPlayer.x - (canvas.width / zoomScale) / 2;
   const targetCamY = myPlayer.y - (canvas.height / zoomScale) / 2;
   camera.x += (targetCamX - camera.x) * 0.15;
@@ -795,27 +978,13 @@ function update() {
   soccerBall.vx *= 0.94;
   soccerBall.vy *= 0.94;
 
-  // Perrito Toby
-  if (puppy.following === socket.id) {
-    const distToPlayer = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
-    if (distToPlayer > 38) {
-      const pAngle = Math.atan2(myPlayer.y - puppy.y, myPlayer.x - puppy.x);
-      puppy.x += Math.cos(pAngle) * 3.4;
-      puppy.y += Math.sin(pAngle) * 3.4;
-    }
-  }
-
   // Monedas
   streetCoins.forEach(coin => {
     if (!coin.collected) {
       const distC = Math.hypot(myPlayer.x - coin.x, myPlayer.y - coin.y);
       if (distC < 24) {
         coin.collected = true;
-        myPlayer.coins += 10;
-        familyVaultCoins += 10;
-        playerCoinsVal.innerText = myPlayer.coins;
-        familyVaultVal.innerText = familyVaultCoins;
-        playSfx('coin');
+        rewardCoins(10);
         showAlert('🪙 +10 Monedas recogidas!');
         setTimeout(() => { coin.collected = false; }, 18000);
       }
@@ -826,7 +995,7 @@ function update() {
 }
 
 // ==========================================
-// RENDERIZADO VISUAL DEL BARRIO URBANO
+// RENDERIZADO VISUAL
 // ==========================================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -835,10 +1004,10 @@ function draw() {
   ctx.scale(zoomScale, zoomScale);
   ctx.translate(-camera.x, -camera.y);
 
-  // 1. DIBUJAR TERRENO URBANO (ASsfalto, Aceras con grietas, Césped con flores)
+  // 1. DIBUJAR TERRENO URBANO
   drawUrbanTerrain();
 
-  // 2. DIBUJAR PROPS URBANOS (Parada de bus, banco, hidrante, papelera, farolas, señales PARE)
+  // 2. DIBUJAR PROPS URBANOS Y ANIMALES
   drawUrbanProps();
 
   // 3. JUGADORES REMOTOS
@@ -857,74 +1026,61 @@ function draw() {
   ctx.restore();
 }
 
-// ==========================================
-// DIBUJO DEL TERRENO FIEL AL TILESET
-// ==========================================
 function drawUrbanTerrain() {
-  // Fondo de césped verde exuberante con flores silvestres (como en el tileset)
+  // Césped verde vivo con flores silvestres
   ctx.fillStyle = '#3f7a2d';
   ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // Textura y manchones de césped oscuro con margaritas y flores azules
   ctx.fillStyle = '#2f5c22';
   for (let x = 0; x < WORLD_WIDTH; x += 48) {
     for (let y = 0; y < WORLD_HEIGHT; y += 48) {
       if ((x * 3 + y * 7) % 5 === 0) {
         ctx.fillRect(x + 4, y + 4, 12, 8);
-        // Margaritas blancas diminutas
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 10, y + 6, 2, 2);
-        // Flor azul diminuta
-        ctx.fillStyle = '#60a5fa'; ctx.fillRect(x + 16, y + 8, 2, 2);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 10, y + 6, 2, 2); // margarita
+        ctx.fillStyle = '#60a5fa'; ctx.fillRect(x + 16, y + 8, 2, 2); // flor azul
         ctx.fillStyle = '#2f5c22';
       }
     }
   }
 
-  // AVENIDA PRINCIPAL DE ASFALTO (Centro Horizontal)
+  // Avenidas de Asfalto con líneas viales
   drawAsphaltRoad(0, 700, WORLD_WIDTH, 140);
-
-  // AVENIDA VERTICAL DE ASFALTO (Cruce)
   drawAsphaltRoad(940, 0, 140, WORLD_HEIGHT);
 
-  // ACERAS DE BALDOSAS CUADRADAS CON BORDILLO (Como en el tileset)
-  drawSidewalk(0, 640, WORLD_WIDTH, 60);         // Acera Norte
-  drawSidewalk(0, 840, WORLD_WIDTH, 60);         // Acera Sur
-  drawSidewalk(880, 0, 60, WORLD_HEIGHT);        // Acera Oeste
-  drawSidewalk(1080, 0, 60, WORLD_HEIGHT);       // Acera Este
+  // Aceras de baldosas con bordillo
+  drawSidewalk(0, 640, WORLD_WIDTH, 60);
+  drawSidewalk(0, 840, WORLD_WIDTH, 60);
+  drawSidewalk(880, 0, 60, WORLD_HEIGHT);
+  drawSidewalk(1080, 0, 60, WORLD_HEIGHT);
 
-  // PLAZA CENTRAL DE CONCRETO CON GRIETAS (Exacto a la imagen del usuario)
+  // Plaza Central de Concreto con Grietas
   drawCrackedConcretePlaza(1140, 500, 240, 200);
 
-  // Bordes de tierra entre acera y césped
+  // Puesto de la Academia Didáctica
+  drawAcademyStation(1140, 500);
+
+  // Bordes de tierra
   ctx.fillStyle = '#9e6c38';
   ctx.fillRect(0, 636, WORLD_WIDTH, 4);
   ctx.fillRect(0, 900, WORLD_WIDTH, 4);
 }
 
-// Carretera de Asfalto con líneas dobles amarillas y línea blanca discontinua
 function drawAsphaltRoad(x, y, w, h) {
-  // Asfalto gris oscuro
   ctx.fillStyle = '#2b2d35';
   ctx.fillRect(x, y, w, h);
 
   if (w > h) {
-    // Horizontal
-    // Líneas dobles amarillas en los extremos (como en la foto)
     ctx.fillStyle = '#eab308';
     ctx.fillRect(x, y + 6, w, 2); ctx.fillRect(x, y + 10, w, 2);
     ctx.fillRect(x, y + h - 12, w, 2); ctx.fillRect(x, y + h - 8, w, 2);
-
-    // Línea blanca discontinua en el centro
     ctx.fillStyle = '#f8fafc';
     for (let px = x + 10; px < x + w; px += 36) {
       ctx.fillRect(px, y + h / 2 - 2, 20, 4);
     }
   } else {
-    // Vertical
     ctx.fillStyle = '#eab308';
     ctx.fillRect(x + 6, y, 2, h); ctx.fillRect(x + 10, y, 2, h);
     ctx.fillRect(x + w - 12, y, 2, h); ctx.fillRect(x + w - 8, y, 2, h);
-
     ctx.fillStyle = '#f8fafc';
     for (let py = y + 10; py < y + h; py += 36) {
       ctx.fillRect(x + w / 2 - 2, py, 4, 20);
@@ -932,12 +1088,10 @@ function drawAsphaltRoad(x, y, w, h) {
   }
 }
 
-// Acera con baldosas cuadradas beige-gris y bordillo (Tileset de la imagen)
 function drawSidewalk(x, y, w, h) {
   ctx.fillStyle = '#beb5a8';
   ctx.fillRect(x, y, w, h);
 
-  // Cuadrícula de baldosas
   ctx.strokeStyle = '#9c9285';
   ctx.lineWidth = 1;
   for (let px = x; px <= x + w; px += 16) {
@@ -947,16 +1101,11 @@ function drawSidewalk(x, y, w, h) {
     ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x + w, py); ctx.stroke();
   }
 
-  // Bordillo exterior
   ctx.fillStyle = '#6e675b';
-  if (w > h) {
-    ctx.fillRect(x, y + h - 4, w, 4);
-  } else {
-    ctx.fillRect(x + w - 4, y, 4, h);
-  }
+  if (w > h) ctx.fillRect(x, y + h - 4, w, 4);
+  else ctx.fillRect(x + w - 4, y, 4, h);
 }
 
-// Losas de Concreto Grandes con Grietas Finas (Tileset esquina superior izquierda)
 function drawCrackedConcretePlaza(x, y, w, h) {
   ctx.fillStyle = '#a89f91';
   ctx.fillRect(x, y, w, h);
@@ -964,173 +1113,115 @@ function drawCrackedConcretePlaza(x, y, w, h) {
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
 
-  // Líneas divisorias de losas
   ctx.beginPath();
   ctx.moveTo(x + w / 2, y); ctx.lineTo(x + w / 2, y + h);
   ctx.moveTo(x, y + h / 2); ctx.lineTo(x + w, y + h / 2);
   ctx.stroke();
 
-  // Grietas realistas dibujadas como en el tileset
+  // Grietas orgánicas
   ctx.strokeStyle = '#5a5347';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  // Grieta losa 1
-  ctx.moveTo(x + 20, y + 10); ctx.lineTo(x + 40, y + 30); ctx.lineTo(x + 35, y + 50); ctx.lineTo(x + 55, y + 70);
-  // Grieta losa 2
-  ctx.moveTo(x + w - 30, y + 20); ctx.lineTo(x + w - 50, y + 45); ctx.lineTo(x + w - 40, y + 80);
-  // Grieta losa 3
-  ctx.moveTo(x + 45, y + h - 20); ctx.lineTo(x + 60, y + h - 45); ctx.lineTo(x + 85, y + h - 60);
+  ctx.moveTo(x + 20, y + 10); ctx.lineTo(x + 40, y + 30); ctx.lineTo(x + 35, y + 50);
+  ctx.moveTo(x + w - 30, y + 20); ctx.lineTo(x + w - 50, y + 45);
+  ctx.moveTo(x + 45, y + h - 20); ctx.lineTo(x + 60, y + h - 45);
   ctx.stroke();
 }
 
-// ==========================================
-// PROPS URBANOS FIELMENTE DIBUJADOS DEL TILESET
-// ==========================================
+function drawAcademyStation(x, y) {
+  // Puesto de la Academia Didáctica
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(x + 20, y + 20, 100, 30);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 20, y + 20, 100, 30);
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = 'bold 7px "Press Start 2P"';
+  ctx.fillText('🎓 ACADEMIA', x + 26, y + 38);
+}
+
 function drawUrbanProps() {
-  // 1. BANCO DE MADERA DEL PARQUE (Tileset medio)
   drawParkBench(870, 650);
   drawParkBench(1160, 650);
-
-  // 2. PARADA DE AUTOBÚS MODERNA (Tileset medio)
   drawBusStop(1020, 636);
-
-  // 3. BOCA DE INCENDIOS ROJA (Hydrant)
   drawFireHydrant(930, 672);
-
-  // 4. PAPELERA METÁLICA DE CALLE
   drawTrashCan(950, 668);
-
-  // 5. FAROLA DE HIERRO FORJADO VICTORIANA (Luz cálida como la imagen)
   drawVictorianStreetLamp(970, 642);
   drawVictorianStreetLamp(1280, 642);
-
-  // 6. SEÑAL ROJA OCTAGONAL "PARE" (STOP)
   drawStopSign(890, 676);
-
-  // 7. SEÑAL AZUL PASO PEATONAL
   drawPedestrianSign(1120, 676);
-
-  // 8. JARDINERA DE LADRILLOS CON ARBUSTOS (Planter box)
   drawBrickPlanterBox(1180, 666);
-
-  // 9. BOLSAS DE BASURA NEGRAS Y CAJAS DE CARTÓN
   drawTrashBagsAndBoxes(850, 668);
 
-  // 10. ZONA DEPORTIVA: Pelota ⚽ y Perrito Toby 🐶
+  // Pelota de fútbol
   drawSoccerBall();
-  drawPixelDog(puppy.x, puppy.y);
+
+  // ANIMALES DIDÁCTICOS VIVOS EN EL PARQUE
+  townAnimals.forEach(an => {
+    drawAnimalInPark(an);
+  });
 
   // Monedas
   streetCoins.forEach(coin => {
     if (!coin.collected) {
-      ctx.fillStyle = '#facc15';
-      ctx.fillRect(coin.x - 5, coin.y - 5, 10, 10);
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(coin.x - 3, coin.y - 3, 6, 6);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(coin.x - 1, coin.y - 1, 2, 2);
+      ctx.fillStyle = '#facc15'; ctx.fillRect(coin.x - 5, coin.y - 5, 10, 10);
+      ctx.fillStyle = '#ca8a04'; ctx.fillRect(coin.x - 3, coin.y - 3, 6, 6);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(coin.x - 1, coin.y - 1, 2, 2);
     }
   });
 }
 
-// Banco de madera
 function drawParkBench(x, y) {
-  ctx.fillStyle = '#6b3b24'; // madera
-  ctx.fillRect(x, y, 42, 6); // respaldo
-  ctx.fillRect(x, y + 8, 42, 6); // asiento
-  ctx.fillStyle = '#1e293b'; // patas metal
+  ctx.fillStyle = '#6b3b24';
+  ctx.fillRect(x, y, 42, 6); ctx.fillRect(x, y + 8, 42, 6);
+  ctx.fillStyle = '#1e293b';
   ctx.fillRect(x + 4, y + 14, 3, 6); ctx.fillRect(x + 35, y + 14, 3, 6);
 }
 
-// Parada de autobús con panel de vidrio
 function drawBusStop(x, y) {
-  // Techo azul
-  ctx.fillStyle = '#1e3a8a';
-  ctx.fillRect(x, y, 64, 5);
-  // Panel de cristal trasero
-  ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
-  ctx.fillRect(x + 2, y + 5, 60, 24);
-  // Marco y postes
-  ctx.fillStyle = '#334155';
-  ctx.fillRect(x, y + 5, 3, 26); ctx.fillRect(x + 61, y + 5, 3, 26);
-  // Horario / póster en el panel
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 44, y + 8, 12, 16);
-  // Banquito interior
-  ctx.fillStyle = '#854d0e';
-  ctx.fillRect(x + 10, y + 22, 32, 4);
+  ctx.fillStyle = '#1e3a8a'; ctx.fillRect(x, y, 64, 5);
+  ctx.fillStyle = 'rgba(56, 189, 248, 0.4)'; ctx.fillRect(x + 2, y + 5, 60, 24);
+  ctx.fillStyle = '#334155'; ctx.fillRect(x, y + 5, 3, 26); ctx.fillRect(x + 61, y + 5, 3, 26);
+  ctx.fillStyle = '#facc15'; ctx.fillRect(x + 44, y + 8, 12, 16);
+  ctx.fillStyle = '#854d0e'; ctx.fillRect(x + 10, y + 22, 32, 4);
 }
 
-// Boca de incendios roja
 function drawFireHydrant(x, y) {
-  ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x, y + 4, 10, 14);
-  ctx.fillRect(x - 2, y + 8, 14, 4);
-  ctx.fillStyle = '#991b1b';
-  ctx.fillRect(x + 2, y + 1, 6, 3);
+  ctx.fillStyle = '#dc2626'; ctx.fillRect(x, y + 4, 10, 14); ctx.fillRect(x - 2, y + 8, 14, 4);
+  ctx.fillStyle = '#991b1b'; ctx.fillRect(x + 2, y + 1, 6, 3);
 }
 
-// Papelera metálica
 function drawTrashCan(x, y) {
-  ctx.fillStyle = '#64748b';
-  ctx.fillRect(x, y + 2, 12, 14);
-  ctx.fillStyle = '#475569';
-  ctx.fillRect(x - 1, y, 14, 3);
-  // Ranuras verticales
-  ctx.fillStyle = '#334155';
-  ctx.fillRect(x + 3, y + 4, 2, 10); ctx.fillRect(x + 7, y + 4, 2, 10);
+  ctx.fillStyle = '#64748b'; ctx.fillRect(x, y + 2, 12, 14);
+  ctx.fillStyle = '#475569'; ctx.fillRect(x - 1, y, 14, 3);
+  ctx.fillStyle = '#334155'; ctx.fillRect(x + 3, y + 4, 2, 10); ctx.fillRect(x + 7, y + 4, 2, 10);
 }
 
-// Farola de hierro victoriana con luz cálida (exacta al tileset)
 function drawVictorianStreetLamp(x, y) {
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(x, y, 4, 38); // poste
-  ctx.fillRect(x - 3, y + 36, 10, 3); // base
-  // Brazo curvado
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(x, y, 4, 38); ctx.fillRect(x - 3, y + 36, 10, 3);
   ctx.fillRect(x - 6, y + 4, 6, 3);
-
-  // Linterna con halo cálido
   ctx.fillStyle = 'rgba(253, 224, 71, 0.3)';
   ctx.beginPath(); ctx.arc(x - 6, y + 8, 16, 0, Math.PI * 2); ctx.fill();
-
-  ctx.fillStyle = '#fde047';
-  ctx.fillRect(x - 8, y + 6, 6, 7);
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(x - 9, y + 4, 8, 2);
+  ctx.fillStyle = '#fde047'; ctx.fillRect(x - 8, y + 6, 6, 7);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(x - 9, y + 4, 8, 2);
 }
 
-// Señal roja octagonal "PARE" (STOP)
 function drawStopSign(x, y) {
-  ctx.fillStyle = '#64748b';
-  ctx.fillRect(x + 5, y + 12, 2, 22); // poste
-
-  // Octágono rojo
-  ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x, y + 2, 12, 8);
-  ctx.fillRect(x + 2, y, 8, 12);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 4px sans-serif';
-  ctx.fillText('PARE', x + 1, y + 8);
+  ctx.fillStyle = '#64748b'; ctx.fillRect(x + 5, y + 12, 2, 22);
+  ctx.fillStyle = '#dc2626'; ctx.fillRect(x, y + 2, 12, 8); ctx.fillRect(x + 2, y, 8, 12);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 4px sans-serif'; ctx.fillText('PARE', x + 1, y + 8);
 }
 
-// Señal azul peatonal
 function drawPedestrianSign(x, y) {
-  ctx.fillStyle = '#64748b';
-  ctx.fillRect(x + 5, y + 12, 2, 22);
-
-  ctx.fillStyle = '#2563eb';
-  ctx.fillRect(x, y, 12, 12);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 1, y + 1, 10, 10);
-  ctx.fillStyle = '#2563eb';
-  ctx.fillText('🚸', x + 1, y + 9);
+  ctx.fillStyle = '#64748b'; ctx.fillRect(x + 5, y + 12, 2, 22);
+  ctx.fillStyle = '#2563eb'; ctx.fillRect(x, y, 12, 12);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 1, y + 1, 10, 10);
+  ctx.fillStyle = '#2563eb'; ctx.fillText('🚸', x + 1, y + 9);
 }
 
-// Jardinera de ladrillos rojos con arbustos
 function drawBrickPlanterBox(x, y) {
-  ctx.fillStyle = '#991b1b'; // ladrillo
-  ctx.fillRect(x, y + 8, 38, 8);
-  // Arbustos verdes frondosos
+  ctx.fillStyle = '#991b1b'; ctx.fillRect(x, y + 8, 38, 8);
   ctx.fillStyle = '#15803d';
   ctx.beginPath();
   ctx.arc(x + 8, y + 6, 7, 0, Math.PI * 2);
@@ -1139,16 +1230,10 @@ function drawBrickPlanterBox(x, y) {
   ctx.fill();
 }
 
-// Bolsas de basura y cajas de cartón
 function drawTrashBagsAndBoxes(x, y) {
-  // Bolsa negra
   ctx.fillStyle = '#0f172a';
   ctx.beginPath(); ctx.arc(x + 6, y + 8, 6, 0, Math.PI * 2); ctx.fill();
-  // Caja de cartón marrón
-  ctx.fillStyle = '#92400e';
-  ctx.fillRect(x + 12, y + 4, 10, 10);
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x + 14, y + 4, 2, 10); // cinta
+  ctx.fillStyle = '#92400e'; ctx.fillRect(x + 12, y + 4, 10, 10);
 }
 
 function drawSoccerBall() {
@@ -1159,17 +1244,24 @@ function drawSoccerBall() {
   ctx.fillText('⚽', soccerBall.x - 5, soccerBall.y + 4);
 }
 
-function drawPixelDog(x, y) {
-  ctx.fillStyle = '#b45309'; ctx.fillRect(x - 7, y - 4, 14, 9);
-  ctx.fillRect(x + 3, y - 10, 7, 7);
-  ctx.fillStyle = '#78350f'; ctx.fillRect(x + 1, y - 12, 3, 4);
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(x + 7, y - 8, 2, 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 7px "Press Start 2P"';
-  ctx.fillText('🐶 Toby', x - 14, y - 16);
+// Dibujar animales didácticos en el parque
+function drawAnimalInPark(an) {
+  // Sombra
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.beginPath(); ctx.ellipse(an.x, an.y + 10, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Emoji grande del animal
+  ctx.font = '22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(an.emoji, an.x, an.y + 6);
+
+  // Nombre del animal
+  ctx.font = 'bold 6px "Press Start 2P"';
+  ctx.fillStyle = '#fef08a';
+  ctx.fillText(`${an.name}`, an.x, an.y - 14);
+  ctx.textAlign = 'start';
 }
 
-// DIBUJAR JUGADOR CON EL SPRITE SHEET OFICIAL
 function drawPlayer(p, sId, isSelf = false) {
   const x = Math.round(p.x);
   const y = Math.round(p.y);
@@ -1185,7 +1277,6 @@ function drawPlayer(p, sId, isSelf = false) {
   const sprite = getCharacterSprite(p.id, dir, frame);
   ctx.drawImage(sprite, x - 9, y - 28);
 
-  // Etiqueta con Nombre
   ctx.font = 'bold 7px "Press Start 2P"';
   ctx.textAlign = 'center';
   const tagW = ctx.measureText(p.name).width + 8;
