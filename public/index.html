@@ -1,268 +1,423 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#1e1b4b">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Fruit Merge 2048: World Championship</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#141414">
+  <title>AzFlix - Prototipo de Streaming Estilo Netflix</title>
+  
+  <!-- Tipografías Google Fonts estilo Netflix -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&family=Grandstander:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="netflix-body">
 
-  <!-- CONTENEDOR PRINCIPAL RESPONSIVO -->
-  <div id="app-wrapper">
+  <!-- ============================================================== -->
+  <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR (STICKY NAVBAR)                 -->
+  <!-- ============================================================== -->
+  <header id="navbar" class="netflix-navbar">
+    <div class="nav-left">
+      <!-- Logo AzFlix con sonido Ta-dum al click -->
+      <a href="#" id="brand-logo" class="brand-logo" title="AzFlix - Inicio">
+        <span class="logo-red">AZ</span><span class="logo-white">FLIX</span>
+      </a>
 
-    <!-- 1. BANNER DEL TORNEO ACTIVO (ORGANIZADO POR EL DUEÑO) -->
-    <header id="tournament-banner" class="tournament-box">
-      <div class="tournament-header-row">
-        <div class="tournament-title-wrap">
-          <span class="trophy-badge">🏆</span>
-          <div class="tournament-texts">
-            <h1 id="tournament-title" class="t-title">World Grand Championship</h1>
-            <p id="tournament-prize" class="t-prize">🎁 $50 USD Cash Prize for Rank #1!</p>
+      <!-- Menú principal de navegación -->
+      <nav class="nav-links">
+        <button class="nav-item active" data-view="home">Inicio</button>
+        <button class="nav-item" data-view="series">Series</button>
+        <button class="nav-item" data-view="movies">Películas</button>
+        <button class="nav-item" data-view="trending">Novedades populares</button>
+        <button class="nav-item" data-view="mylist">Mi lista <span id="my-list-counter" class="badge-count hidden">0</span></button>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <!-- Buscador en tiempo real expandible -->
+      <div id="search-box" class="search-box">
+        <button id="btn-toggle-search" class="search-btn" title="Buscar títulos, personas o géneros">
+          🔍
+        </button>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Títulos, personas, géneros..."
+          autocomplete="off"
+        >
+        <button id="btn-clear-search" class="search-clear hidden">✖</button>
+      </div>
+
+      <!-- Modo Niños Toggle -->
+      <button id="btn-kids-mode" class="kids-pill-btn" title="Alternar Modo Niños">
+        NIÑOS
+      </button>
+
+      <!-- Campanita de notificaciones -->
+      <div class="dropdown-wrapper">
+        <button id="btn-notifications" class="icon-nav-btn" title="Notificaciones">
+          🔔
+          <span class="notif-badge">3</span>
+        </button>
+        <div id="dropdown-notifications" class="dropdown-menu notif-dropdown hidden">
+          <div class="dropdown-header">Notificaciones recientes</div>
+          <div id="notif-list" class="notif-list">
+            <!-- Cargado dinámicamente -->
           </div>
         </div>
-
-        <div class="top-header-actions">
-          <button id="btn-lang-toggle" class="btn-lang-pill" title="Switch Language">🇺🇸 EN</button>
-          <button id="btn-open-admin" class="btn-icon-admin" title="Admin Tournament Panel">⚙️</button>
-        </div>
       </div>
 
-      <div class="tournament-countdown-row">
-        <span class="timer-label" id="lbl-timer">⏳ Ends in:</span>
-        <span id="tournament-timer" class="countdown-val">06d 23h 59m 50s</span>
-        <button id="btn-open-leaderboard" class="btn-pill-ranking">🏆 <span id="lbl-btn-ranking">Leaderboard</span></button>
-      </div>
-    </header>
-
-    <!-- 2. BARRA DE ESTADO DEL JUGADOR (ZERO FRICTION) -->
-    <section id="player-bar" class="player-bar-box">
-      <div class="player-identity">
-        <span id="player-flag-icon" class="avatar-circle">🇺🇸</span>
-        <div class="identity-texts">
-          <div class="alias-row">
-            <span id="player-alias" class="alias-name">Loading...</span>
-            <button id="btn-edit-alias" class="btn-mini-pencil" title="Edit player name">✏️</button>
+      <!-- Menú de perfil de usuario -->
+      <div class="dropdown-wrapper">
+        <button id="btn-profile" class="profile-nav-btn" title="Perfil de usuario">
+          <img id="current-profile-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80" alt="Avatar" class="nav-avatar">
+          <span class="caret-arrow">▼</span>
+        </button>
+        <div id="dropdown-profile" class="dropdown-menu profile-dropdown hidden">
+          <div id="profiles-list" class="profiles-list">
+            <!-- Cargado dinámicamente -->
           </div>
-          <span id="player-rank-status" class="rank-sub">Rank #-- in tournament</span>
+          <div class="dropdown-divider"></div>
+          <button class="profile-action-btn" id="btn-account">⚙️ Cuenta y Configuración</button>
+          <button class="profile-action-btn" id="btn-help">❓ Centro de ayuda</button>
+          <div class="dropdown-divider"></div>
+          <button class="profile-action-btn text-danger" id="btn-logout">Cerrar sesión en AzFlix</button>
         </div>
       </div>
+    </div>
+  </header>
 
-      <div class="score-cards">
-        <div class="score-card current-score">
-          <span class="score-label" id="lbl-score">SCORE</span>
-          <span id="current-score-val" class="score-number">0</span>
-        </div>
-        <div class="score-card best-score">
-          <span class="score-label" id="lbl-best">BEST</span>
-          <span id="best-score-val" class="score-number">0</span>
-        </div>
+  <!-- ============================================================== -->
+  <!-- 2. HERO BILLBOARD (TÍTULO DESTACADO GIGANTE)                   -->
+  <!-- ============================================================== -->
+  <section id="billboard" class="hero-billboard">
+    <!-- Fondo cinemático -->
+    <div id="billboard-backdrop" class="billboard-backdrop"></div>
+    <div class="billboard-gradient-bottom"></div>
+    <div class="billboard-gradient-left"></div>
+
+    <div class="billboard-content">
+      <!-- Badge de Original de la plataforma -->
+      <div class="hero-badge-row">
+        <span class="netflix-original-pill">
+          <strong class="n-red">N</strong> ORIGINAL
+        </span>
+        <span class="top10-hero-badge">
+          🏆 #1 en Películas Hoy
+        </span>
+      </div>
+
+      <h1 id="hero-title" class="hero-title">STRANGER CODES: LA BRECHA</h1>
+      
+      <p id="hero-synopsis" class="hero-synopsis">
+        Cuando un programador desaparece sin dejar rastro, sus amigos descubren un portal a una dimensión cuántica dominada por inteligencias hostiles.
+      </p>
+
+      <div class="hero-meta-row">
+        <span class="match-score">99% de coincidencia</span>
+        <span class="rating-badge">16+</span>
+        <span class="duration-badge">3 Temporadas</span>
+        <span class="quality-badge">4K Ultra HD</span>
+        <span class="audio-badge">5.1 Audio</span>
+      </div>
+
+      <div class="hero-buttons-row">
+        <button id="hero-btn-play" class="btn-hero-primary">
+          ▶ Reproducir
+        </button>
+        <button id="hero-btn-info" class="btn-hero-secondary">
+          ℹ Más información
+        </button>
+      </div>
+    </div>
+
+    <!-- Controles laterales del Hero (Audio Mute & Rating tag) -->
+    <div class="billboard-side-controls">
+      <button id="hero-btn-mute" class="btn-side-mute" title="Activar/Silenciar sonido">
+        🔊
+      </button>
+      <span class="billboard-age-tag">16+</span>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- 3. CONTENEDOR PRINCIPAL DE CONTENIDO Y CAROUSELS               -->
+  <!-- ============================================================== -->
+  <main id="main-content" class="main-content">
+    <!-- Vista de Resultados de Búsqueda (Se activa al buscar) -->
+    <section id="search-view" class="search-view-container hidden">
+      <div class="search-view-header">
+        <h2 class="search-title">Resultados para: <span id="search-term-display">""</span></h2>
+        <span id="search-count-display" class="search-count">0 títulos encontrados</span>
+      </div>
+      <div id="search-results-grid" class="content-grid">
+        <!-- Render dinámico -->
       </div>
     </section>
 
-    <!-- 3. ÁREA DE JUEGO (FRASCO DE FUSIÓN SUIKA MERGE) -->
-    <main id="game-arena">
-      <!-- Indicador de Próxima Fruta -->
-      <div id="next-fruit-indicator" class="next-fruit-box">
-        <span class="next-label" id="lbl-next">NEXT:</span>
-        <span id="next-fruit-emoji" class="next-emoji">🍓</span>
+    <!-- Vista de Mi Lista (Se activa al hacer click en 'Mi lista') -->
+    <section id="mylist-view" class="mylist-view-container hidden">
+      <div class="search-view-header">
+        <h2 class="search-title">Mi lista</h2>
+        <span id="mylist-count-display" class="search-count">0 títulos guardados</span>
       </div>
-
-      <!-- Canvas de Física del Juego -->
-      <div id="canvas-container">
-        <canvas id="gameCanvas" width="420" height="580"></canvas>
-        <!-- Línea roja de peligro superior -->
-        <div id="danger-line"></div>
+      <div id="mylist-grid" class="content-grid">
+        <!-- Render dinámico -->
       </div>
+    </section>
 
-      <!-- Barra de Potenciadores / Monetización -->
-      <footer id="powerups-bar">
-        <button id="btn-powerup-shake" class="btn-powerup" title="Shake: Mix fruits in the jar">
-          <span class="p-icon">🌀</span>
-          <span class="p-label" id="lbl-shake">Shake</span>
-        </button>
-        <button id="btn-powerup-bomb" class="btn-powerup" title="Bomb: Destroy blocking fruits">
-          <span class="p-icon">💣</span>
-          <span class="p-label" id="lbl-bomb">Bomb</span>
-        </button>
-        <button id="btn-powerup-rainbow" class="btn-powerup" title="Rainbow: Merge with any fruit">
-          <span class="p-icon">🌈</span>
-          <span class="p-label" id="lbl-wild">Wildcard</span>
-        </button>
-      </footer>
-    </main>
-
-    <!-- GUÍA DE EVOLUCIÓN DE FRUTAS -->
-    <div id="fruit-evolution-strip">
-      <span title="Cherry">🍒</span>➔
-      <span title="Strawberry">🍓</span>➔
-      <span title="Grape">🍇</span>➔
-      <span title="Lemon">🍋</span>➔
-      <span title="Orange">🍊</span>➔
-      <span title="Apple">🍎</span>➔
-      <span title="Pear">🍐</span>➔
-      <span title="Peach">🍑</span>➔
-      <span title="Pineapple">🍍</span>➔
-      <span title="Melon">🍈</span>➔
-      <span title="Giant Watermelon" class="glow-target">🍉</span>
+    <!-- Contenedor de Filas Horizontales (Home / Series / Películas) -->
+    <div id="rows-container" class="rows-container">
+      <!-- Se inyecta dinámicamente desde app.js -->
     </div>
+  </main>
 
-    <!-- BANNER DE PUBLICIDAD MONETIZADA (TIER 1 READY / ADSENSE / POKI SLOT) -->
-    <div id="ad-banner-slot" class="ad-banner-container">
-      <div class="ad-badge-label">ADVERTISEMENT</div>
-      <div class="ad-banner-content" id="ad-banner-display">
-        <span class="ad-sponsor-text">🎯 Play Daily & Win $50 Cash Tournament Prize!</span>
-      </div>
-    </div>
-  </div>
+  <!-- ============================================================== -->
+  <!-- 4. MODAL DE DETALLE COMPLETO (INFO MODAL / QUICK-VIEW)         -->
+  <!-- ============================================================== -->
+  <div id="modal-detail" class="modal-detail-overlay hidden">
+    <div class="modal-detail-wrapper">
+      <!-- Botón cerrar modal -->
+      <button id="modal-btn-close" class="modal-close-pill" title="Cerrar">✖</button>
 
-  <!-- ============================================== -->
-  <!-- MODALES FLOTANTES -->
-  <!-- ============================================== -->
+      <!-- Banner del modal -->
+      <div class="modal-header-banner">
+        <img id="modal-backdrop-img" src="" alt="Backdrop" class="modal-backdrop">
+        <div class="modal-banner-gradient"></div>
 
-  <!-- MODAL DE CAMBIO DE APODO -->
-  <div id="modal-alias" class="modal-overlay hidden">
-    <div class="modal-card">
-      <h3 class="modal-title" id="lbl-edit-title">✏️ Choose your Tournament Name</h3>
-      <p class="modal-desc" id="lbl-edit-desc">This name will appear on the global leaderboard to claim your tournament prize:</p>
-      <input type="text" id="input-new-alias" maxlength="25" placeholder="Enter your nickname or handle..." class="text-input-field">
-      <div class="modal-actions">
-        <button id="btn-cancel-alias" class="btn-modal-sec">Cancel</button>
-        <button id="btn-save-alias" class="btn-modal-pri">Save Name</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE RANKING / TABLA DE POSICIONES -->
-  <div id="modal-leaderboard" class="modal-overlay hidden">
-    <div class="modal-card leaderboard-card">
-      <div class="leaderboard-header">
-        <h3 class="modal-title" id="lbl-lb-title">🏆 World Championship Leaderboard</h3>
-        <button id="btn-close-leaderboard" class="btn-close-modal">✖</button>
-      </div>
-
-      <p class="lb-sub-desc" id="lbl-lb-desc">Top global players competing in real-time for the cash prize!</p>
-
-      <div class="leaderboard-table-container">
-        <table class="lb-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th id="th-player">Player</th>
-              <th id="th-score">Score</th>
-              <th id="th-games">Games</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-tbody">
-            <!-- Filas dinámicas -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Tarjeta fija de "Tu Puesto" -->
-      <div id="my-rank-banner" class="my-rank-footer">
-        <div class="my-rank-info">
-          <span class="mr-tag" id="lbl-my-rank">YOUR CURRENT RANK</span>
-          <span id="my-rank-number" class="mr-pos">#--</span>
-        </div>
-        <div class="my-rank-score-wrap">
-          <span id="my-rank-score" class="mr-pts">0 pts</span>
-          <span id="my-rank-gap" class="mr-gap">Loading ranking...</span>
+        <div class="modal-banner-controls">
+          <h2 id="modal-title" class="modal-title">Título</h2>
+          <div class="modal-actions-row">
+            <button id="modal-btn-play" class="btn-hero-primary">
+              ▶ Reproducir
+            </button>
+            <button id="modal-btn-mylist" class="btn-circle-action" title="Agregar a mi lista">
+              +
+            </button>
+            <button id="modal-btn-like" class="btn-circle-action" title="Me gusta">
+              👍
+            </button>
+            <button id="modal-btn-share" class="btn-circle-action" title="Copiar enlace">
+              🔗
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- MODAL DE GAME OVER / REWARDED AD (REVIVE & HIGH ECPM MONETIZATION) -->
-  <div id="modal-gameover" class="modal-overlay hidden">
-    <div class="modal-card gameover-card">
-      <span class="go-icon">🍉</span>
-      <h3 class="go-title" id="lbl-go-title">Game Over!</h3>
-      <p class="go-score-txt"><span id="lbl-final-score">Final Score:</span> <span id="go-final-score" class="go-highlight">0</span></p>
+      <!-- Cuerpo del modal -->
+      <div class="modal-body-content">
+        <div class="modal-info-grid">
+          <!-- Columna izquierda: Metadata & Sinopsis -->
+          <div class="modal-left-col">
+            <div class="modal-meta-line">
+              <span id="modal-match-score" class="match-score">98% de coincidencia</span>
+              <span id="modal-year" class="meta-tag">2026</span>
+              <span id="modal-rating" class="rating-badge">16+</span>
+              <span id="modal-duration" class="meta-tag">3 Temporadas</span>
+              <span class="quality-badge">4K Ultra HD</span>
+              <span class="audio-badge">Dolby Atmos</span>
+            </div>
 
-      <div class="reward-ad-card">
-        <span class="ad-icon">🎬</span>
-        <div class="ad-text-wrap">
-          <span class="ad-bold" id="lbl-ad-bold">Save your score for the Tournament?</span>
-          <span class="ad-sub" id="lbl-ad-sub">Watch a quick ad to drop a Bomb and clear 40% of the jar!</span>
+            <p id="modal-synopsis" class="modal-synopsis-text">
+              Sinopsis del contenido aquí...
+            </p>
+          </div>
+
+          <!-- Columna derecha: Elenco, Géneros y Tags -->
+          <div class="modal-right-col">
+            <div class="meta-field">
+              <span class="field-label">Elenco:</span>
+              <span id="modal-cast" class="field-value">Actor 1, Actor 2</span>
+            </div>
+            <div class="meta-field">
+              <span class="field-label">Géneros:</span>
+              <span id="modal-genres" class="field-value">Ciencia Ficción, Suspenso</span>
+            </div>
+            <div class="meta-field">
+              <span class="field-label">Este título es:</span>
+              <span id="modal-tags" class="field-value">Frenético, Inquietante</span>
+            </div>
+          </div>
         </div>
-        <button id="btn-revive-game" class="btn-revive-action">Watch Ad to Save!</button>
-      </div>
 
-      <div class="modal-actions-stacked">
-        <button id="btn-restart-game" class="btn-modal-pri btn-large-restart" id="btn-restart-txt">▶ Play Again</button>
-        <button id="btn-view-rank-go" class="btn-modal-sec" id="btn-rank-txt">View Global Leaderboard</button>
+        <!-- Sección de Episodios (Solo para series) -->
+        <section id="modal-episodes-section" class="modal-section hidden">
+          <div class="section-header-split">
+            <h3 class="modal-section-title">Episodios</h3>
+            <select id="modal-season-select" class="season-selector">
+              <!-- Opciones de temporadas -->
+            </select>
+          </div>
+          <div id="modal-episodes-list" class="episodes-list">
+            <!-- Cargado dinámicamente -->
+          </div>
+        </section>
+
+        <!-- Sección de Títulos Similares -->
+        <section class="modal-section">
+          <h3 class="modal-section-title">Más títulos similares</h3>
+          <div id="modal-similar-grid" class="similar-grid">
+            <!-- Cargado dinámicamente -->
+          </div>
+        </section>
+
+        <!-- Sección Acerca de -->
+        <section class="modal-section about-section">
+          <h3 class="modal-section-title">Acerca de <span id="modal-about-title"></span></h3>
+          <div class="about-grid">
+            <div>
+              <span class="about-label">Director:</span>
+              <span id="modal-director" class="about-value">Director Name</span>
+            </div>
+            <div>
+              <span class="about-label">Clasificación:</span>
+              <span class="about-value">Recomendada para mayores de 16 años. Contiene violencia e intriga.</span>
+            </div>
+            <div>
+              <span class="about-label">Formatos disponibles:</span>
+              <span class="about-value">Audio espacial 5.1, Dolby Vision, Subtítulos en español e inglés.</span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
 
-  <!-- MODAL DE REPRODUCCIÓN DE ANUNCIO RECOMPENSADO (MOCKUP & SDK BRIDGE) -->
-  <div id="modal-rewarded-ad" class="modal-overlay hidden">
-    <div class="modal-card ad-player-card">
-      <div class="ad-top-bar">
-        <span class="ad-sponsor-tag">SPONSORED REWARDED AD</span>
-        <span id="ad-countdown" class="ad-countdown-tag">Reward in 5s...</span>
+  <!-- ============================================================== -->
+  <!-- 5. REPRODUCTOR DE VIDEO COMPLETO ESTILO NETFLIX (VIDEO OVERLAY)-->
+  <!-- ============================================================== -->
+  <div id="video-player-overlay" class="player-overlay hidden">
+    <!-- Barra superior del reproductor -->
+    <div id="player-top-bar" class="player-top-bar">
+      <button id="player-btn-back" class="btn-player-back" title="Volver al catálogo">
+        ← Volver
+      </button>
+      <div class="player-title-info">
+        <h3 id="player-title-display">Stranger Codes: La Brecha</h3>
+        <span id="player-subtitle-display">T1:E1 - El Algoritmo Perdido</span>
       </div>
-      <div class="ad-video-mockup">
-        <div class="ad-media-placeholder">
-          <span class="ad-big-icon">🎮</span>
-          <span class="ad-headline-text">Upgrade your Gaming Experience!</span>
-          <span class="ad-brand-text">Install Top Tier 1 Games Free</span>
+      <div class="player-top-actions">
+        <span class="live-stream-badge">HD STREAM</span>
+      </div>
+    </div>
+
+    <!-- Elemento Video HTML5 con streaming real -->
+    <div class="video-container" id="video-container">
+      <video id="main-video" playsinline preload="metadata">
+        Tu navegador no soporta reproducción de video HTML5.
+      </video>
+
+      <!-- Indicador central de carga / pausa -->
+      <div id="player-center-play" class="player-center-play hidden">
+        <span>▶</span>
+      </div>
+    </div>
+
+    <!-- Barra de controles inferior del reproductor -->
+    <div id="player-bottom-controls" class="player-bottom-controls">
+      <!-- Línea de tiempo / Scrubber -->
+      <div class="timeline-container" id="timeline-container">
+        <div class="timeline-bar" id="timeline-bar">
+          <div class="timeline-progress" id="timeline-progress"></div>
+          <div class="timeline-thumb" id="timeline-thumb"></div>
+        </div>
+        <div id="timeline-tooltip" class="timeline-tooltip hidden">00:00</div>
+      </div>
+
+      <!-- Fila de botones de control -->
+      <div class="controls-row">
+        <div class="controls-left">
+          <button id="btn-player-play" class="player-btn" title="Reproducir/Pausar (Espacio)">
+            ⏸
+          </button>
+          <button id="btn-player-rewind" class="player-btn" title="Retroceder 10 segundos (←)">
+            ↺ 10
+          </button>
+          <button id="btn-player-forward" class="player-btn" title="Adelantar 10 segundos (→)">
+            ↻ 10
+          </button>
+
+          <!-- Control de volumen -->
+          <div class="volume-control-wrap">
+            <button id="btn-player-volume" class="player-btn" title="Silenciar (M)">
+              🔊
+            </button>
+            <input 
+              type="range" 
+              id="volume-slider" 
+              class="volume-slider" 
+              min="0" 
+              max="1" 
+              step="0.05" 
+              value="1"
+            >
+          </div>
+
+          <!-- Tiempo transcurrido / restante -->
+          <span id="player-time-text" class="player-time-display">00:00 / 00:00</span>
+        </div>
+
+        <div class="controls-right">
+          <button id="btn-player-next" class="player-btn" title="Siguiente episodio (N)">
+            ⏭ Siguiente
+          </button>
+
+          <!-- Selector de audio y subtítulos -->
+          <div class="dropdown-wrapper">
+            <button id="btn-player-subtitles" class="player-btn" title="Audio y subtítulos">
+              💬
+            </button>
+            <div id="dropdown-subtitles" class="player-popup-menu hidden">
+              <div class="popup-column">
+                <span class="popup-title">Audio</span>
+                <button class="popup-option active">Español Latinoamericano [Original]</button>
+                <button class="popup-option">Español de España</button>
+                <button class="popup-option">English (Dolby 5.1)</button>
+              </div>
+              <div class="popup-column">
+                <span class="popup-title">Subtítulos</span>
+                <button class="popup-option active">Desactivados</button>
+                <button class="popup-option">Español (CC)</button>
+                <button class="popup-option">English [CC]</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Velocidad de reproducción -->
+          <div class="dropdown-wrapper">
+            <button id="btn-player-speed" class="player-btn" title="Velocidad">
+              ⚡ 1.0x
+            </button>
+            <div id="dropdown-speed" class="player-popup-menu speed-menu hidden">
+              <button class="popup-option" data-speed="0.75">0.75x</button>
+              <button class="popup-option active" data-speed="1.0">1.0x (Normal)</button>
+              <button class="popup-option" data-speed="1.25">1.25x</button>
+              <button class="popup-option" data-speed="1.5">1.5x</button>
+            </div>
+          </div>
+
+          <!-- Pantalla completa -->
+          <button id="btn-player-fullscreen" class="player-btn" title="Pantalla completa (F)">
+            ⛶
+          </button>
         </div>
       </div>
-      <button id="btn-claim-ad-reward" class="btn-modal-pri disabled" disabled>Watching Ad (5s)...</button>
     </div>
   </div>
 
-  <!-- MODAL DE ADMINISTRACIÓN DEL CONCURSO (PANEL PRIVADO PARA TI) -->
-  <div id="modal-admin" class="modal-overlay hidden">
-    <div class="modal-card admin-card">
-      <div class="leaderboard-header">
-        <h3 class="modal-title">⚙️ Contest Manager (Admin)</h3>
-        <button id="btn-close-admin" class="btn-close-modal">✖</button>
-      </div>
-
-      <div id="admin-login-view">
-        <p class="modal-desc">Enter admin security PIN to manage tournaments and prizes:</p>
-        <input type="password" id="input-admin-pin" placeholder="Admin PIN (admin123)" class="text-input-field">
-        <button id="btn-submit-pin" class="btn-modal-pri full-w">Login as Admin</button>
-      </div>
-
-      <div id="admin-panel-view" class="hidden">
-        <label class="form-label">Tournament Title:</label>
-        <input type="text" id="adm-title" class="text-input-field" placeholder="e.g. World Grand Championship">
-
-        <label class="form-label">Prize Text:</label>
-        <input type="text" id="adm-prize" class="text-input-field" placeholder="e.g. $50 USD Cash via PayPal/GiftCard">
-
-        <label class="form-label">Contest Deadline:</label>
-        <input type="datetime-local" id="adm-deadline" class="text-input-field">
-
-        <button id="btn-save-tournament" class="btn-modal-pri full-w mb-8">💾 Save Tournament Settings</button>
-
-        <div class="danger-zone">
-          <span class="danger-label">Danger Zone:</span>
-          <p class="danger-sub">Reset all tournament scores to start a brand new championship:</p>
-          <button id="btn-reset-tournament" class="btn-danger full-w">⚠️ Reset Scores / Start New Tournament</button>
-        </div>
-      </div>
-    </div>
+  <!-- ============================================================== -->
+  <!-- 6. TOAST DE NOTIFICACIÓN RÁPIDA                                 -->
+  <!-- ============================================================== -->
+  <div id="toast" class="toast-bubble hidden">
+    <span id="toast-text">Acción completada</span>
   </div>
 
-  <!-- NOTIFICACIÓN TOAST GLOBAL -->
-  <div id="toast-banner" class="toast-box hidden">
-    <span id="toast-msg">Notification</span>
-  </div>
-
-  <!-- Socket.io -->
+  <!-- Socket.io para interactividad en vivo -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Motor de Física, i18n y Anuncios Suika Merge -->
-  <script src="game.js"></script>
+  <!-- Lógica y render de la plataforma AzFlix -->
+  <script src="app.js"></script>
 </body>
 </html>

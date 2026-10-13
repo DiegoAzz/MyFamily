@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
-const db = require('./db');
+const { titles, categories, profiles, notifications } = require('./mockData');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,170 +18,120 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Helper para obtener IP real detrás de proxys (Coolify / Traefik / Nginx)
-function getClientIp(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
-         req.socket.remoteAddress ||
-         '127.0.0.1';
-}
+// 1. Título Destacado para el Hero Billboard Principal
+app.get('/api/featured', (req, res) => {
+  const featured = titles.find(t => t.id === 'stranger-codes') || titles[0];
+  res.json({ featured });
+});
 
-// 1. Identificación automática instantánea por UID / IP (sin login)
-app.post('/api/player/auth', async (req, res) => {
-  try {
-    const { uid, alias } = req.body;
-    if (!uid) return res.status(400).json({ error: 'UID requerido' });
+// 2. Filas de Categorías con títulos ordenados
+app.get('/api/categories', (req, res) => {
+  const isKids = req.query.kids === 'true';
 
-    const ip = getClientIp(req);
-    const defaultAlias = alias || `Jugador_${Math.floor(1000 + Math.random() * 9000)}`;
+  const rows = categories
+    .filter(cat => {
+      if (isKids) return cat.id === 'kids-family';
+      return true;
+    })
+    .map(cat => {
+      let filteredTitles = titles.filter(cat.filter);
 
-    const player = await db.getOrCreatePlayer(uid, ip, defaultAlias);
-    const tournament = await db.getTournament();
-    const leaderboard = await db.getLeaderboard(20);
-    const myRank = await db.getPlayerRank(uid);
+      // Si es Top 10, ordenar por ranking numérico 1..10
+      if (cat.isTop10Layout) {
+        filteredTitles = filteredTitles.sort((a, b) => (a.isTop10 || 99) - (b.isTop10 || 99));
+      }
 
-    res.json({
-      player,
-      tournament,
-      leaderboard,
-      myRank
+      return {
+        id: cat.id,
+        title: cat.title,
+        showProgress: !!cat.showProgress,
+        isTop10Layout: !!cat.isTop10Layout,
+        isTall: !!cat.isTall,
+        titles: filteredTitles
+      };
     });
-  } catch (err) {
-    console.error('Error en /api/player/auth:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+
+  res.json({ categories: rows });
 });
 
-// 2. Cambiar apodo/alias para la tabla de posiciones
-app.post('/api/player/set-alias', async (req, res) => {
-  try {
-    const { uid, alias } = req.body;
-    if (!uid || !alias) return res.status(400).json({ error: 'UID y Alias requeridos' });
+// 3. Catálogo general con filtros (Series, Películas, Novedades, Kids, Búsqueda)
+app.get('/api/titles', (req, res) => {
+  const { type, isKids, search, genre } = req.query;
+  let result = [...titles];
 
-    const updated = await db.updatePlayerAlias(uid, alias);
-    const leaderboard = await db.getLeaderboard(20);
-
-    // Notificar a todos por Socket.io que se actualizó el ranking
-    io.emit('leaderboard_updated', leaderboard);
-
-    res.json({ player: updated, leaderboard });
-  } catch (err) {
-    res.status(500).json({ error: 'Error actualizando alias' });
+  if (isKids === 'true') {
+    result = result.filter(t => t.isKids);
   }
+
+  if (type === 'series' || type === 'movie') {
+    result = result.filter(t => t.type === type);
+  }
+
+  if (genre) {
+    result = result.filter(t => t.genres.some(g => g.toLowerCase() === genre.toLowerCase()));
+  }
+
+  if (search) {
+    const q = search.toLowerCase().trim();
+    result = result.filter(t => 
+      t.title.toLowerCase().includes(q) ||
+      t.originalTitle.toLowerCase().includes(q) ||
+      t.synopsis.toLowerCase().includes(q) ||
+      t.genres.some(g => g.toLowerCase().includes(q)) ||
+      (t.cast && t.cast.some(c => c.toLowerCase().includes(q)))
+    );
+  }
+
+  res.json({ count: result.length, titles: result });
 });
 
-// 3. Enviar puntuación al terminar la partida
-app.post('/api/game/submit-score', async (req, res) => {
-  try {
-    const { uid, score } = req.body;
-    if (!uid || score === undefined) return res.status(400).json({ error: 'Datos inválidos' });
-
-    const result = await db.submitScore(uid, score);
-    const leaderboard = await db.getLeaderboard(20);
-    const myRank = await db.getPlayerRank(uid);
-
-    // Si es un puntaje alto en el top, emitir actualización
-    io.emit('leaderboard_updated', leaderboard);
-
-    res.json({ result, leaderboard, myRank });
-  } catch (err) {
-    res.status(500).json({ error: 'Error guardando puntuación' });
+// 4. Detalle individual de título + títulos similares recomendados
+app.get('/api/title/:id', (req, res) => {
+  const item = titles.find(t => t.id === req.params.id);
+  if (!item) {
+    return res.status(404).json({ error: 'Título no encontrado' });
   }
+
+  // Títulos similares basados en géneros compartidos
+  const similar = titles
+    .filter(t => t.id !== item.id && t.genres.some(g => item.genres.includes(g)))
+    .slice(0, 6);
+
+  res.json({ title: item, similar });
 });
 
-// 4. Obtener tabla de clasificación
-app.get('/api/leaderboard', async (req, res) => {
-  try {
-    const leaderboard = await db.getLeaderboard(50);
-    res.json({ leaderboard });
-  } catch (err) {
-    res.status(500).json({ error: 'Error cargando ranking' });
-  }
+// 5. Notificaciones de estrenos
+app.get('/api/notifications', (req, res) => {
+  res.json({ notifications });
 });
 
-// 5. Obtener datos del Torneo
-app.get('/api/tournament', async (req, res) => {
-  try {
-    const tournament = await db.getTournament();
-    res.json({ tournament });
-  } catch (err) {
-    res.status(500).json({ error: 'Error cargando torneo' });
-  }
+// 6. Perfiles de usuario disponibles
+app.get('/api/profiles', (req, res) => {
+  res.json({ profiles });
 });
 
-// 6. Panel de Administración (PIN de seguridad)
-app.post('/api/admin/verify', async (req, res) => {
-  try {
-    const { pin } = req.body;
-    const isValid = await db.verifyAdminPin(pin);
-    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
-
-    const tournament = await db.getTournament();
-    res.json({ success: true, tournament });
-  } catch (err) {
-    res.status(500).json({ error: 'Error de verificación' });
-  }
-});
-
-app.post('/api/admin/update-tournament', async (req, res) => {
-  try {
-    const { pin, title, prizeText, endTime, active } = req.body;
-    const isValid = await db.verifyAdminPin(pin);
-    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
-
-    const updatedTournament = await db.updateTournament(title, prizeText, endTime, active);
-    io.emit('tournament_updated', updatedTournament);
-
-    res.json({ success: true, tournament: updatedTournament });
-  } catch (err) {
-    res.status(500).json({ error: 'Error actualizando torneo' });
-  }
-});
-
-app.post('/api/admin/reset-tournament', async (req, res) => {
-  try {
-    const { pin } = req.body;
-    const isValid = await db.verifyAdminPin(pin);
-    if (!isValid) return res.status(401).json({ error: 'PIN incorrecto' });
-
-    await db.resetTournamentScores();
-    const leaderboard = await db.getLeaderboard(20);
-    io.emit('leaderboard_updated', leaderboard);
-
-    res.json({ success: true, message: 'Torneo reiniciado con éxito' });
-  } catch (err) {
-    res.status(500).json({ error: 'Error reiniciando torneo' });
-  }
-});
-
-// ==========================================
-// SOCKET.IO PARA JUGADORES EN LÍNEA Y NOTIFICACIONES
-// ==========================================
-let onlineCount = 0;
+// Socket.io para visualización en tiempo real (usuarios en línea, watch activity)
+let viewersOnline = 14;
 
 io.on('connection', (socket) => {
-  onlineCount++;
-  io.emit('online_count', onlineCount);
+  viewersOnline++;
+  io.emit('online_count', { viewers: viewersOnline });
 
-  // Cuando un jugador fusiona una Sandía Gigante o hace un combo épico
-  socket.on('huge_merge', (data) => {
-    io.emit('announcement', {
-      alias: data.alias || 'Un jugador',
-      fruit: data.fruit || '🍉 Sandía',
-      score: data.score
+  socket.on('watch_title', (data) => {
+    // Transmitir actividad social a la plataforma
+    socket.broadcast.emit('user_watching', {
+      user: data.user || 'Alguien',
+      title: data.title
     });
   });
 
   socket.on('disconnect', () => {
-    onlineCount = Math.max(0, onlineCount - 1);
-    io.emit('online_count', onlineCount);
+    viewersOnline = Math.max(1, viewersOnline - 1);
+    io.emit('online_count', { viewers: viewersOnline });
   });
 });
 
-async function start() {
-  await db.initDatabase();
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🍉 SERVIDOR DE TORNEO SUIKA MERGE ACTIVO EN PUERTO ${PORT}`);
-  });
-}
-
-start();
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🍿 [AZFLIX / NETFLIX PROTOTYPE] Servidor corriendo en puerto ${PORT}`);
+  console.log(`🌐 URL Local: http://localhost:${PORT}`);
+});

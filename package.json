@@ -1,7 +1,7 @@
 {
-  "name": "myfamily-rpg",
+  "name": "azflix-streaming",
   "version": "1.0.0",
-  "description": "Juego RPG 2D Multijugador Urbano para la familia Az (Diegoaz, Diegoaz Jr, Vicky Vicky)",
+  "description": "AzFlix - Prototipo de plataforma de streaming estilo Netflix con catálogo interactivo, reproductor y datos de prueba",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

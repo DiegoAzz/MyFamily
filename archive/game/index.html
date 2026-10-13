@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1b4b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Fruit Merge 2048: World Championship</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;900&family=Grandstander:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- CONTENEDOR PRINCIPAL RESPONSIVO -->
+  <div id="app-wrapper">
+
+    <!-- 1. BANNER DEL TORNEO ACTIVO (ORGANIZADO POR EL DUEÑO) -->
+    <header id="tournament-banner" class="tournament-box">
+      <div class="tournament-header-row">
+        <div class="tournament-title-wrap">
+          <span class="trophy-badge">🏆</span>
+          <div class="tournament-texts">
+            <h1 id="tournament-title" class="t-title">World Grand Championship</h1>
+            <p id="tournament-prize" class="t-prize">🎁 $50 USD Cash Prize for Rank #1!</p>
+          </div>
+        </div>
+
+        <div class="top-header-actions">
+          <button id="btn-lang-toggle" class="btn-lang-pill" title="Switch Language">🇺🇸 EN</button>
+          <button id="btn-open-admin" class="btn-icon-admin" title="Admin Tournament Panel">⚙️</button>
+        </div>
+      </div>
+
+      <div class="tournament-countdown-row">
+        <span class="timer-label" id="lbl-timer">⏳ Ends in:</span>
+        <span id="tournament-timer" class="countdown-val">06d 23h 59m 50s</span>
+        <button id="btn-open-leaderboard" class="btn-pill-ranking">🏆 <span id="lbl-btn-ranking">Leaderboard</span></button>
+      </div>
+    </header>
+
+    <!-- 2. BARRA DE ESTADO DEL JUGADOR (ZERO FRICTION) -->
+    <section id="player-bar" class="player-bar-box">
+      <div class="player-identity">
+        <span id="player-flag-icon" class="avatar-circle">🇺🇸</span>
+        <div class="identity-texts">
+          <div class="alias-row">
+            <span id="player-alias" class="alias-name">Loading...</span>
+            <button id="btn-edit-alias" class="btn-mini-pencil" title="Edit player name">✏️</button>
+          </div>
+          <span id="player-rank-status" class="rank-sub">Rank #-- in tournament</span>
+        </div>
+      </div>
+
+      <div class="score-cards">
+        <div class="score-card current-score">
+          <span class="score-label" id="lbl-score">SCORE</span>
+          <span id="current-score-val" class="score-number">0</span>
+        </div>
+        <div class="score-card best-score">
+          <span class="score-label" id="lbl-best">BEST</span>
+          <span id="best-score-val" class="score-number">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ÁREA DE JUEGO (FRASCO DE FUSIÓN SUIKA MERGE) -->
+    <main id="game-arena">
+      <!-- Indicador de Próxima Fruta -->
+      <div id="next-fruit-indicator" class="next-fruit-box">
+        <span class="next-label" id="lbl-next">NEXT:</span>
+        <span id="next-fruit-emoji" class="next-emoji">🍓</span>
+      </div>
+
+      <!-- Canvas de Física del Juego -->
+      <div id="canvas-container">
+        <canvas id="gameCanvas" width="420" height="580"></canvas>
+        <!-- Línea roja de peligro superior -->
+        <div id="danger-line"></div>
+      </div>
+
+      <!-- Barra de Potenciadores / Monetización -->
+      <footer id="powerups-bar">
+        <button id="btn-powerup-shake" class="btn-powerup" title="Shake: Mix fruits in the jar">
+          <span class="p-icon">🌀</span>
+          <span class="p-label" id="lbl-shake">Shake</span>
+        </button>
+        <button id="btn-powerup-bomb" class="btn-powerup" title="Bomb: Destroy blocking fruits">
+          <span class="p-icon">💣</span>
+          <span class="p-label" id="lbl-bomb">Bomb</span>
+        </button>
+        <button id="btn-powerup-rainbow" class="btn-powerup" title="Rainbow: Merge with any fruit">
+          <span class="p-icon">🌈</span>
+          <span class="p-label" id="lbl-wild">Wildcard</span>
+        </button>
+      </footer>
+    </main>
+
+    <!-- GUÍA DE EVOLUCIÓN DE FRUTAS -->
+    <div id="fruit-evolution-strip">
+      <span title="Cherry">🍒</span>➔
+      <span title="Strawberry">🍓</span>➔
+      <span title="Grape">🍇</span>➔
+      <span title="Lemon">🍋</span>➔
+      <span title="Orange">🍊</span>➔
+      <span title="Apple">🍎</span>➔
+      <span title="Pear">🍐</span>➔
+      <span title="Peach">🍑</span>➔
+      <span title="Pineapple">🍍</span>➔
+      <span title="Melon">🍈</span>➔
+      <span title="Giant Watermelon" class="glow-target">🍉</span>
+    </div>
+
+    <!-- BANNER DE PUBLICIDAD MONETIZADA (TIER 1 READY / ADSENSE / POKI SLOT) -->
+    <div id="ad-banner-slot" class="ad-banner-container">
+      <div class="ad-badge-label">ADVERTISEMENT</div>
+      <div class="ad-banner-content" id="ad-banner-display">
+        <span class="ad-sponsor-text">🎯 Play Daily & Win $50 Cash Tournament Prize!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODALES FLOTANTES -->
+  <!-- ============================================== -->
+
+  <!-- MODAL DE CAMBIO DE APODO -->
+  <div id="modal-alias" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 class="modal-title" id="lbl-edit-title">✏️ Choose your Tournament Name</h3>
+      <p class="modal-desc" id="lbl-edit-desc">This name will appear on the global leaderboard to claim your tournament prize:</p>
+      <input type="text" id="input-new-alias" maxlength="25" placeholder="Enter your nickname or handle..." class="text-input-field">
+      <div class="modal-actions">
+        <button id="btn-cancel-alias" class="btn-modal-sec">Cancel</button>
+        <button id="btn-save-alias" class="btn-modal-pri">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RANKING / TABLA DE POSICIONES -->
+  <div id="modal-leaderboard" class="modal-overlay hidden">
+    <div class="modal-card leaderboard-card">
+      <div class="leaderboard-header">
+        <h3 class="modal-title" id="lbl-lb-title">🏆 World Championship Leaderboard</h3>
+        <button id="btn-close-leaderboard" class="btn-close-modal">✖</button>
+      </div>
+
+      <p class="lb-sub-desc" id="lbl-lb-desc">Top global players competing in real-time for the cash prize!</p>
+
+      <div class="leaderboard-table-container">
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th id="th-player">Player</th>
+              <th id="th-score">Score</th>
+              <th id="th-games">Games</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tarjeta fija de "Tu Puesto" -->
+      <div id="my-rank-banner" class="my-rank-footer">
+        <div class="my-rank-info">
+          <span class="mr-tag" id="lbl-my-rank">YOUR CURRENT RANK</span>
+          <span id="my-rank-number" class="mr-pos">#--</span>
+        </div>
+        <div class="my-rank-score-wrap">
+          <span id="my-rank-score" class="mr-pts">0 pts</span>
+          <span id="my-rank-gap" class="mr-gap">Loading ranking...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE GAME OVER / REWARDED AD (REVIVE & HIGH ECPM MONETIZATION) -->
+  <div id="modal-gameover" class="modal-overlay hidden">
+    <div class="modal-card gameover-card">
+      <span class="go-icon">🍉</span>
+      <h3 class="go-title" id="lbl-go-title">Game Over!</h3>
+      <p class="go-score-txt"><span id="lbl-final-score">Final Score:</span> <span id="go-final-score" class="go-highlight">0</span></p>
+
+      <div class="reward-ad-card">
+        <span class="ad-icon">🎬</span>
+        <div class="ad-text-wrap">
+          <span class="ad-bold" id="lbl-ad-bold">Save your score for the Tournament?</span>
+          <span class="ad-sub" id="lbl-ad-sub">Watch a quick ad to drop a Bomb and clear 40% of the jar!</span>
+        </div>
+        <button id="btn-revive-game" class="btn-revive-action">Watch Ad to Save!</button>
+      </div>
+
+      <div class="modal-actions-stacked">
+        <button id="btn-restart-game" class="btn-modal-pri btn-large-restart" id="btn-restart-txt">▶ Play Again</button>
+        <button id="btn-view-rank-go" class="btn-modal-sec" id="btn-rank-txt">View Global Leaderboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE REPRODUCCIÓN DE ANUNCIO RECOMPENSADO (MOCKUP & SDK BRIDGE) -->
+  <div id="modal-rewarded-ad" class="modal-overlay hidden">
+    <div class="modal-card ad-player-card">
+      <div class="ad-top-bar">
+        <span class="ad-sponsor-tag">SPONSORED REWARDED AD</span>
+        <span id="ad-countdown" class="ad-countdown-tag">Reward in 5s...</span>
+      </div>
+      <div class="ad-video-mockup">
+        <div class="ad-media-placeholder">
+          <span class="ad-big-icon">🎮</span>
+          <span class="ad-headline-text">Upgrade your Gaming Experience!</span>
+          <span class="ad-brand-text">Install Top Tier 1 Games Free</span>
+        </div>
+      </div>
+      <button id="btn-claim-ad-reward" class="btn-modal-pri disabled" disabled>Watching Ad (5s)...</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE ADMINISTRACIÓN DEL CONCURSO (PANEL PRIVADO PARA TI) -->
+  <div id="modal-admin" class="modal-overlay hidden">
+    <div class="modal-card admin-card">
+      <div class="leaderboard-header">
+        <h3 class="modal-title">⚙️ Contest Manager (Admin)</h3>
+        <button id="btn-close-admin" class="btn-close-modal">✖</button>
+      </div>
+
+      <div id="admin-login-view">
+        <p class="modal-desc">Enter admin security PIN to manage tournaments and prizes:</p>
+        <input type="password" id="input-admin-pin" placeholder="Admin PIN (admin123)" class="text-input-field">
+        <button id="btn-submit-pin" class="btn-modal-pri full-w">Login as Admin</button>
+      </div>
+
+      <div id="admin-panel-view" class="hidden">
+        <label class="form-label">Tournament Title:</label>
+        <input type="text" id="adm-title" class="text-input-field" placeholder="e.g. World Grand Championship">
+
+        <label class="form-label">Prize Text:</label>
+        <input type="text" id="adm-prize" class="text-input-field" placeholder="e.g. $50 USD Cash via PayPal/GiftCard">
+
+        <label class="form-label">Contest Deadline:</label>
+        <input type="datetime-local" id="adm-deadline" class="text-input-field">
+
+        <button id="btn-save-tournament" class="btn-modal-pri full-w mb-8">💾 Save Tournament Settings</button>
+
+        <div class="danger-zone">
+          <span class="danger-label">Danger Zone:</span>
+          <p class="danger-sub">Reset all tournament scores to start a brand new championship:</p>
+          <button id="btn-reset-tournament" class="btn-danger full-w">⚠️ Reset Scores / Start New Tournament</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICACIÓN TOAST GLOBAL -->
+  <div id="toast-banner" class="toast-box hidden">
+    <span id="toast-msg">Notification</span>
+  </div>
+
+  <!-- Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Motor de Física, i18n y Anuncios Suika Merge -->
+  <script src="game.js"></script>
+</body>
+</html>
