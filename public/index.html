@@ -5,163 +5,162 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#1e293b">
-  <title>El Barrio Az - Juego Familiar</title>
+  <meta name="theme-color" content="#2b1e16">
+  <title>El Barrio Az - RPG Pixel Art Familiar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- PANTALLA DE SELECCIÓN ULTRA VISUAL (FÁCIL PARA UN NIÑO DE 4 AÑOS) -->
+  <!-- PANTALLA DE SELECCIÓN DE PERSONAJES PIXEL ART -->
   <div id="character-select-modal" class="modal-overlay">
-    <div class="modal-card select-card">
-      <h1 class="game-logo">🏙️ EL BARRIO AZ</h1>
-      <p class="select-hint">¡Toca tu personaje para empezar a jugar!</p>
+    <div class="rpg-box select-box">
+      <div class="rpg-title-ribbon">
+        <h1>⚔️ EL BARRIO AZ ⚔️</h1>
+      </div>
+      <p class="rpg-subtext">Elige a tu personaje para entrar al reino del barrio:</p>
 
-      <div class="family-cards-row">
-        <!-- Diegoaz (Papá 46) -->
-        <div class="family-card" data-char="diegoaz">
-          <div class="big-avatar papa-bg">
-            <span class="emoji-face">👨</span>
-            <div class="tag-badge">PAPÁ</div>
+      <div class="pixel-heroes-grid">
+        <!-- Diegoaz (Papá) -->
+        <div class="hero-card" data-char="diegoaz">
+          <div class="hero-portrait-frame">
+            <canvas id="portrait-diegoaz" width="64" height="64" class="pixel-canvas-portrait"></canvas>
+            <span class="hero-badge">PAPÁ (46)</span>
           </div>
           <h3>Diegoaz</h3>
-          <span class="role-desc">🛠️ Constructor & Guía</span>
+          <span class="hero-class">🛡️ Maestro Constructor</span>
+          <p class="hero-desc">Líder del barrio, gestiona finanzas y grandes construcciones.</p>
         </div>
 
-        <!-- Vicky Vicky (Hija 10) -->
-        <div class="family-card" data-char="vicky_vicky">
-          <div class="big-avatar vicky-bg">
-            <span class="emoji-face">👧</span>
-            <div class="tag-badge">10 AÑOS</div>
+        <!-- Vicky Vicky (Hija) -->
+        <div class="hero-card" data-char="vicky_vicky">
+          <div class="hero-portrait-frame">
+            <canvas id="portrait-vicky" width="64" height="64" class="pixel-canvas-portrait"></canvas>
+            <span class="hero-badge">HIJA (10)</span>
           </div>
           <h3>Vicky Vicky</h3>
-          <span class="role-desc">🌸 Mascotas & Cocina</span>
+          <span class="hero-class">🌸 Botánica & Mascotas</span>
+          <p class="hero-desc">Amiga de los animales, cuida la naturaleza y decora la casa.</p>
         </div>
 
-        <!-- Diegoaz Jr. (Hijo 4) -->
-        <div class="family-card active" data-char="diegoaz_jr">
-          <div class="big-avatar junior-bg">
-            <span class="emoji-face">👦</span>
-            <div class="tag-badge">4 AÑOS</div>
+        <!-- Diegoaz Jr. (Hijo) -->
+        <div class="hero-card active" data-char="diegoaz_jr">
+          <div class="hero-portrait-frame">
+            <canvas id="portrait-junior" width="64" height="64" class="pixel-canvas-portrait"></canvas>
+            <span class="hero-badge">HIJO (4)</span>
           </div>
           <h3>Diegoaz Jr.</h3>
-          <span class="role-desc">⚡ Explorador & Pelota</span>
+          <span class="hero-class">⚡ Explorador Veloz</span>
+          <p class="hero-desc">Ama la pelota, correr a toda prisa y descubrir tesoros.</p>
         </div>
       </div>
 
-      <button id="btn-start-game" class="btn-play-big">
-        🚀 ¡A JUGAR EN FAMILIA!
+      <button id="btn-start-game" class="rpg-btn-primary">
+        ▶ ENTRAR AL BARRIO
       </button>
     </div>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL DEL JUEGO -->
+  <!-- JUEGO FULLSCREEN -->
   <div id="game-container" class="hidden">
-    
-    <!-- CANVAS PRINCIPAL -->
+    <!-- LIENZO PIXEL ART -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD SUPERIOR AMIGABLE -->
-    <div id="top-bar">
-      <div class="hud-group">
-        <!-- Monedas del jugador -->
-        <div class="coin-badge">
-          <span class="coin-icon">🪙</span>
-          <span id="player-coins-val">100</span>
-        </div>
-        <!-- Banco Familiar -->
-        <div class="vault-badge" title="Fondo Común de la Familia">
-          <span class="vault-icon">🏦</span>
-          <span id="family-vault-val">500</span>
-        </div>
+    <!-- UI SUPERIOR ESTILO RPG RETRO (COMO LA IMAGEN) -->
+    <div id="rpg-hud-top">
+      <div class="rpg-box-small stat-box">
+        <span class="gold-icon">🪙</span>
+        <span id="player-coins-val" class="stat-number">100</span>
+        <span class="stat-label">Oro</span>
       </div>
 
-      <!-- Ubicación actual (Calle / Casa Az) -->
-      <div id="location-badge" class="location-pill">
-        📍 La Calle del Barrio
+      <div class="rpg-box-small stat-box vault-box" title="Bóveda Familiar">
+        <span class="gold-icon">🏦</span>
+        <span id="family-vault-val" class="stat-number">500</span>
+        <span class="stat-label">Común</span>
       </div>
 
-      <!-- Botones de Acción Rápida -->
-      <div class="hud-group">
-        <button id="btn-audio-toggle" class="circle-btn" title="Sonido">🔊</button>
-        <button id="btn-open-house-shop" class="circle-btn" title="Mejoras de la Casa">🛒</button>
-        <button id="btn-fullscreen" class="circle-btn" title="Pantalla Completa">⛶</button>
+      <div class="rpg-box-small location-sign" id="location-badge">
+        🏛️ Plaza de la Fuente
+      </div>
+
+      <div class="hud-quick-tools">
+        <button id="btn-audio-toggle" class="rpg-icon-btn" title="Sonido">🔊</button>
+        <button id="btn-open-house-shop" class="rpg-icon-btn" title="Tienda del Pueblo">🛒</button>
+        <button id="btn-fullscreen" class="rpg-icon-btn" title="Pantalla completa">⛶</button>
       </div>
     </div>
 
-    <!-- NOTIFICACIONES Y GLOBOS EN PANTALLA -->
-    <div id="alert-banner" class="alert-banner hidden">
-      <span id="alert-icon">✨</span> <span id="alert-text">¡Bienvenido!</span>
+    <!-- CARTEL DE ALERTA O MENSAJE -->
+    <div id="alert-banner" class="rpg-alert-banner hidden">
+      <span id="alert-icon">📜</span> <span id="alert-text">¡Bienvenido viajero!</span>
     </div>
 
-    <!-- CONTROLES TÁCTILES SUPER VISUALES PARA CELULAR -->
+    <!-- CONTROLES TÁCTILES PIXEL RETRO PARA CELULARES -->
     <div id="mobile-controls">
-      <!-- Joystick Táctil Flotante Izquierdo -->
+      <!-- Joystick Flotante Izquierdo -->
       <div id="joystick-area">
         <div id="joystick-ring">
           <div id="joystick-knob"></div>
         </div>
       </div>
 
-      <!-- Botones de Acción Gigantes para Niños (Derecha) -->
+      <!-- Botones de Acción Estilo Arcade/RPG -->
       <div id="buttons-area">
-        <!-- Botón de Bocina / Emojis divertidos -->
-        <button id="btn-fun-sound" class="btn-fun" aria-label="Hacer ruido divertido">
-          📢
+        <button id="btn-fun-sound" class="arcade-btn-mini" aria-label="Bocina / Saludo">
+          🎺
         </button>
-        <!-- Botón de Acción Principal (Entrar, Acariciar, Patear) -->
-        <button id="btn-action-main" class="btn-action-round" aria-label="Interactuar">
-          <span id="action-btn-emoji">✨</span>
-          <span id="action-btn-label">TOCAR</span>
+        <button id="btn-action-main" class="arcade-action-btn" aria-label="Interactuar">
+          <span id="action-btn-emoji">⚔️</span>
+          <span id="action-btn-label">HABLAR</span>
         </button>
       </div>
     </div>
 
-    <!-- DIÁLOGO / EMOTICONES RÁPIDOS INFERIORES -->
+    <!-- DIÁLOGO / EMOCIONES RÁPIDAS (ABAJO) -->
     <div id="quick-reactions">
-      <button class="react-btn" data-sound="cheer" data-msg="¡Mira papá! 😃">😃 ¡Mira!</button>
-      <button class="react-btn" data-sound="heart" data-msg="¡Los quiero! ❤️">❤️ Familia</button>
-      <button class="react-btn" data-sound="pizza" data-msg="¡Tengo pizza! 🍕">🍕 Pizza</button>
-      <button class="react-btn" data-sound="goal" data-msg="¡Gooool! ⚽">⚽ Gol</button>
-      <button class="react-btn" data-sound="dog" data-msg="¡Guau guau! 🐶">🐶 Perrito</button>
+      <button class="rpg-pill-btn" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
+      <button class="rpg-pill-btn" data-sound="heart" data-msg="¡A la fuente! ⛲">⛲ Fuente</button>
+      <button class="rpg-pill-btn" data-sound="goal" data-msg="¡Al parque! ⚽">⚽ Fútbol</button>
+      <button class="rpg-pill-btn" data-sound="dog" data-msg="¡Mira el perrito! 🐶">🐶 Perrito</button>
+      <button class="rpg-pill-btn" data-sound="pizza" data-msg="¡A la posada! 🥖">🥖 Posada</button>
     </div>
 
-    <!-- MODAL DE LA TIENDA DE LA CASA (MUEBLES, PISCINA, AUTO) -->
+    <!-- TIENDA DEL BARRIO (MERCADO PIXEL ART) -->
     <div id="house-shop-modal" class="modal-overlay hidden">
-      <div class="modal-card shop-card">
+      <div class="rpg-box shop-box">
         <div class="shop-header">
-          <h2>🏡 Tienda Familiar Az</h2>
-          <button id="btn-close-shop" class="close-shop-btn">✖</button>
+          <h2>🏬 Puesto del Mercado</h2>
+          <button id="btn-close-shop" class="close-rpg-btn">✖</button>
         </div>
-        <p class="shop-sub">Compremos cosas geniales para la casa con las monedas que ganamos juntos:</p>
-        
+        <p class="rpg-subtext">Adquiere mejoras para embellecer el barrio y la casa familiar:</p>
+
         <div class="shop-items-grid">
-          <div class="shop-item" data-item="tv" data-cost="150">
-            <span class="item-emoji">📺</span>
-            <h4>Tele Gigante</h4>
+          <div class="rpg-shop-item" data-item="tv" data-cost="150">
+            <span class="shop-icon">📺</span>
+            <h4>Tele Mágica</h4>
             <span class="price-tag">🪙 150</span>
-            <button class="btn-buy" id="buy-tv">Comprar</button>
+            <button class="rpg-buy-btn" id="buy-tv">Comprar</button>
           </div>
-          <div class="shop-item" data-item="pool" data-cost="400">
-            <span class="item-emoji">🏊</span>
-            <h4>Piscina en el Patio</h4>
+          <div class="rpg-shop-item" data-item="pool" data-cost="400">
+            <span class="shop-icon">🏊</span>
+            <h4>Piscina Real</h4>
             <span class="price-tag">🪙 400</span>
-            <button class="btn-buy" id="buy-pool">Comprar</button>
+            <button class="rpg-buy-btn" id="buy-pool">Comprar</button>
           </div>
-          <div class="shop-item" data-item="car" data-cost="600">
-            <span class="item-emoji">🚗</span>
-            <h4>Auto Familiar</h4>
+          <div class="rpg-shop-item" data-item="car" data-cost="600">
+            <span class="shop-icon">🚗</span>
+            <h4>Carruaje Az</h4>
             <span class="price-tag">🪙 600</span>
-            <button class="btn-buy" id="buy-car">Comprar</button>
+            <button class="rpg-buy-btn" id="buy-car">Comprar</button>
           </div>
-          <div class="shop-item" data-item="pizza_oven" data-cost="200">
-            <span class="item-emoji">🍕</span>
-            <h4>Horno de Pizzas</h4>
+          <div class="rpg-shop-item" data-item="pizza_oven" data-cost="200">
+            <span class="shop-icon">🥖</span>
+            <h4>Horno Dorado</h4>
             <span class="price-tag">🪙 200</span>
-            <button class="btn-buy" id="buy-oven">Comprar</button>
+            <button class="rpg-buy-btn" id="buy-oven">Comprar</button>
           </div>
         </div>
       </div>

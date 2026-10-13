@@ -11,143 +11,168 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0f172a;
-  font-family: 'Fredoka', cursive, sans-serif;
-  color: #f8fafc;
+  background-color: #1a140f;
+  font-family: 'VT323', monospace;
+  color: #f7eed8;
   touch-action: none;
   overscroll-behavior: none;
 }
 
-/* OVERLAYS Y MODALES */
+/* MARCOS RPG PIXEL ART (ESTILO PERGAMINO Y MADERA) */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 10, 6, 0.88);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 14px;
+  padding: 12px;
 }
 
 .modal-overlay.hidden {
   display: none !important;
 }
 
-.modal-card {
-  background: #1e293b;
-  border: 4px solid #38bdf8;
-  border-radius: 28px;
-  padding: 24px 18px;
-  max-width: 650px;
+.rpg-box {
+  background: #3b281c;
+  border: 4px solid #8f653b;
+  box-shadow:
+    inset 4px 4px 0px #ab7d4c,
+    inset -4px -4px 0px #1e130c,
+    0 12px 30px rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 20px 16px;
+  max-width: 660px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  position: relative;
+  image-rendering: pixelated;
 }
 
-.game-logo {
-  font-size: 28px;
-  font-weight: 900;
-  color: #facc15;
-  text-shadow: 2px 2px #b45309;
-  margin-bottom: 6px;
+.rpg-title-ribbon {
+  background: #7a1c1c;
+  border: 3px solid #eab308;
+  box-shadow: inset 2px 2px #b91c1c, inset -2px -2px #450a0a;
+  padding: 8px 16px;
+  margin: -10px auto 14px auto;
+  display: inline-block;
+  border-radius: 2px;
 }
 
-.select-hint {
+.rpg-title-ribbon h1 {
+  font-family: 'Press Start 2P', monospace;
   font-size: 16px;
-  color: #cbd5e1;
-  font-weight: 600;
-  margin-bottom: 18px;
+  color: #fef08a;
+  text-shadow: 2px 2px #450a0a;
 }
 
-/* SELECCIÓN DE PERSONAJES (GIGANTE Y FÁCIL) */
-.family-cards-row {
+.rpg-subtext {
+  font-size: 20px;
+  color: #dfceb2;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+
+/* SELECCIÓN DE PERSONAJES PIXEL ART */
+.pixel-heroes-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
-.family-card {
-  background: #0f172a;
-  border: 3px solid #334155;
-  border-radius: 20px;
-  padding: 14px 8px;
+.hero-card {
+  background: #271a12;
+  border: 3px solid #5a3c24;
+  box-shadow: inset 2px 2px #3e2616, inset -2px -2px #120b06;
+  border-radius: 4px;
+  padding: 12px 6px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: transform 0.1s;
 }
 
-.family-card:active, .family-card.active {
-  border-color: #facc15;
-  background: #1e293b;
-  transform: scale(1.06);
-  box-shadow: 0 8px 24px rgba(250, 204, 21, 0.35);
+.hero-card:active, .hero-card.active {
+  border-color: #eab308;
+  background: #362216;
+  box-shadow: inset 3px 3px #facc15, inset -3px -3px #713f12, 0 0 16px rgba(234, 179, 8, 0.4);
+  transform: translateY(-2px);
 }
 
-.big-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+.hero-portrait-frame {
+  width: 68px;
+  height: 68px;
+  background: #19100a;
+  border: 3px solid #8b6b4b;
+  box-shadow: inset 2px 2px #0a0604;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   position: relative;
 }
 
-.papa-bg { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
-.vicky-bg { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
-.junior-bg { background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); }
-
-.emoji-face {
-  font-size: 46px;
+.pixel-canvas-portrait {
+  width: 60px;
+  height: 60px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-.tag-badge {
+.hero-badge {
   position: absolute;
-  top: -8px;
-  background: #facc15;
-  color: #0f172a;
-  font-size: 11px;
-  font-weight: 900;
-  padding: 2px 8px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  bottom: -8px;
+  background: #7a1c1c;
+  border: 1px solid #facc15;
+  color: #fef08a;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
 }
 
-.family-card h3 {
+.hero-card h3 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: #f7eed8;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.hero-class {
   font-size: 18px;
-  font-weight: 900;
-  margin-bottom: 2px;
+  color: #eab308;
+  line-height: 1.1;
+  margin-bottom: 4px;
 }
 
-.role-desc {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
+.hero-desc {
+  font-size: 15px;
+  color: #bfa98e;
+  line-height: 1.15;
 }
 
-.btn-play-big {
-  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+.rpg-btn-primary {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  background: #15803d;
+  color: #fef08a;
   border: 4px solid #86efac;
-  border-radius: 20px;
-  color: white;
-  font-family: inherit;
-  font-size: 20px;
-  font-weight: 900;
-  padding: 16px 28px;
-  width: 100%;
+  box-shadow: inset 3px 3px #22c55e, inset -3px -3px #14532d, 0 6px 0 #052e16;
+  padding: 14px 24px;
   cursor: pointer;
-  box-shadow: 0 6px 0 #14532d, 0 10px 20px rgba(0,0,0,0.4);
+  border-radius: 4px;
+  width: 100%;
 }
 
-.btn-play-big:active {
+.rpg-btn-primary:active {
   transform: translateY(4px);
-  box-shadow: 0 2px 0 #14532d;
+  box-shadow: 0 2px 0 #052e16;
 }
 
 /* JUEGO PANTALLA COMPLETA */
@@ -157,7 +182,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #0f172a;
+  background: #1b2612;
 }
 
 canvas#gameCanvas {
@@ -167,114 +192,119 @@ canvas#gameCanvas {
   height: 100%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  touch-action: none;
+  display: block;
 }
 
-/* BARRA SUPERIOR */
-#top-bar {
+/* HUD SUPERIOR RETRO RPG */
+#rpg-hud-top {
   position: absolute;
-  top: env(safe-area-inset-top, 10px);
-  left: 12px;
-  right: 12px;
+  top: env(safe-area-inset-top, 8px);
+  left: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   pointer-events: none;
   z-index: 50;
-}
-
-.hud-group {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  pointer-events: auto;
 }
 
-.coin-badge, .vault-badge {
-  background: rgba(15, 23, 42, 0.88);
-  border: 2px solid #facc15;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 16px;
-  font-weight: 900;
-  color: #fef08a;
+.rpg-box-small {
+  background: rgba(43, 30, 22, 0.92);
+  border: 3px solid #8f653b;
+  box-shadow: inset 2px 2px #b08150, inset -2px -2px #180f08;
+  border-radius: 4px;
+  padding: 4px 10px;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-
-.vault-badge {
-  border-color: #38bdf8;
-  color: #bae6fd;
-}
-
-.location-pill {
-  background: rgba(30, 41, 59, 0.9);
-  border: 2px solid #64748b;
-  border-radius: 16px;
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 800;
-  color: white;
   pointer-events: auto;
 }
 
-.circle-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(30, 41, 59, 0.9);
-  border: 2px solid #64748b;
-  color: white;
-  font-size: 18px;
+.stat-box {
+  color: #fef08a;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+}
+
+.gold-icon { font-size: 14px; }
+.stat-number { color: #facc15; }
+.stat-label { font-size: 8px; color: #bfa98e; }
+
+.vault-box {
+  border-color: #38bdf8;
+  box-shadow: inset 2px 2px #7dd3fc, inset -2px -2px #0c4a6e;
+}
+
+.location-sign {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #f7eed8;
+  border-color: #eab308;
+  background: rgba(122, 28, 28, 0.9);
+}
+
+.hud-quick-tools {
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.rpg-icon-btn {
+  width: 38px;
+  height: 38px;
+  background: #3b281c;
+  border: 3px solid #8f653b;
+  box-shadow: inset 2px 2px #ab7d4c, inset -2px -2px #180f08;
+  border-radius: 4px;
+  color: #fef08a;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-.circle-btn:active {
+.rpg-icon-btn:active {
   transform: scale(0.92);
 }
 
-/* CARTEL DE ALERTA O MENSAJE VISUAL */
-.alert-banner {
+/* CARTEL DE ALERTA */
+.rpg-alert-banner {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 10px) + 54px);
+  top: calc(env(safe-area-inset-top, 8px) + 52px);
   left: 50%;
   transform: translateX(-50%);
-  background: #facc15;
-  color: #0f172a;
-  border: 3px solid #ffffff;
-  border-radius: 20px;
-  padding: 8px 22px;
-  font-size: 16px;
-  font-weight: 900;
+  background: #2b1e16;
+  border: 3px solid #eab308;
+  box-shadow: inset 2px 2px #ab7d4c, inset -2px -2px #120b06, 0 8px 24px rgba(0,0,0,0.7);
+  padding: 6px 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #fef08a;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
   z-index: 60;
-  animation: bounceDown 0.3s ease;
+  animation: bannerSlide 0.25s ease;
 }
 
-.alert-banner.hidden { display: none; }
+.rpg-alert-banner.hidden { display: none; }
 
-@keyframes bounceDown {
-  0% { transform: translate(-50%, -20px); opacity: 0; }
-  100% { transform: translate(-50%, 0); opacity: 1; }
+@keyframes bannerSlide {
+  from { opacity: 0; transform: translate(-50%, -15px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* REACCIONES RÁPIDAS (ABAJO) */
+/* REACCIONES RÁPIDAS INFERIORES */
 #quick-reactions {
   position: absolute;
-  bottom: calc(env(safe-area-inset-bottom, 8px) + 130px);
-  left: 12px;
-  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 8px) + 125px);
+  left: 8px;
+  right: 8px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   pointer-events: auto;
   z-index: 45;
@@ -283,54 +313,54 @@ canvas#gameCanvas {
 
 #quick-reactions::-webkit-scrollbar { display: none; }
 
-.react-btn {
-  background: rgba(15, 23, 42, 0.85);
-  border: 2px solid #475569;
-  color: white;
-  font-family: inherit;
-  font-weight: 800;
-  font-size: 13px;
-  padding: 6px 14px;
-  border-radius: 16px;
+.rpg-pill-btn {
+  background: rgba(43, 30, 22, 0.9);
+  border: 2px solid #8f653b;
+  box-shadow: inset 1px 1px #b08150, inset -1px -1px #180f08;
+  color: #f7eed8;
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  padding: 4px 10px;
+  border-radius: 3px;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.react-btn:active {
-  background: #3b82f6;
-  border-color: #60a5fa;
-  transform: scale(0.95);
+.rpg-pill-btn:active {
+  background: #7a1c1c;
+  border-color: #facc15;
 }
 
-/* CONTROLES TÁCTILES MÓVILES (FÁCILES PARA NIÑO DE 4 AÑOS) */
+/* CONTROLES TÁCTILES PIXEL RETRO */
 #mobile-controls {
   position: absolute;
   bottom: env(safe-area-inset-bottom, 12px);
   left: 0;
   right: 0;
-  height: 140px;
+  height: 130px;
   pointer-events: none;
   z-index: 40;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 20px 10px 20px;
+  padding: 0 16px 8px 16px;
 }
 
-/* JOYSTICK */
+/* JOYSTICK RETRO */
 #joystick-area {
-  width: 130px;
-  height: 130px;
+  width: 120px;
+  height: 120px;
   pointer-events: auto;
   touch-action: none;
   position: relative;
 }
 
 #joystick-ring {
-  width: 110px;
-  height: 110px;
-  background: rgba(30, 41, 59, 0.5);
-  border: 3.5px solid rgba(148, 163, 184, 0.5);
+  width: 104px;
+  height: 104px;
+  background: rgba(30, 20, 14, 0.6);
+  border: 4px solid #8f653b;
+  box-shadow: inset 3px 3px rgba(0,0,0,0.5);
   border-radius: 50%;
   position: absolute;
   bottom: 0;
@@ -341,140 +371,156 @@ canvas#gameCanvas {
 }
 
 #joystick-knob {
-  width: 52px;
-  height: 52px;
-  background: #38bdf8;
-  border: 3px solid #ffffff;
+  width: 48px;
+  height: 48px;
+  background: #ab7d4c;
+  border: 3px solid #fef08a;
+  box-shadow: inset 2px 2px #eab308, inset -2px -2px #53361a, 0 0 10px rgba(0,0,0,0.6);
   border-radius: 50%;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
   pointer-events: none;
   transform: translate(0px, 0px);
 }
 
-/* BOTONES DE LA DERECHA */
+/* BOTÓN DE ACCIÓN RETRO */
 #buttons-area {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-.btn-fun {
-  width: 54px;
-  height: 54px;
+.arcade-btn-mini {
+  width: 50px;
+  height: 50px;
+  background: #b45309;
+  border: 3px solid #fde047;
+  box-shadow: inset 2px 2px #facc15, inset -2px -2px #78350f, 0 4px 0 #451a03;
   border-radius: 50%;
-  background: #f59e0b;
-  border: 3px solid #fef3c7;
-  color: white;
-  font-size: 24px;
+  font-size: 22px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
-.btn-fun:active { transform: scale(0.9); }
+.arcade-btn-mini:active { transform: scale(0.9); }
 
-.btn-action-round {
-  width: 86px;
-  height: 86px;
+.arcade-action-btn {
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  border: 4px solid #a7f3d0;
-  color: white;
+  background: #15803d;
+  border: 4px solid #86efac;
+  box-shadow: inset 3px 3px #4ade80, inset -3px -3px #052e16, 0 6px 0 #052e16;
+  color: #fef08a;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform 0.1s;
 }
 
-.btn-action-round:active {
-  transform: scale(0.9);
+.arcade-action-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #052e16;
 }
 
-.btn-action-round.pulse {
-  animation: pulseBig 1s infinite;
+.arcade-action-btn.pulse {
   border-color: #facc15;
+  animation: rpgGlow 1s infinite;
 }
 
-@keyframes pulseBig {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.8); }
-  50% { transform: scale(1.08); box-shadow: 0 0 0 18px rgba(250, 204, 21, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+@keyframes rpgGlow {
+  0% { box-shadow: inset 3px 3px #4ade80, inset -3px -3px #052e16, 0 0 0 0 rgba(250, 204, 21, 0.8); }
+  50% { box-shadow: inset 3px 3px #4ade80, inset -3px -3px #052e16, 0 0 18px rgba(250, 204, 21, 0.9); }
+  100% { box-shadow: inset 3px 3px #4ade80, inset -3px -3px #052e16, 0 0 0 0 rgba(250, 204, 21, 0.8); }
 }
 
-#action-btn-emoji { font-size: 32px; line-height: 1; }
-#action-btn-label { font-size: 11px; font-weight: 900; margin-top: 2px; }
+#action-btn-emoji { font-size: 28px; line-height: 1; }
+#action-btn-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  font-weight: 900;
+  margin-top: 2px;
+  color: #ffffff;
+}
 
-/* TIENDA DE LA CASA */
-.shop-card {
-  max-width: 520px;
+/* TIENDA MERCADO */
+.shop-box {
+  max-width: 540px;
 }
 
 .shop-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-.close-shop-btn {
+.shop-header h2 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  color: #facc15;
+}
+
+.close-rpg-btn {
   background: none;
   border: none;
-  color: #94a3b8;
-  font-size: 26px;
+  color: #dfceb2;
+  font-size: 24px;
   cursor: pointer;
-}
-
-.shop-sub {
-  font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 18px;
 }
 
 .shop-items-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
-.shop-item {
-  background: #0f172a;
-  border: 2px solid #334155;
-  border-radius: 16px;
-  padding: 14px 10px;
+.rpg-shop-item {
+  background: #271a12;
+  border: 3px solid #5a3c24;
+  box-shadow: inset 2px 2px #3e2616, inset -2px -2px #120b06;
+  border-radius: 4px;
+  padding: 10px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.item-emoji { font-size: 40px; margin-bottom: 4px; }
-.shop-item h4 { font-size: 15px; margin-bottom: 4px; }
-.price-tag { font-size: 14px; font-weight: 900; color: #facc15; margin-bottom: 8px; }
+.shop-icon { font-size: 34px; margin-bottom: 2px; }
+.rpg-shop-item h4 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #f7eed8;
+  margin-bottom: 4px;
+}
 
-.btn-buy {
-  background: #3b82f6;
-  border: none;
-  color: white;
-  font-family: inherit;
-  font-weight: 900;
-  font-size: 13px;
-  padding: 8px 20px;
-  border-radius: 12px;
+.price-tag {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: #facc15;
+  margin-bottom: 6px;
+}
+
+.rpg-buy-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  background: #b45309;
+  border: 2px solid #fde047;
+  color: #ffffff;
+  padding: 6px 14px;
   cursor: pointer;
 }
 
-.btn-buy.bought {
-  background: #10b981;
+.rpg-buy-btn.bought {
+  background: #15803d;
+  border-color: #86efac;
   cursor: default;
 }
 
 @media (max-width: 500px) {
-  .family-cards-row { gap: 6px; }
-  .big-avatar { width: 68px; height: 68px; }
-  .emoji-face { font-size: 38px; }
-  .family-card h3 { font-size: 15px; }
-  .role-desc { font-size: 9px; }
+  .pixel-heroes-grid { gap: 6px; }
+  .hero-portrait-frame { width: 56px; height: 56px; }
+  .hero-card h3 { font-size: 9px; }
+  .hero-class { font-size: 15px; }
+  .hero-desc { display: none; }
 }
