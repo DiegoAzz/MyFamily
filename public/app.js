@@ -9,8 +9,8 @@
   const state = {
     currentView: 'home', // 'home' | 'series' | 'movies' | 'trending' | 'mylist'
     isKidsMode: false,
-    myList: JSON.parse(localStorage.getItem('azflix_mylist') || '["stranger-codes", "sombras-neon"]'),
-    likedTitles: JSON.parse(localStorage.getItem('azflix_likes') || '["stranger-codes"]'),
+    myList: JSON.parse(localStorage.getItem('azflix_mylist') || '["los-cuatro-zapateados", "el-entierro-de-la-anaconda-negra", "stranger-codes"]'),
+    likedTitles: JSON.parse(localStorage.getItem('azflix_likes') || '["los-cuatro-zapateados", "stranger-codes"]'),
     allTitles: [],
     categories: [],
     currentFeatured: null,
