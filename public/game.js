@@ -1,5 +1,6 @@
 // ==========================================
-// EL BARRIO AZ - MOTOR ULTRA OPTIMIZADO PARA MÓVIL Y PC
+// EL BARRIO AZ - JUEGO FAMILIAR INTERACTIVO
+// Diseñado para Diego Jr. (4), Vicky (10) y Papá (46)
 // ==========================================
 
 const socket = io();
@@ -8,58 +9,200 @@ const socket = io();
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Tamaño del Mundo Virtual (Barrio Az)
-const WORLD_WIDTH = 1400;
-const WORLD_HEIGHT = 1000;
-
-// Cámara que sigue al jugador
-const camera = { x: 0, y: 0 };
-
 // Elementos DOM
 const modalSelect = document.getElementById('character-select-modal');
 const gameContainer = document.getElementById('game-container');
 const btnStart = document.getElementById('btn-start-game');
-const charCards = document.querySelectorAll('.char-card');
-const userBadge = document.getElementById('active-user-badge');
+const familyCards = document.querySelectorAll('.family-card');
 const playerCoinsVal = document.getElementById('player-coins-val');
 const familyVaultVal = document.getElementById('family-vault-val');
-const touchActionBtn = document.getElementById('touch-action-btn');
-const missionsModal = document.getElementById('missions-modal');
-const btnToggleMissions = document.getElementById('btn-toggle-missions');
-const btnCloseMissions = document.getElementById('btn-close-missions');
-const missionsListEl = document.getElementById('missions-list');
-const pendingMissionsBadge = document.getElementById('pending-missions-badge');
-const vehicleModal = document.getElementById('vehicle-modal');
-const btnToggleVehicles = document.getElementById('btn-toggle-vehicles');
-const btnCloseVehicles = document.getElementById('btn-close-vehicles');
+const locationBadge = document.getElementById('location-badge');
+const alertBanner = document.getElementById('alert-banner');
+const alertIcon = document.getElementById('alert-icon');
+const alertText = document.getElementById('alert-text');
+const btnActionMain = document.getElementById('btn-action-main');
+const actionBtnEmoji = document.getElementById('action-btn-emoji');
+const actionBtnLabel = document.getElementById('action-btn-label');
+const btnFunSound = document.getElementById('btn-fun-sound');
+const btnAudioToggle = document.getElementById('btn-audio-toggle');
 const btnFullscreen = document.getElementById('btn-fullscreen');
-const toastContainer = document.getElementById('toast-container');
+const houseShopModal = document.getElementById('house-shop-modal');
+const btnOpenHouseShop = document.getElementById('btn-open-house-shop');
+const btnCloseShop = document.getElementById('btn-close-shop');
 
-// Chat de Teclado
-const keyboardChatBar = document.getElementById('keyboard-chat-bar');
-const btnOpenTextChat = document.getElementById('btn-open-text-chat');
-const btnCloseChat = document.getElementById('btn-close-chat');
-const chatForm = document.getElementById('chat-form');
-const chatInput = document.getElementById('chat-input');
+// Joystick DOM
+const joystickArea = document.getElementById('joystick-area');
+const joystickRing = document.getElementById('joystick-ring');
+const joystickKnob = document.getElementById('joystick-knob');
 
-// Joystick Virtual DOM
-const joystickZone = document.getElementById('joystick-zone');
-const joystickBase = document.getElementById('joystick-base');
-const joystickStick = document.getElementById('joystick-stick');
+// ==========================================
+// GENERADOR DE SONIDOS (SINTETIZADOR WEB AUDIO)
+// Funciona al 100% en celular y PC sin descargar archivos
+// ==========================================
+let audioEnabled = true;
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
 
-// Estado del Jugador y Multijugador
-let selectedCharId = 'diegoaz';
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSfx(type) {
+  if (!audioEnabled) return;
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'coin') {
+      // Chime brillante doble
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(987, now);
+      osc.frequency.setValueAtTime(1318, now + 0.08);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'kick') {
+      // Golpe sordo de pelota
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else if (type === 'bark') {
+      // Ladrido alegre
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.linearRampToValueAtTime(600, now + 0.06);
+      osc.frequency.linearRampToValueAtTime(350, now + 0.14);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === 'door') {
+      // Entrada o salida
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.2);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'honk') {
+      // Bocina divertida pip-pip
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(554, now + 0.08);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'fanfare') {
+      // Celebración
+      [523, 659, 783, 1046].forEach((f, idx) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, now + idx * 0.09);
+        g.gain.setValueAtTime(0.2, now + idx * 0.09);
+        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.09 + 0.25);
+        o.start(now + idx * 0.09);
+        o.stop(now + idx * 0.09 + 0.25);
+      });
+    }
+  } catch (e) {}
+}
+
+btnAudioToggle.addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  btnAudioToggle.innerText = audioEnabled ? '🔊' : '🔇';
+});
+
+// ==========================================
+// ESTADO Y ESCENAS DEL JUEGO
+// ==========================================
+let currentScene = 'calle'; // 'calle' o 'casa'
+
+// Dimensiones de los mundos
+const WORLDS = {
+  calle: { width: 1500, height: 1000 },
+  casa: { width: 900, height: 650 }
+};
+
+const camera = { x: 0, y: 0 };
+let selectedCharId = 'diegoaz_jr';
 let myPlayer = null;
 let otherPlayers = {};
-let missions = [];
-let familyVault = { family_coins: 500 };
-let activeChatBubbles = {};
+let familyVaultCoins = 500;
+let activeBubbles = {};
+let particles = [];
 
-// Vectores de Movimiento
-let moveVector = { x: 0, y: 0 }; // Normalizado -1 a 1 (Joystick o Teclado)
-const keys = { up: false, down: false, left: false, right: false };
+// Mejoras compradas de la casa
+const houseUpgrades = {
+  tv: false,
+  pool: false,
+  car: false,
+  pizza_oven: false
+};
 
-// Redimensionar Canvas a Pantalla Completa
+// OBJETOS VIVOS EN LA CALLE
+// 1. Pelota de fútbol ⚽
+const soccerBall = {
+  x: 650,
+  y: 780,
+  vx: 0,
+  vy: 0,
+  radius: 14
+};
+
+// 2. Perrito "Toby" 🐶
+const puppy = {
+  x: 740,
+  y: 720,
+  following: null, // socketId
+  animTimer: 0,
+  barkTimer: 0
+};
+
+// 3. Monedas flotantes coleccionables en el suelo 🪙
+let streetCoins = [
+  { x: 300, y: 380, collected: false },
+  { x: 450, y: 380, collected: false },
+  { x: 600, y: 380, collected: false },
+  { x: 800, y: 380, collected: false },
+  { x: 1050, y: 380, collected: false },
+  { x: 600, y: 680, collected: false },
+  { x: 750, y: 850, collected: false },
+  { x: 220, y: 720, collected: false }
+];
+
+// 4. Auto amarillo que pasa por la calle 🚗
+const streetCar = {
+  x: -120,
+  y: 480,
+  speed: 2.8,
+  honkTimer: 0
+};
+
+// 5. Cajas de Pizza en la pizzería 🍕
+let hasPizzaBox = false;
+
+// INTERACTIVIDADES DE LA CASA INTERIOR
+let isSittingOnSofa = false;
+let isTvTurnedOn = false;
+
+// ==========================================
+// REDIMENSIÓN FULLSCREEN
+// ==========================================
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -68,25 +211,22 @@ window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', resizeCanvas);
 resizeCanvas();
 
-// Haptic feedback (Vibración en móvil)
-function vibrate(ms = 20) {
-  if (navigator.vibrate) {
-    try { navigator.vibrate(ms); } catch (e) {}
-  }
-}
-
-// Selección de Personajes
-charCards.forEach(card => {
+// ==========================================
+// SELECCIÓN DE PERSONAJE
+// ==========================================
+familyCards.forEach(card => {
   card.addEventListener('click', () => {
-    vibrate(10);
-    charCards.forEach(c => c.classList.remove('active'));
+    initAudio();
+    playSfx('kick');
+    familyCards.forEach(c => c.classList.remove('active'));
     card.classList.add('active');
     selectedCharId = card.getAttribute('data-char');
   });
 });
 
 btnStart.addEventListener('click', () => {
-  vibrate(30);
+  initAudio();
+  playSfx('fanfare');
   modalSelect.classList.add('hidden');
   gameContainer.classList.remove('hidden');
   resizeCanvas();
@@ -94,9 +234,8 @@ btnStart.addEventListener('click', () => {
   socket.emit('join_game', { characterId: selectedCharId });
 });
 
-// Pantalla Completa
 btnFullscreen.addEventListener('click', () => {
-  vibrate(15);
+  playSfx('kick');
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(() => {});
   } else {
@@ -104,229 +243,84 @@ btnFullscreen.addEventListener('click', () => {
   }
 });
 
-// Socket.io Sincronización
-socket.on('init_state', (data) => {
-  myPlayer = data.self;
-  otherPlayers = {};
-  for (const sId in data.players) {
-    if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
-  }
-  missions = data.missions || [];
-  familyVault = data.vault || { family_coins: 500 };
-
-  updateHUD();
-  renderMissionsUI();
-  showToast(`🎉 ¡Hola ${myPlayer.name}! Ya estás en el barrio.`);
-});
-
-socket.on('player_joined', (player) => {
-  if (player.socketId !== socket.id) {
-    otherPlayers[player.socketId] = player;
-    showToast(`👋 ${player.name} entró al barrio.`);
-  }
-});
-
-socket.on('player_moved', (data) => {
-  if (otherPlayers[data.socketId]) {
-    const p = otherPlayers[data.socketId];
-    p.x = data.x;
-    p.y = data.y;
-    p.direction = data.direction;
-    p.isMoving = data.isMoving;
-    p.vehicle = data.vehicle;
-  }
-});
-
-socket.on('player_left', (data) => {
-  if (otherPlayers[data.socketId]) {
-    showToast(`🚪 ${otherPlayers[data.socketId].name} salió.`);
-    delete otherPlayers[data.socketId];
-    delete activeChatBubbles[data.socketId];
-  }
-});
-
-socket.on('chat_received', (data) => {
-  activeChatBubbles[data.socketId] = {
-    text: data.text,
-    expires: Date.now() + 5000
-  };
-  showToast(`💬 <b>${data.senderName}:</b> ${data.text}`);
-});
-
-socket.on('missions_updated', (data) => {
-  missions = data.missions;
-  renderMissionsUI();
-  showToast(`⭐ ¡${data.completedBy} completó "${data.missionTitle}"! (+${data.reward}🪙)`);
-});
-
-socket.on('player_stats_updated', (data) => {
-  if (myPlayer && data.socketId === socket.id) {
-    myPlayer.coins = data.coins;
-    updateHUD();
-  }
-});
-
-socket.on('player_vehicle_changed', (data) => {
-  if (myPlayer && data.socketId === socket.id) {
-    myPlayer.vehicle = data.vehicle;
-  } else if (otherPlayers[data.socketId]) {
-    otherPlayers[data.socketId].vehicle = data.vehicle;
-  }
-});
-
-// Mensajes Rápidos para Celular (1 solo toque)
-document.querySelectorAll('.quick-pill[data-msg]').forEach(pill => {
-  pill.addEventListener('click', () => {
-    vibrate(15);
-    const msg = pill.getAttribute('data-msg');
-    socket.emit('send_chat', msg);
-  });
-});
-
-// Chat por Teclado
-btnOpenTextChat.addEventListener('click', () => {
-  vibrate(15);
-  keyboardChatBar.classList.remove('hidden');
-  chatInput.focus();
-});
-
-btnCloseChat.addEventListener('click', () => {
-  keyboardChatBar.classList.add('hidden');
-});
-
-chatForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const text = chatInput.value.trim();
-  if (text.length > 0) {
-    socket.emit('send_chat', text);
-    chatInput.value = '';
-    keyboardChatBar.classList.add('hidden');
-  }
-});
-
-// Modales
-btnToggleMissions.addEventListener('click', () => {
-  vibrate(15);
-  missionsModal.classList.toggle('hidden');
-});
-btnCloseMissions.addEventListener('click', () => missionsModal.classList.add('hidden'));
-
-btnToggleVehicles.addEventListener('click', () => {
-  vibrate(15);
-  vehicleModal.classList.toggle('hidden');
-});
-btnCloseVehicles.addEventListener('click', () => vehicleModal.classList.add('hidden'));
-
-document.querySelectorAll('.vehicle-card').forEach(card => {
-  card.addEventListener('click', () => {
-    vibrate(25);
-    const v = card.getAttribute('data-vehicle');
-    if (myPlayer) {
-      myPlayer.vehicle = v;
-      socket.emit('change_vehicle', v);
-      vehicleModal.classList.add('hidden');
-      showToast(`🛴 Ahora te mueves en: ${v.replace('_', ' ').toUpperCase()}`);
-    }
-  });
-});
-
 // ==========================================
-// JOYSTICK VIRTUAL MÓVIL (TÁCTIL FLUIDO)
+// JOYSTICK TÁCTIL SUAVE (PARA NIÑO DE 4 AÑOS)
 // ==========================================
-
 let joystickActive = false;
-let joystickTouchId = null;
-const JOYSTICK_RADIUS = 45;
+let joystickId = null;
+let moveDir = { x: 0, y: 0 };
+const keys = { up: false, down: false, left: false, right: false };
 
-function handleJoystickStart(e) {
+function handleTouchStart(e) {
   e.preventDefault();
+  initAudio();
   for (let i = 0; i < e.changedTouches.length; i++) {
-    const touch = e.changedTouches[i];
+    const t = e.changedTouches[i];
     joystickActive = true;
-    joystickTouchId = touch.identifier;
-    updateJoystick(touch.clientX, touch.clientY);
+    joystickId = t.identifier;
+    updateJoystickPos(t.clientX, t.clientY);
     break;
   }
 }
 
-function handleJoystickMove(e) {
+function handleTouchMove(e) {
   if (!joystickActive) return;
   e.preventDefault();
   for (let i = 0; i < e.changedTouches.length; i++) {
-    const touch = e.changedTouches[i];
-    if (touch.identifier === joystickTouchId) {
-      updateJoystick(touch.clientX, touch.clientY);
+    const t = e.changedTouches[i];
+    if (t.identifier === joystickId) {
+      updateJoystickPos(t.clientX, t.clientY);
       break;
     }
   }
 }
 
-function handleJoystickEnd(e) {
+function handleTouchEnd(e) {
   if (!joystickActive) return;
   for (let i = 0; i < e.changedTouches.length; i++) {
-    if (e.changedTouches[i].identifier === joystickTouchId) {
-      resetJoystick();
+    if (e.changedTouches[i].identifier === joystickId) {
+      joystickActive = false;
+      joystickId = null;
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+      moveDir.x = 0;
+      moveDir.y = 0;
       break;
     }
   }
 }
 
-function updateJoystick(touchX, touchY) {
-  const rect = joystickBase.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+function updateJoystickPos(cx, cy) {
+  const rect = joystickRing.getBoundingClientRect();
+  const rx = rect.left + rect.width / 2;
+  const ry = rect.top + rect.height / 2;
+  let dx = cx - rx;
+  let dy = cy - ry;
+  const dist = Math.hypot(dx, dy);
+  const maxR = 40;
 
-  let dx = touchX - centerX;
-  let dy = touchY - centerY;
-  const distance = Math.hypot(dx, dy);
-
-  if (distance > JOYSTICK_RADIUS) {
-    dx = (dx / distance) * JOYSTICK_RADIUS;
-    dy = (dy / distance) * JOYSTICK_RADIUS;
+  if (dist > maxR) {
+    dx = (dx / dist) * maxR;
+    dy = (dy / dist) * maxR;
   }
 
-  joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
-
-  // Normalizar vector (-1 a 1)
-  moveVector.x = dx / JOYSTICK_RADIUS;
-  moveVector.y = dy / JOYSTICK_RADIUS;
+  joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+  moveDir.x = dx / maxR;
+  moveDir.y = dy / maxR;
 }
 
-function resetJoystick() {
-  joystickActive = false;
-  joystickTouchId = null;
-  joystickStick.style.transform = `translate(0px, 0px)`;
-  moveVector.x = 0;
-  moveVector.y = 0;
-}
+joystickArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+window.addEventListener('touchmove', handleTouchMove, { passive: false });
+window.addEventListener('touchend', handleTouchEnd);
+window.addEventListener('touchcancel', handleTouchEnd);
 
-joystickZone.addEventListener('touchstart', handleJoystickStart, { passive: false });
-window.addEventListener('touchmove', handleJoystickMove, { passive: false });
-window.addEventListener('touchend', handleJoystickEnd);
-window.addEventListener('touchcancel', handleJoystickEnd);
-
-// Soporte Mouse para Joystick (Pruebas en PC)
-joystickZone.addEventListener('mousedown', (e) => {
-  joystickActive = true;
-  updateJoystick(e.clientX, e.clientY);
-  const onMouseMove = (ev) => { if (joystickActive) updateJoystick(ev.clientX, ev.clientY); };
-  const onMouseUp = () => {
-    resetJoystick();
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-  };
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-});
-
-// Soporte Teclado para PC (WASD y Flechas)
+// Teclado PC
 window.addEventListener('keydown', (e) => {
-  if (document.activeElement === chatInput) return;
+  initAudio();
   if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
   if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
-  if (e.key === 'e' || e.key === 'E') handleInteraction();
+  if (e.key === 'e' || e.key === 'E' || e.key === ' ') doAction();
 });
 
 window.addEventListener('keyup', (e) => {
@@ -336,132 +330,301 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
 });
 
-// Botón de Acción Táctil
-touchActionBtn.addEventListener('click', () => {
-  vibrate(30);
-  handleInteraction();
+// Botón de Ruido Divertido (Bocina / Celebración)
+btnFunSound.addEventListener('click', () => {
+  playSfx('honk');
+  spawnEmojiBubble(myPlayer ? myPlayer.x : 0, myPlayer ? myPlayer.y - 50 : 0, '📢 ¡PIII-PIII!');
 });
 
-// Actualizar HUD
-function updateHUD() {
-  if (!myPlayer) return;
-  playerCoinsVal.innerText = myPlayer.coins;
-  familyVaultVal.innerText = familyVault.family_coins;
-  userBadge.innerText = myPlayer.name;
-}
+// Reacciones Rápidas Inferiores
+document.querySelectorAll('.react-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const snd = btn.getAttribute('data-sound');
+    const msg = btn.getAttribute('data-msg');
+    if (snd === 'dog') playSfx('bark');
+    else if (snd === 'goal') playSfx('fanfare');
+    else playSfx('coin');
 
-function renderMissionsUI() {
-  missionsListEl.innerHTML = '';
-  let pendingCount = 0;
-
-  missions.forEach(m => {
-    if (m.status !== 'completada') pendingCount++;
-    const item = document.createElement('div');
-    item.className = `mission-item ${m.status === 'completada' ? 'completed' : ''}`;
-    item.innerHTML = `
-      <div class="mission-info">
-        <h4>${m.title}</h4>
-        <p>${m.description}</p>
-        <span class="mission-reward">🪙 +${m.reward_coins} Monedas</span>
-      </div>
-      <div>
-        ${m.status === 'completada'
-          ? '<span style="color:#4ade80;font-weight:900;">✔ Lista</span>'
-          : `<button class="btn-complete-m" onclick="triggerMissionComplete(${m.id})">Completar</button>`
-        }
-      </div>
-    `;
-    missionsListEl.appendChild(item);
+    if (myPlayer) {
+      socket.emit('send_chat', msg);
+    }
   });
+});
 
-  pendingMissionsBadge.innerText = pendingCount;
-}
+// Tienda de la Casa
+btnOpenHouseShop.addEventListener('click', () => {
+  playSfx('door');
+  houseShopModal.classList.remove('hidden');
+});
+btnCloseShop.addEventListener('click', () => {
+  houseShopModal.classList.add('hidden');
+});
 
-window.triggerMissionComplete = function(id) {
-  vibrate(25);
-  socket.emit('complete_mission', id);
-};
+// Comprar Mejoras en la Tienda
+document.querySelectorAll('.btn-buy').forEach(b => {
+  b.addEventListener('click', () => {
+    const parent = b.closest('.shop-item');
+    const item = parent.getAttribute('data-item');
+    const cost = parseInt(parent.getAttribute('data-cost'));
 
-function showToast(html) {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = html;
-  toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
-}
+    if (familyVaultCoins >= cost && !houseUpgrades[item]) {
+      familyVaultCoins -= cost;
+      houseUpgrades[item] = true;
+      familyVaultVal.innerText = familyVaultCoins;
+      b.classList.add('bought');
+      b.innerText = '¡Comprado!';
+      playSfx('fanfare');
+      showAlert(`🎉 ¡La familia compró: ${parent.querySelector('h4').innerText}!`);
+    } else if (houseUpgrades[item]) {
+      showAlert('⭐ ¡Ya tienen este objeto en la casa!');
+    } else {
+      playSfx('kick');
+      showAlert('🪙 ¡Necesitamos más monedas en el banco familiar!');
+    }
+  });
+});
 
-// Zonas Interactivas del Barrio
-const interactiveZones = [
-  { name: '🏡 Casa Az', x: 280, y: 220, radius: 75, prompt: 'Casa Familiar' },
-  { name: '📋 Tablón', x: 700, y: 350, radius: 60, prompt: 'Misiones' },
-  { name: '☕ Café Az', x: 1120, y: 220, radius: 75, prompt: 'Cafetería Dulce' },
-  { name: '🚲 Garaje', x: 280, y: 720, radius: 70, prompt: 'Vehículos' },
-  { name: '♻️ Reciclaje', x: 1120, y: 720, radius: 65, prompt: 'Separar Residuos' }
-];
+// ==========================================
+// SOCKET.IO SINCRONIZACIÓN
+// ==========================================
+socket.on('init_state', (data) => {
+  myPlayer = data.self;
+  myPlayer.scene = 'calle';
+  otherPlayers = {};
+  for (const sId in data.players) {
+    if (sId !== socket.id) otherPlayers[sId] = data.players[sId];
+  }
+  playerCoinsVal.innerText = myPlayer.coins;
+  familyVaultVal.innerText = familyVaultCoins;
+  showAlert(`¡Hola ${myPlayer.name}! Bienvenidos al Barrio.`);
+});
 
-let currentNearbyZone = null;
+socket.on('player_joined', (p) => {
+  if (p.socketId !== socket.id) {
+    otherPlayers[p.socketId] = p;
+    showAlert(`👋 ¡${p.name} se unió a la aventura!`);
+    playSfx('door');
+  }
+});
 
-function checkInteractions() {
+socket.on('player_moved', (data) => {
+  if (otherPlayers[data.socketId]) {
+    const p = otherPlayers[data.socketId];
+    p.x = data.x;
+    p.y = data.y;
+    p.direction = data.direction;
+    p.scene = data.scene;
+    p.isMoving = data.isMoving;
+  }
+});
+
+socket.on('player_left', (data) => {
+  if (otherPlayers[data.socketId]) {
+    showAlert(`🚪 ${otherPlayers[data.socketId].name} salió.`);
+    delete otherPlayers[data.socketId];
+  }
+});
+
+socket.on('chat_received', (data) => {
+  activeBubbles[data.socketId] = {
+    text: data.text,
+    time: Date.now() + 4500
+  };
+  if (data.text.includes('🐶') || data.text.includes('guau')) playSfx('bark');
+  else if (data.text.includes('⚽')) playSfx('fanfare');
+  else playSfx('coin');
+});
+
+// ==========================================
+// SISTEMA DE ACCIÓN E INTERACCIÓN
+// ==========================================
+let currentInteractType = null;
+
+function checkProximities() {
   if (!myPlayer) return;
-  currentNearbyZone = null;
+  currentInteractType = null;
 
-  for (const zone of interactiveZones) {
-    const dist = Math.hypot(myPlayer.x - zone.x, myPlayer.y - zone.y);
-    if (dist <= zone.radius) {
-      currentNearbyZone = zone;
-      break;
+  if (currentScene === 'calle') {
+    // 1. Puerta de la Casa Az
+    const distDoor = Math.hypot(myPlayer.x - 280, myPlayer.y - 250);
+    if (distDoor < 70) {
+      currentInteractType = 'door_enter';
+      setActionButton('🚪', 'ENTRAR A CASA');
+      return;
+    }
+
+    // 2. Perrito Toby en el parque
+    const distPuppy = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
+    if (distPuppy < 65) {
+      currentInteractType = 'pet_puppy';
+      setActionButton('🐶', 'ACARICIAR');
+      return;
+    }
+
+    // 3. Pizzería del Barrio
+    const distPizza = Math.hypot(myPlayer.x - 1180, myPlayer.y - 250);
+    if (distPizza < 70) {
+      currentInteractType = 'take_pizza';
+      setActionButton('🍕', hasPizzaBox ? 'DEJAR PIZZA' : 'PEDIR PIZZA');
+      return;
+    }
+
+    // 4. Entregar Pizza en la puerta de la Casa Az
+    if (hasPizzaBox && distDoor < 85) {
+      currentInteractType = 'deliver_pizza';
+      setActionButton('🎉', 'LLEVAR PIZZA A CASA');
+      return;
+    }
+
+  } else if (currentScene === 'casa') {
+    // 1. Puerta de salida
+    const distExit = Math.hypot(myPlayer.x - 450, myPlayer.y - 600);
+    if (distExit < 60) {
+      currentInteractType = 'door_exit';
+      setActionButton('🚪', 'SALIR A LA CALLE');
+      return;
+    }
+
+    // 2. Televisor en la sala
+    const distTv = Math.hypot(myPlayer.x - 450, myPlayer.y - 210);
+    if (distTv < 65) {
+      currentInteractType = 'toggle_tv';
+      setActionButton('📺', isTvTurnedOn ? 'APAGAR TV' : 'VER DIBUJOS');
+      return;
+    }
+
+    // 3. Sofá
+    const distSofa = Math.hypot(myPlayer.x - 450, myPlayer.y - 340);
+    if (distSofa < 60) {
+      currentInteractType = 'sit_sofa';
+      setActionButton('🛋️', isSittingOnSofa ? 'LEVANTARSE' : 'SENTARSE');
+      return;
+    }
+
+    // 4. Refrigerador
+    const distFridge = Math.hypot(myPlayer.x - 730, myPlayer.y - 220);
+    if (distFridge < 60) {
+      currentInteractType = 'fridge_snack';
+      setActionButton('🧃', 'TOMAR JUGO');
+      return;
     }
   }
 
-  if (currentNearbyZone) {
-    touchActionBtn.classList.add('highlight');
-  } else {
-    touchActionBtn.classList.remove('highlight');
-  }
+  // Si no hay nada cerca
+  btnActionMain.classList.remove('pulse');
+  actionBtnEmoji.innerText = '✨';
+  actionBtnLabel.innerText = 'ACCIÓN';
 }
 
-function handleInteraction() {
-  if (!currentNearbyZone) {
-    showToast('💡 Acércate a un lugar interactivo (Casa, Tablón, Café o Garaje).');
+function setActionButton(emoji, label) {
+  btnActionMain.classList.add('pulse');
+  actionBtnEmoji.innerText = emoji;
+  actionBtnLabel.innerText = label;
+}
+
+btnActionMain.addEventListener('click', () => {
+  doAction();
+});
+
+function doAction() {
+  if (!currentInteractType) {
+    playSfx('kick');
+    spawnEmojiBubble(myPlayer.x, myPlayer.y - 50, '✨ ¡Hola!');
     return;
   }
 
-  if (currentNearbyZone.name.includes('Tablón')) {
-    missionsModal.classList.remove('hidden');
-  } else if (currentNearbyZone.name.includes('Garaje')) {
-    vehicleModal.classList.remove('hidden');
-  } else if (currentNearbyZone.name.includes('Reciclaje')) {
-    socket.emit('complete_mission', 2);
-    showToast('🌱 ¡Monedas verdes ganadas por reciclar!');
-  } else {
-    showToast(`🔔 Visitaste: ${currentNearbyZone.name}`);
+  if (currentInteractType === 'door_enter') {
+    // Entrar a la casa
+    playSfx('door');
+    currentScene = 'casa';
+    myPlayer.scene = 'casa';
+    myPlayer.x = 450;
+    myPlayer.y = 540;
+    locationBadge.innerText = '🏡 Interior de la Casa Az';
+    showAlert('🏡 ¡Entraron a la Casa Familiar!');
+  } else if (currentInteractType === 'door_exit') {
+    // Salir a la calle
+    playSfx('door');
+    currentScene = 'calle';
+    myPlayer.scene = 'calle';
+    myPlayer.x = 280;
+    myPlayer.y = 290;
+    locationBadge.innerText = '📍 La Calle del Barrio';
+    showAlert('🏙️ ¡De vuelta a las calles del barrio!');
+  } else if (currentInteractType === 'pet_puppy') {
+    // Acariciar al perrito
+    playSfx('bark');
+    puppy.following = socket.id;
+    spawnParticles(puppy.x, puppy.y, '❤️');
+    showAlert('🐶 ¡Toby está feliz y ahora te sigue!');
+  } else if (currentInteractType === 'take_pizza') {
+    // Tomar caja de pizza
+    playSfx('coin');
+    hasPizzaBox = !hasPizzaBox;
+    showAlert(hasPizzaBox ? '🍕 ¡Llevas una deliciosa pizza caliente!' : 'Dejaste la pizza.');
+  } else if (currentInteractType === 'toggle_tv') {
+    // TV
+    playSfx('coin');
+    isTvTurnedOn = !isTvTurnedOn;
+    showAlert(isTvTurnedOn ? '📺 ¡Pusieron dibujos animados en la tele!' : '📺 Tele apagada.');
+  } else if (currentInteractType === 'sit_sofa') {
+    // Sofá
+    playSfx('kick');
+    isSittingOnSofa = !isSittingOnSofa;
+    showAlert(isSittingOnSofa ? '🛋️ Descansando en el sofá familiar...' : 'Te levantaste.');
+  } else if (currentInteractType === 'fridge_snack') {
+    // Nevera
+    playSfx('coin');
+    showAlert('🧃 ¡Tomaste un rico jugo de fresa!');
+    spawnParticles(myPlayer.x, myPlayer.y, '🍓');
+  }
+}
+
+function showAlert(text) {
+  alertText.innerText = text;
+  alertBanner.classList.remove('hidden');
+  clearTimeout(showAlert.timer);
+  showAlert.timer = setTimeout(() => {
+    alertBanner.classList.add('hidden');
+  }, 3200);
+}
+
+function spawnEmojiBubble(x, y, text) {
+  activeBubbles[socket.id] = { text, time: Date.now() + 3500 };
+}
+
+function spawnParticles(x, y, char) {
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 20,
+      y: y + (Math.random() - 0.5) * 20,
+      vy: -1.5 - Math.random() * 2,
+      char,
+      life: 1.0
+    });
   }
 }
 
 // ==========================================
-// BUCLE DE JUEGO Y CÁMARA DINÁMICA
+// FÍSICA Y ACTUALIZACIÓN (60 FPS)
 // ==========================================
-
 let lastMoveSent = 0;
 let stepAnim = 0;
-let trafficLightTimer = 0;
 
 function update() {
   if (!myPlayer) return;
 
-  let speed = 3.6;
-  if (myPlayer.vehicle === 'patineta') speed = 5.8;
-  if (myPlayer.vehicle === 'bicicleta') speed = 8.0;
+  const curWorld = WORLDS[currentScene];
+  let speed = 4.0;
+  if (selectedCharId === 'diegoaz_jr') speed = 4.8; // Junior corre más rápido
 
   let vx = 0;
   let vy = 0;
 
-  // Entrada Joystick Táctil
   if (joystickActive) {
-    vx = moveVector.x * speed;
-    vy = moveVector.y * speed;
+    vx = moveDir.x * speed;
+    vy = moveDir.y * speed;
   } else {
-    // Entrada Teclado PC
     if (keys.up) vy -= speed;
     if (keys.down) vy += speed;
     if (keys.left) vx -= speed;
@@ -473,369 +636,583 @@ function update() {
   }
 
   const isMoving = Math.hypot(vx, vy) > 0.4;
-
   if (isMoving) {
-    stepAnim += 0.22;
-    myPlayer.x = Math.max(40, Math.min(WORLD_WIDTH - 40, myPlayer.x + vx));
-    myPlayer.y = Math.max(40, Math.min(WORLD_HEIGHT - 40, myPlayer.y + vy));
+    stepAnim += 0.25;
+    myPlayer.x = Math.max(30, Math.min(curWorld.width - 30, myPlayer.x + vx));
+    myPlayer.y = Math.max(30, Math.min(curWorld.height - 30, myPlayer.y + vy));
 
-    // Determinar dirección de la mirada
-    if (Math.abs(vx) > Math.abs(vy)) {
-      myPlayer.direction = vx > 0 ? 'right' : 'left';
-    } else {
-      myPlayer.direction = vy > 0 ? 'down' : 'up';
-    }
+    if (Math.abs(vx) > Math.abs(vy)) myPlayer.direction = vx > 0 ? 'right' : 'left';
+    else myPlayer.direction = vy > 0 ? 'down' : 'up';
   }
-
   myPlayer.isMoving = isMoving;
 
-  // Actualizar Cámara centrada en el Jugador
-  camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, myPlayer.x - canvas.width / 2));
-  camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, myPlayer.y - canvas.height / 2));
+  // CÁMARA
+  camera.x = Math.max(0, Math.min(curWorld.width - canvas.width, myPlayer.x - canvas.width / 2));
+  camera.y = Math.max(0, Math.min(curWorld.height - canvas.height, myPlayer.y - canvas.height / 2));
 
-  // Enviar posición a la familia (30 fps)
+  // ENVIAR POSICIÓN MULTIJUGADOR
   const now = Date.now();
-  if (now - lastMoveSent > 33) {
+  if (now - lastMoveSent > 35) {
     socket.emit('player_move', {
       x: myPlayer.x,
       y: myPlayer.y,
       direction: myPlayer.direction,
-      isMoving: myPlayer.isMoving,
-      vehicle: myPlayer.vehicle
+      scene: currentScene,
+      isMoving: myPlayer.isMoving
     });
     lastMoveSent = now;
   }
 
-  checkInteractions();
+  // FÍSICA Y ELEMENTOS EN LA CALLE
+  if (currentScene === 'calle') {
+    // 1. Pelota de fútbol ⚽
+    const distBall = Math.hypot(myPlayer.x - soccerBall.x, myPlayer.y - soccerBall.y);
+    if (distBall < 30) {
+      const angle = Math.atan2(soccerBall.y - myPlayer.y, soccerBall.x - myPlayer.x);
+      soccerBall.vx = Math.cos(angle) * 8.5;
+      soccerBall.vy = Math.sin(angle) * 8.5;
+      playSfx('kick');
+      spawnParticles(soccerBall.x, soccerBall.y, '💨');
+    }
+
+    soccerBall.x += soccerBall.vx;
+    soccerBall.y += soccerBall.vy;
+    soccerBall.vx *= 0.94; // Fricción suave
+    soccerBall.vy *= 0.94;
+
+    // Límites de la pelota en el parque
+    soccerBall.x = Math.max(500, Math.min(950, soccerBall.x));
+    soccerBall.y = Math.max(620, Math.min(920, soccerBall.y));
+
+    // Si la pelota entra al arco norte (Gol!)
+    if (soccerBall.x > 700 && soccerBall.x < 760 && soccerBall.y < 635) {
+      playSfx('fanfare');
+      showAlert('⚽ ¡GOOOOOOL FAMILIAR!');
+      spawnParticles(soccerBall.x, soccerBall.y, '⭐');
+      soccerBall.y = 700;
+      soccerBall.vx = 0; soccerBall.vy = 0;
+    }
+
+    // 2. Perrito Toby 🐶 sigue al jugador si lo acarició
+    if (puppy.following === socket.id) {
+      const distToPlayer = Math.hypot(myPlayer.x - puppy.x, myPlayer.y - puppy.y);
+      if (distToPlayer > 45) {
+        const pAngle = Math.atan2(myPlayer.y - puppy.y, myPlayer.x - puppy.x);
+        puppy.x += Math.cos(pAngle) * 3.4;
+        puppy.y += Math.sin(pAngle) * 3.4;
+      }
+    }
+
+    // 3. Monedas en el suelo 🪙
+    streetCoins.forEach(coin => {
+      if (!coin.collected) {
+        const distC = Math.hypot(myPlayer.x - coin.x, myPlayer.y - coin.y);
+        if (distC < 28) {
+          coin.collected = true;
+          myPlayer.coins += 10;
+          familyVaultCoins += 10;
+          playerCoinsVal.innerText = myPlayer.coins;
+          familyVaultVal.innerText = familyVaultCoins;
+          playSfx('coin');
+          spawnParticles(coin.x, coin.y, '🪙');
+          showAlert('🪙 ¡Moneda brillante recogida! (+10)');
+          // Reaparece en 15 segundos
+          setTimeout(() => { coin.collected = false; }, 15000);
+        }
+      }
+    });
+
+    // 4. Auto amarillo pasando 🚗
+    streetCar.x += streetCar.speed;
+    if (streetCar.x > WORLDS.calle.width + 150) {
+      streetCar.x = -150;
+    }
+  }
+
+  // Partículas
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.y += p.vy;
+    p.life -= 0.03;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  checkProximities();
 }
 
+// ==========================================
+// DIBUJO EN CANVAS
+// ==========================================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
-  // Aplicar traslación de la Cámara
   ctx.translate(-camera.x, -camera.y);
 
-  // 1. DIBUJAR MUNDO COMPLETO
-  drawWorld();
+  if (currentScene === 'calle') {
+    drawStreetScene();
+  } else if (currentScene === 'casa') {
+    drawHouseScene();
+  }
 
-  // 2. DIBUJAR JUGADORES REMOTOS
+  // Jugadores remotos (en la misma escena)
   for (const sId in otherPlayers) {
-    drawCharacter(otherPlayers[sId], sId);
+    const op = otherPlayers[sId];
+    if (op.scene === currentScene) {
+      drawPlayerAvatar(op, sId);
+    }
   }
 
-  // 3. DIBUJAR JUGADOR LOCAL
+  // Jugador local
   if (myPlayer) {
-    drawCharacter(myPlayer, socket.id, true);
+    drawPlayerAvatar(myPlayer, socket.id, true);
   }
 
-  // 4. DIBUJAR BURBUJAS DE CHAT
-  drawChatBubbles();
+  // Globos de texto y partículas
+  drawBubbles();
+  drawParticles();
 
   ctx.restore();
 }
 
-function drawWorld() {
-  trafficLightTimer += 0.02;
+// ==========================================
+// ESCENA 1: LA CALLE DEL BARRIO AZ
+// ==========================================
+function drawStreetScene() {
+  // Aceras / Calles
+  ctx.fillStyle = '#64748b';
+  ctx.fillRect(0, 0, WORLDS.calle.width, WORLDS.calle.height);
 
-  // Aceras / Baldosas de base
-  ctx.fillStyle = '#475569';
-  ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+  // AVENIDA DE ASFALTO
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, 440, WORLDS.calle.width, 130);
 
-  // Cuadrícula sutil
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < WORLD_WIDTH; x += 50) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_HEIGHT); ctx.stroke();
-  }
-  for (let y = 0; y < WORLD_HEIGHT; y += 50) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_WIDTH, y); ctx.stroke();
-  }
-
-  // AVENIDA PRINCIPAL CENTRAL (Asfalto ancho)
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(0, 440, WORLD_WIDTH, 140);
-
-  // Líneas amarillas de tránsito
+  // Línea amarilla
   ctx.strokeStyle = '#facc15';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 4;
   ctx.setLineDash([25, 20]);
   ctx.beginPath();
-  ctx.moveTo(0, 510);
-  ctx.lineTo(WORLD_WIDTH, 510);
+  ctx.moveTo(0, 505);
+  ctx.lineTo(WORLDS.calle.width, 505);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Pasos peatonales de cebra
+  // Pasos de cebra peatonales
   ctx.fillStyle = '#ffffff';
-  for (let i = 0; i < 9; i++) {
-    ctx.fillRect(660 + i * 16, 445, 9, 130);
+  for (let i = 0; i < 8; i++) {
+    ctx.fillRect(240 + i * 16, 445, 9, 120);
+    ctx.fillRect(1140 + i * 16, 445, 9, 120);
   }
 
-  // PARQUE CENTRAL (Césped y árboles)
-  ctx.fillStyle = '#15803d';
-  ctx.fillRect(520, 650, 380, 260);
-  ctx.strokeStyle = '#166534';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(520, 650, 380, 260);
+  // 1. CASA FAMILIAR AZ (EXTERIOR)
+  drawHouseExterior(160, 110, 240, 170);
 
-  // Fuente de agua animada
-  const wave = Math.sin(trafficLightTimer * 3) * 4;
-  ctx.fillStyle = '#0284c7';
+  // 2. PIZZERÍA / CAFETERÍA DULCE AZ
+  drawPizzaShopExterior(1060, 110, 240, 170);
+
+  // 3. PARQUE FAMILIAR (CÉSPED)
+  ctx.fillStyle = '#16a34a';
+  ctx.fillRect(480, 620, 520, 320);
+  ctx.strokeStyle = '#15803d';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(480, 620, 520, 320);
+
+  // Cancha de fútbol con arco
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(550, 660, 380, 240);
   ctx.beginPath();
-  ctx.arc(710, 780, 42 + wave, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 5;
+  ctx.arc(740, 780, 45, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Árboles en el parque
-  drawTree(570, 700);
-  drawTree(850, 700);
-  drawTree(580, 860);
-  drawTree(840, 860);
-
-  // EDIFICIOS
-  // 1. Casa Familiar Az
-  drawBuilding(160, 100, 240, 160, '#b91c1c', '🏡 CASA FAMILIAR AZ');
-  // 2. Cafetería Dulce Az
-  drawBuilding(1000, 100, 240, 160, '#d97706', '☕ CAFÉ DULCE AZ');
-  // 3. Garaje Tech & Bicis
-  drawBuilding(160, 640, 220, 150, '#0284c7', '🚲 GARAJE DE MOVILIDAD');
-
-  // Tablón de Misiones (Plaza central)
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(675, 330, 50, 40);
-  ctx.fillStyle = '#fef08a';
-  ctx.fillRect(680, 335, 40, 30);
+  // Arco norte de fútbol
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(700, 650, 80, 12);
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 16px Nunito';
-  ctx.fillText('📋', 690, 356);
+  ctx.font = 'bold 12px Fredoka';
+  ctx.fillText('ARCO 🥅', 715, 642);
 
-  // Contenedor de Reciclaje
-  ctx.fillStyle = '#16a34a';
-  ctx.fillRect(1100, 700, 44, 46);
+  // Árboles
+  drawCuteTree(520, 670);
+  drawCuteTree(960, 670);
+  drawCuteTree(520, 910);
+  drawCuteTree(960, 910);
+
+  // Monedas flotantes
+  streetCoins.forEach(coin => {
+    if (!coin.collected) {
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(coin.x, coin.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('$', coin.x - 3, coin.y + 3);
+    }
+  });
+
+  // Pelota de fútbol ⚽
   ctx.fillStyle = '#ffffff';
-  ctx.font = '22px Nunito';
-  ctx.fillText('♻️', 1110, 732);
+  ctx.beginPath();
+  ctx.arc(soccerBall.x, soccerBall.y, soccerBall.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('⚽', soccerBall.x - 8, soccerBall.y + 5);
 
-  // Semáforo Inteligente
-  drawTrafficLight(610, 410);
+  // Perrito Toby 🐶
+  drawCutePuppy(puppy.x, puppy.y);
 
-  // Farolas
-  drawStreetLamp(520, 390);
-  drawStreetLamp(880, 390);
+  // Auto amarillo en la calle 🚗
+  drawYellowCar(streetCar.x, streetCar.y);
+
+  // Piscina comprada (si la compraron en la tienda)
+  if (houseUpgrades.pool) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(60, 150, 80, 90);
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(60, 150, 80, 90);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '22px sans-serif';
+    ctx.fillText('🏊', 88, 202);
+  }
 }
 
-function drawBuilding(x, y, w, h, roofColor, label) {
-  ctx.fillStyle = '#f1f5f9';
-  ctx.fillRect(x, y + 40, w, h - 40);
-  ctx.strokeStyle = '#1e293b';
+// ==========================================
+// ESCENA 2: INTERIOR DE LA CASA FAMILIAR AZ
+// ==========================================
+function drawHouseScene() {
+  const W = WORLDS.casa.width;
+  const H = WORLDS.casa.height;
+
+  // Suelo de madera cálida
+  ctx.fillStyle = '#d97706';
+  ctx.fillRect(0, 0, W, H);
+
+  // Pared superior elegante
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(0, 0, W, 140);
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(0, 0, W, 140);
+
+  // Cuadros familiares en la pared
+  drawPhotoFrame(220, 40, '👨‍👩‍👧‍👦 FAMILIA AZ');
+  drawPhotoFrame(660, 40, '🏆 LOS MEJORES');
+
+  // TELEVISOR 📺
+  ctx.fillStyle = isTvTurnedOn ? '#38bdf8' : '#0f172a';
+  ctx.fillRect(400, 140, 100, 60);
+  ctx.strokeStyle = '#475569';
   ctx.lineWidth = 4;
-  ctx.strokeRect(x, y + 40, w, h - 40);
+  ctx.strokeRect(400, 140, 100, 60);
+  if (isTvTurnedOn) {
+    ctx.font = '26px sans-serif';
+    ctx.fillText('🐱🐭', 428, 180);
+  } else {
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px Fredoka';
+    ctx.fillText('PULSA PARA VER', 408, 175);
+  }
 
-  // Tejado
-  ctx.fillStyle = roofColor;
-  ctx.fillRect(x - 8, y, w + 16, 42);
-  ctx.strokeRect(x - 8, y, w + 16, 42);
+  // SOFÁ CÓMODO 🛋️
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(380, 310, 140, 50);
+  ctx.strokeStyle = '#b91c1c';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(380, 310, 140, 50);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px Fredoka';
+  ctx.fillText('🛋️ SOFÁ FAMILIAR', 404, 340);
 
-  // Ventanas
-  ctx.fillStyle = '#38bdf8';
-  ctx.fillRect(x + 24, y + 60, 42, 34);
-  ctx.fillRect(x + w - 66, y + 60, 42, 34);
+  // COCINA / REFRIGERADOR 🧊
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(700, 140, 60, 80);
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(700, 140, 60, 80);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('🧊', 720, 185);
 
-  // Puerta
+  // CAMAS DE LOS PERSONAJES
+  // Cama Junior (4 años)
+  drawBed(100, 200, '#f97316', '⚡ JUNIOR');
+  // Cama Vicky (10 años)
+  drawBed(100, 360, '#ec4899', '🌸 VICKY');
+  // Cama Papá (46 años)
+  drawBed(100, 500, '#3b82f6', '👔 PAPÁ');
+
+  // PUERTA DE SALIDA (Abajo)
   ctx.fillStyle = '#78350f';
-  ctx.fillRect(x + w / 2 - 24, y + h - 56, 48, 56);
+  ctx.fillRect(410, 610, 80, 40);
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 12px Fredoka';
+  ctx.fillText('🚪 SALIR', 426, 634);
+}
+
+function drawBed(x, y, color, label) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, 90, 50);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 5, y + 5, 24, 40); // almohada
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 10px Fredoka';
+  ctx.fillText(label, x + 34, y + 30);
+}
+
+function drawPhotoFrame(x, y, text) {
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(x, y, 120, 65);
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(x + 6, y + 6, 108, 53);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 10px Fredoka';
+  ctx.fillText(text, x + 14, y + 36);
+}
+
+// ==========================================
+// DIBUJOS DE FACHADAS Y ELEMENTOS VISUALES
+// ==========================================
+function drawHouseExterior(x, y, w, h) {
+  // Fachada
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(x, y + 45, w, h - 45);
+  ctx.strokeStyle = '#b45309';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x, y + 45, w, h - 45);
+
+  // Techo rojo
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(x - 10, y, w + 20, 50);
+  ctx.strokeRect(x - 10, y, w + 20, 50);
 
   // Cartel
   ctx.fillStyle = '#0f172a';
-  ctx.fillRect(x + w / 2 - 75, y + 10, 150, 24);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 11px Nunito';
+  ctx.fillRect(x + w / 2 - 80, y + 12, 160, 26);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 13px Fredoka';
   ctx.textAlign = 'center';
-  ctx.fillText(label, x + w / 2, y + 26);
+  ctx.fillText('🏡 CASA AZ (FAMILIA)', x + w / 2, y + 30);
   ctx.textAlign = 'start';
+
+  // Ventanas
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(x + 25, y + 70, 45, 40);
+  ctx.fillRect(x + w - 70, y + 70, 45, 40);
+
+  // Puerta de entrada con felpudo
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(x + w / 2 - 25, y + h - 55, 50, 55);
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(x + w / 2 - 32, y + h - 6, 64, 12); // felpudo
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 8px Fredoka';
+  ctx.fillText('BIENVENIDOS', x + w / 2 - 28, y + h + 3);
 }
 
-function drawTree(x, y) {
+function drawPizzaShopExterior(x, y, w, h) {
+  ctx.fillStyle = '#fed7aa';
+  ctx.fillRect(x, y + 45, w, h - 45);
+  ctx.strokeStyle = '#c2410c';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x, y + 45, w, h - 45);
+
+  // Techo a rayas
+  ctx.fillStyle = '#ea580c';
+  ctx.fillRect(x - 10, y, w + 20, 50);
+  ctx.strokeRect(x - 10, y, w + 20, 50);
+
+  // Cartel
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(x + w / 2 - 85, y + 12, 170, 26);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 13px Fredoka';
+  ctx.textAlign = 'center';
+  ctx.fillText('🍕 PIZZERÍA DULCE AZ', x + w / 2, y + 30);
+  ctx.textAlign = 'start';
+
+  // Mostrador
   ctx.fillStyle = '#78350f';
-  ctx.fillRect(x - 7, y, 14, 24);
+  ctx.fillRect(x + w / 2 - 25, y + h - 55, 50, 55);
+}
+
+function drawCuteTree(x, y) {
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(x - 7, y, 14, 25);
   ctx.fillStyle = '#22c55e';
   ctx.beginPath();
-  ctx.arc(x, y - 8, 28, 0, Math.PI * 2);
+  ctx.arc(x, y - 8, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#15803d';
+  ctx.beginPath();
+  ctx.arc(x - 8, y - 14, 14, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawTrafficLight(x, y) {
+function drawCutePuppy(x, y) {
+  // Cuerpo del perrito Toby
+  ctx.fillStyle = '#d97706';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 14, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cabeza
+  ctx.beginPath();
+  ctx.arc(x + 10, y - 6, 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Orejas
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath();
+  ctx.arc(x + 7, y - 12, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ojo y hocico
   ctx.fillStyle = '#0f172a';
-  ctx.fillRect(x, y, 18, 42);
-  const phase = Math.floor(trafficLightTimer % 6);
-  ctx.fillStyle = phase < 3 ? '#ef4444' : '#551515';
-  ctx.beginPath(); ctx.arc(x + 9, y + 11, 6, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = phase >= 3 ? '#22c55e' : '#143818';
-  ctx.beginPath(); ctx.arc(x + 9, y + 31, 6, 0, Math.PI * 2); ctx.fill();
-}
-
-function drawStreetLamp(x, y) {
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x, y + 45);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-
-  // Foco con halo
-  ctx.fillStyle = 'rgba(254, 240, 138, 0.3)';
-  ctx.beginPath();
-  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.arc(x + 13, y - 7, 1.8, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#fef08a';
+  // Cartelito "Toby"
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 10px Fredoka';
+  ctx.fillText('🐶 Toby', x - 12, y - 18);
+}
+
+function drawYellowCar(x, y) {
+  // Auto amarillo familiar
+  ctx.fillStyle = '#facc15';
+  ctx.fillRect(x, y, 80, 36);
+  ctx.strokeStyle = '#ca8a04';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(x, y, 80, 36);
+
+  // Cabina
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(x + 18, y - 14, 44, 16);
+  ctx.strokeRect(x + 18, y - 14, 44, 16);
+
+  // Ruedas
+  ctx.fillStyle = '#0f172a';
   ctx.beginPath();
-  ctx.arc(x, y, 8, 0, Math.PI * 2);
+  ctx.arc(x + 18, y + 36, 8, 0, Math.PI * 2);
+  ctx.arc(x + 62, y + 36, 8, 0, Math.PI * 2);
   ctx.fill();
 }
 
-// Dibujo de Personajes
-function drawCharacter(p, socketId, isSelf = false) {
+// ==========================================
+// DIBUJO DE LOS PERSONAJES DE LA FAMILIA
+// ==========================================
+function drawPlayerAvatar(p, sId, isSelf = false) {
   const x = p.x;
   const y = p.y;
+  const bob = p.isMoving ? Math.sin(stepAnim) * 3 : 0;
 
-  // Sombra
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  // Sombra suave en los pies
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
   ctx.beginPath();
-  ctx.ellipse(x, y + 18, 18, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + 16, 16, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Vehículo
-  if (p.vehicle === 'patineta') {
-    ctx.fillStyle = '#f97316';
-    ctx.fillRect(x - 18, y + 14, 36, 6);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(x - 15, y + 20, 6, 4);
-    ctx.fillRect(x + 9, y + 20, 6, 4);
-  } else if (p.vehicle === 'bicicleta') {
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x - 16, y + 14, 8, 0, Math.PI * 2);
-    ctx.arc(x + 16, y + 14, 8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x - 16, y + 14);
-    ctx.lineTo(x, y + 4);
-    ctx.lineTo(x + 16, y + 14);
-    ctx.stroke();
-  }
-
-  const bob = (p.isMoving ? Math.sin(stepAnim) * 3 : 0);
-
-  let shirtColor = '#3b82f6';
-  let hairColor = '#451a03';
-  let badgeBorder = '#60a5fa';
+  let bodyColor = '#3b82f6'; // Papá
+  let faceEmoji = '👨';
 
   if (p.id === 'diegoaz_jr') {
-    shirtColor = '#f97316';
-    hairColor = '#0f172a';
-    badgeBorder = '#fb923c';
+    bodyColor = '#f97316'; // Junior
+    faceEmoji = '👦';
   } else if (p.id === 'vicky_vicky') {
-    shirtColor = '#ec4899';
-    hairColor = '#ca8a04';
-    badgeBorder = '#f472b6';
+    bodyColor = '#ec4899'; // Vicky
+    faceEmoji = '👧';
   }
 
   // Piernas
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(x - 8, y + 6 + bob, 6, 13);
-  ctx.fillRect(x + 2, y + 6 - bob, 6, 13);
+  ctx.fillRect(x - 7, y + 6 + bob, 5, 12);
+  ctx.fillRect(x + 2, y + 6 - bob, 5, 12);
 
-  // Torso
-  ctx.fillStyle = shirtColor;
-  ctx.fillRect(x - 12, y - 10 + bob, 24, 18);
+  // Cuerpo / Ropa
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(x - 11, y - 8 + bob, 22, 16);
 
-  // Cabeza
-  ctx.fillStyle = '#fed7aa';
-  ctx.fillRect(x - 10, y - 28 + bob, 20, 18);
-
-  // Pelo
-  ctx.fillStyle = hairColor;
-  ctx.fillRect(x - 11, y - 32 + bob, 22, 8);
-
-  if (p.id === 'vicky_vicky') {
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(x + 7, y - 34 + bob, 7, 7); // lazo
-  }
-
-  if (p.id === 'diegoaz_jr') {
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillRect(x - 12, y - 32 + bob, 24, 5); // gorra
-  }
-
-  // Ojos
-  ctx.fillStyle = '#0f172a';
-  if (p.direction === 'down') {
-    ctx.fillRect(x - 5, y - 20 + bob, 3, 4);
-    ctx.fillRect(x + 2, y - 20 + bob, 3, 4);
-  } else if (p.direction === 'left') {
-    ctx.fillRect(x - 8, y - 20 + bob, 3, 4);
-  } else if (p.direction === 'right') {
-    ctx.fillRect(x + 5, y - 20 + bob, 3, 4);
-  }
-
-  // Etiqueta con Nombre
-  ctx.font = 'bold 12px Nunito';
+  // Cabeza con cara gigante expresiva
+  ctx.font = '26px sans-serif';
   ctx.textAlign = 'center';
-  const nameWidth = ctx.measureText(p.name).width + 16;
-  ctx.fillStyle = isSelf ? 'rgba(30, 58, 138, 0.9)' : 'rgba(15, 23, 42, 0.85)';
-  ctx.fillRect(x - nameWidth / 2, y - 56 + bob, nameWidth, 20);
-  ctx.strokeStyle = badgeBorder;
+  ctx.fillText(faceEmoji, x, y - 12 + bob);
+
+  // Si lleva caja de pizza en las manos 🍕
+  if (isSelf && hasPizzaBox) {
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(x - 12, y - 4 + bob, 24, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('🍕', x, y + 5 + bob);
+  }
+
+  // Nombre arriba de la cabeza
+  ctx.font = 'bold 12px Fredoka';
+  const tagW = ctx.measureText(p.name).width + 16;
+  ctx.fillStyle = isSelf ? '#1d4ed8' : '#0f172a';
+  ctx.fillRect(x - tagW / 2, y - 46 + bob, tagW, 18);
+  ctx.strokeStyle = bodyColor;
   ctx.lineWidth = 1.5;
-  ctx.strokeRect(x - nameWidth / 2, y - 56 + bob, nameWidth, 20);
+  ctx.strokeRect(x - tagW / 2, y - 46 + bob, tagW, 18);
 
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(p.name, x, y - 42 + bob);
+  ctx.fillText(p.name, x, y - 32 + bob);
   ctx.textAlign = 'start';
 }
 
-function drawChatBubbles() {
+function drawBubbles() {
   const now = Date.now();
-  for (const sId in activeChatBubbles) {
-    const bubble = activeChatBubbles[sId];
-    if (now > bubble.expires) {
-      delete activeChatBubbles[sId];
+  for (const sId in activeBubbles) {
+    const b = activeBubbles[sId];
+    if (now > b.time) {
+      delete activeBubbles[sId];
       continue;
     }
-
-    let p = (sId === socket.id ? myPlayer : otherPlayers[sId]);
-    if (p) {
+    const p = (sId === socket.id ? myPlayer : otherPlayers[sId]);
+    if (p && p.scene === currentScene) {
       const bx = p.x;
-      const by = p.y - 70;
-
-      ctx.font = 'bold 13px Nunito';
+      const by = p.y - 62;
+      ctx.font = 'bold 14px Fredoka';
       ctx.textAlign = 'center';
-      const textWidth = ctx.measureText(bubble.text).width + 20;
+      const tw = ctx.measureText(b.text).width + 20;
 
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.roundRect(bx - textWidth / 2, by - 18, textWidth, 26, 10);
+      ctx.roundRect(bx - tw / 2, by - 16, tw, 26, 12);
       ctx.fill();
 
-      // Flecha
+      // Flechita
       ctx.beginPath();
-      ctx.moveTo(bx - 5, by + 8);
-      ctx.lineTo(bx + 5, by + 8);
-      ctx.lineTo(bx, by + 14);
+      ctx.moveTo(bx - 5, by + 10);
+      ctx.lineTo(bx + 5, by + 10);
+      ctx.lineTo(bx, by + 16);
       ctx.fill();
 
       ctx.fillStyle = '#0f172a';
-      ctx.fillText(bubble.text, bx, by);
+      ctx.fillText(b.text, bx, by + 2);
       ctx.textAlign = 'start';
     }
   }
 }
 
-// Bucle
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.font = '16px sans-serif';
+    ctx.fillText(p.char, p.x, p.y);
+  });
+}
+
+// Bucle principal
 function gameLoop() {
   update();
   draw();
