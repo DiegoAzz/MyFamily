@@ -5,28 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#4a2e18">
-  <title>El Barrio Az - RPG Familiar Stardew Valley</title>
+  <meta name="theme-color" content="#2b2d35">
+  <title>El Barrio Az - RPG Familiar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- MODAL DE SELECCIÓN DE PERSONAJES (RETRATOS ESTILO STARDEW VALLEY) -->
+  <!-- MODAL DE SELECCIÓN DE PERSONAJES (FIELES AL SPRITE SHEET) -->
   <div id="character-select-modal" class="modal-overlay">
-    <div class="stardew-dialog-box select-dialog">
+    <div class="urban-dialog-box select-dialog">
       <div class="dialog-banner">
         <h2>EL BARRIO AZ</h2>
         <span class="sub-banner">Elige tu personaje</span>
       </div>
 
-      <div class="stardew-portraits-row">
+      <div class="urban-portraits-row">
         <!-- Diegoaz (Papá) -->
         <div class="portrait-card" data-char="diegoaz">
-          <div class="portrait-wood-frame">
-            <canvas id="portrait-diegoaz" width="64" height="64" class="stardew-pixel-portrait"></canvas>
+          <div class="portrait-frame">
+            <canvas id="portrait-diegoaz" width="64" height="64" class="pixel-portrait-canvas"></canvas>
           </div>
           <div class="portrait-name">Diegoaz</div>
           <span class="portrait-tag">Papá (46)</span>
@@ -34,8 +34,8 @@
 
         <!-- Vicky Vicky (Hija) -->
         <div class="portrait-card" data-char="vicky_vicky">
-          <div class="portrait-wood-frame">
-            <canvas id="portrait-vicky" width="64" height="64" class="stardew-pixel-portrait"></canvas>
+          <div class="portrait-frame">
+            <canvas id="portrait-vicky" width="64" height="64" class="pixel-portrait-canvas"></canvas>
           </div>
           <div class="portrait-name">Vicky Vicky</div>
           <span class="portrait-tag">Hija (10)</span>
@@ -43,125 +43,119 @@
 
         <!-- Diegoaz Jr. (Hijo) -->
         <div class="portrait-card active" data-char="diegoaz_jr">
-          <div class="portrait-wood-frame">
-            <canvas id="portrait-junior" width="64" height="64" class="stardew-pixel-portrait"></canvas>
+          <div class="portrait-frame">
+            <canvas id="portrait-junior" width="64" height="64" class="pixel-portrait-canvas"></canvas>
           </div>
           <div class="portrait-name">Diegoaz Jr.</div>
           <span class="portrait-tag">Hijo (4)</span>
         </div>
       </div>
 
-      <button id="btn-start-game" class="stardew-btn-wood">
-        ¡COMENZAR AVENTURA!
+      <button id="btn-start-game" class="urban-btn-primary">
+        ▶ ENTRAR AL BARRIO
       </button>
     </div>
   </div>
 
   <!-- JUEGO FULLSCREEN -->
   <div id="game-container" class="hidden">
-    <!-- LIENZO PIXEL ART STARDEW VALLEY -->
+    <!-- LIENZO PIXEL ART URBANO -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- HUD RESPONSIVE COMPACTO (ESTILO STARDEW VALLEY MÓVIL) -->
-    <header id="stardew-hud">
+    <!-- HUD SUPERIOR ELEGANTE Y COMPACTO -->
+    <header id="urban-hud">
       <!-- Izquierda: Retrato del jugador activo -->
       <div class="hud-player-badge">
-        <canvas id="hud-mini-portrait" width="32" height="32" class="hud-mini-canvas"></canvas>
+        <canvas id="hud-mini-portrait" width="28" height="28" class="hud-mini-canvas"></canvas>
         <div class="hud-player-info">
-          <span id="hud-player-name" class="hud-name-text">Diegoaz Jr.</span>
-          <span id="location-badge" class="hud-zone-text">Plaza Central</span>
+          <span id="hud-player-name" class="hud-name-text">Diego Jr.</span>
+          <span id="location-badge" class="hud-zone-text">Avenida Central</span>
         </div>
       </div>
 
-      <!-- Derecha: Cajita de Oro y Bóveda (Ultra compacta, no desborda en celular) -->
+      <!-- Derecha: Dinero y Bóveda -->
       <div class="hud-wallet-badge">
         <div class="wallet-row">
           <span class="gold-coin-icon">🪙</span>
-          <span id="player-coins-val" class="wallet-num">100g</span>
+          <span id="player-coins-val" class="wallet-num">100</span>
         </div>
         <div class="wallet-row vault-row" title="Bóveda Familiar">
           <span class="vault-icon">🏦</span>
-          <span id="family-vault-val" class="wallet-num">500g</span>
+          <span id="family-vault-val" class="wallet-num">500</span>
         </div>
       </div>
 
-      <!-- Botones Rápidos Superiores (Audio / Tienda) -->
+      <!-- Herramientas Rápidas -->
       <div class="hud-action-icons">
         <button id="btn-audio-toggle" class="hud-circle-tool" title="Sonido">🔊</button>
         <button id="btn-open-house-shop" class="hud-circle-tool" title="Tienda">🛒</button>
       </div>
     </header>
 
-    <!-- NOTIFICACIÓN EN PERGAMINO FLOTANTE -->
-    <div id="alert-banner" class="stardew-scroll-toast hidden">
+    <!-- TOAST DE MENSAJES -->
+    <div id="alert-banner" class="urban-toast hidden">
       <span id="alert-text">¡Bienvenido al Barrio Az!</span>
     </div>
 
-    <!-- CONTROLES TÁCTILES STARDEW (DISEÑADOS PARA NO ESTORBAR) -->
+    <!-- CONTROLES TÁCTILES LIMPIOS -->
     <div id="mobile-controls">
-      <!-- Joystick Flotante Transparente (Izquierda) -->
       <div id="joystick-area">
         <div id="joystick-ring">
           <div id="joystick-knob"></div>
         </div>
       </div>
 
-      <!-- Botones de Acción (Derecha) -->
       <div id="buttons-area">
-        <!-- Botón de Gestos / Emojis -->
-        <button id="btn-toggle-reactions" class="stardew-mini-btn" aria-label="Reacciones">
-          💬
-        </button>
-        <!-- Botón Principal de Acción (Hablar / Acariciar / Patear) -->
-        <button id="btn-action-main" class="stardew-action-btn" aria-label="Acción">
+        <button id="btn-toggle-reactions" class="urban-mini-btn" aria-label="Reacciones">💬</button>
+        <button id="btn-action-main" class="urban-action-btn" aria-label="Acción">
           <span id="action-btn-emoji">✨</span>
           <span id="action-btn-label">TOCAR</span>
         </button>
       </div>
     </div>
 
-    <!-- BANDEJA DE REACCIONES RÁPIDAS (DESPLEGABLE / DISCRETA) -->
+    <!-- REACCIONES RÁPIDAS -->
     <div id="quick-reactions" class="hidden">
-      <button class="stardew-reaction-pill" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
-      <button class="stardew-reaction-pill" data-sound="heart" data-msg="¡A la fuente! ⛲">⛲ Fuente</button>
-      <button class="stardew-reaction-pill" data-sound="goal" data-msg="¡Gool! ⚽">⚽ Fútbol</button>
-      <button class="stardew-reaction-pill" data-sound="dog" data-msg="¡Perrito! 🐶">🐶 Toby</button>
-      <button class="stardew-reaction-pill" data-sound="pizza" data-msg="¡A la posada! 🥖">🥖 Posada</button>
+      <button class="urban-reaction-pill" data-sound="cheer" data-msg="¡Hola familia! 👋">👋 Hola</button>
+      <button class="urban-reaction-pill" data-sound="heart" data-msg="¡Al parque! 🌳">🌳 Parque</button>
+      <button class="urban-reaction-pill" data-sound="goal" data-msg="¡Golazo! ⚽">⚽ Fútbol</button>
+      <button class="urban-reaction-pill" data-sound="dog" data-msg="¡Perrito! 🐶">🐶 Toby</button>
+      <button class="urban-reaction-pill" data-sound="coin" data-msg="¡A reciclar! 📦">📦 Cajas</button>
     </div>
 
-    <!-- TIENDA / MERCADO ESTILO STARDEW VALLEY -->
+    <!-- TIENDA / MEJORAS DEL BARRIO -->
     <div id="house-shop-modal" class="modal-overlay hidden">
-      <div class="stardew-dialog-box shop-modal-box">
+      <div class="urban-dialog-box shop-modal-box">
         <div class="dialog-banner">
-          <h2>MERCADO DEL PUEBLO</h2>
-          <button id="btn-close-shop" class="close-wood-btn">✖</button>
+          <h2>TIENDA DEL VECINDARIO</h2>
+          <button id="btn-close-shop" class="close-urban-btn">✖</button>
         </div>
         <p class="dialog-desc">Mejoras comunitarias para la familia:</p>
 
-        <div class="stardew-shop-grid">
+        <div class="urban-shop-grid">
           <div class="shop-slot" data-item="tv" data-cost="150">
             <span class="slot-icon">📺</span>
-            <div class="slot-title">Tele de Roble</div>
-            <span class="slot-price">🪙 150g</span>
-            <button class="btn-buy-wood" id="buy-tv">Comprar</button>
+            <div class="slot-title">Tele Smart</div>
+            <span class="slot-price">🪙 150</span>
+            <button class="btn-buy-urban" id="buy-tv">Comprar</button>
           </div>
           <div class="shop-slot" data-item="pool" data-cost="400">
             <span class="slot-icon">🏊</span>
-            <div class="slot-title">Piscina de Piedra</div>
-            <span class="slot-price">🪙 400g</span>
-            <button class="btn-buy-wood" id="buy-pool">Comprar</button>
+            <div class="slot-title">Piscina Jardín</div>
+            <span class="slot-price">🪙 400</span>
+            <button class="btn-buy-urban" id="buy-pool">Comprar</button>
           </div>
           <div class="shop-slot" data-item="car" data-cost="600">
             <span class="slot-icon">🚗</span>
-            <div class="slot-title">Tractor / Auto</div>
-            <span class="slot-price">🪙 600g</span>
-            <button class="btn-buy-wood" id="buy-car">Comprar</button>
+            <div class="slot-title">Auto Familiar</div>
+            <span class="slot-price">🪙 600</span>
+            <button class="btn-buy-urban" id="buy-car">Comprar</button>
           </div>
           <div class="shop-slot" data-item="pizza_oven" data-cost="200">
-            <span class="slot-icon">🥖</span>
-            <div class="slot-title">Horno Rústico</div>
-            <span class="slot-price">🪙 200g</span>
-            <button class="btn-buy-wood" id="buy-oven">Comprar</button>
+            <span class="slot-icon">🍕</span>
+            <div class="slot-title">Horno Pizza</div>
+            <span class="slot-price">🪙 200</span>
+            <button class="btn-buy-urban" id="buy-oven">Comprar</button>
           </div>
         </div>
       </div>

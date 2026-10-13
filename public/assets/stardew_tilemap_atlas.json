@@ -1,0 +1,93 @@
+{
+  "name": "Stardew Valley Inspired Pixel Art Tilemap & Spritesheet",
+  "version": "1.0.0",
+  "style": "16-bit Cozy Pastoral RPG (Stardew Valley / Harvest Moon Style)",
+  "image": "assets/stardew_tilemap_complete.png",
+  "imageWidth": 1024,
+  "imageHeight": 1024,
+  "quadrants": {
+    "terrain": { "x": 0, "y": 0, "width": 512, "height": 512 },
+    "props": { "x": 512, "y": 0, "width": 512, "height": 512 },
+    "items": { "x": 0, "y": 512, "width": 512, "height": 512 },
+    "characters": { "x": 512, "y": 512, "width": 512, "height": 512 }
+  },
+  "terrains": [
+    { "id": "grass_plain", "name": "Césped Silvestre", "x": 10, "y": 60, "w": 60, "h": 60, "tags": ["ground", "walkable"] },
+    { "id": "grass_flowers", "name": "Césped con Flores Blancas", "x": 75, "y": 60, "w": 60, "h": 60, "tags": ["ground", "decor"] },
+    { "id": "farmland_tilled", "name": "Tierra Arada Fértil", "x": 140, "y": 60, "w": 60, "h": 60, "tags": ["farm", "tilled"] },
+    { "id": "farmland_crops", "name": "Cultivo en Crecimiento", "x": 205, "y": 130, "w": 60, "h": 60, "tags": ["farm", "crops"] },
+    { "id": "cobblestone_path", "name": "Camino de Adoquines", "x": 325, "y": 60, "w": 60, "h": 60, "tags": ["path", "stone"] },
+    { "id": "dirt_path", "name": "Camino de Tierra Rústico", "x": 325, "y": 195, "w": 60, "h": 60, "tags": ["path", "dirt"] },
+    { "id": "pond_water", "name": "Agua de Laguna Cristalina", "x": 75, "y": 380, "w": 60, "h": 60, "tags": ["water", "obstacle"] },
+    { "id": "water_shore", "name": "Orilla con Espuma Animada", "x": 260, "y": 320, "w": 60, "h": 60, "tags": ["water", "shore"] },
+    { "id": "wooden_fence_h", "name": "Cerca de Madera Horizontal", "x": 325, "y": 320, "w": 60, "h": 55, "tags": ["fence", "obstacle"] },
+    { "id": "wooden_fence_v", "name": "Cerca de Madera Vertical", "x": 450, "y": 320, "w": 55, "h": 60, "tags": ["fence", "obstacle"] }
+  ],
+  "props": [
+    { "id": "oak_tree", "name": "Roble Frondoso", "x": 540, "y": 55, "w": 150, "h": 190, "type": "tree" },
+    { "id": "pine_tree", "name": "Pino Silvestre", "x": 720, "y": 55, "w": 120, "h": 190, "type": "tree" },
+    { "id": "berry_bush", "name": "Arbusto de Bayas Silvestres", "x": 890, "y": 60, "w": 90, "h": 90, "type": "bush" },
+    { "id": "rock_large", "name": "Roca Grande de Minería", "x": 930, "y": 190, "w": 60, "h": 55, "type": "ore" },
+    { "id": "rock_medium", "name": "Roca Mediana", "x": 880, "y": 160, "w": 45, "h": 40, "type": "ore" },
+    { "id": "wooden_crate", "name": "Caja de Suministros", "x": 825, "y": 255, "w": 50, "h": 55, "type": "storage" },
+    { "id": "wooden_barrel", "name": "Barril de Roble para Vino/Cerveza", "x": 885, "y": 255, "w": 45, "h": 55, "type": "storage" },
+    { "id": "chest_closed", "name": "Cofre de Madera con Cerrojo", "x": 820, "y": 340, "w": 55, "h": 50, "type": "chest" },
+    { "id": "chest_open_gold", "name": "Cofre del Tesoro Brillante", "x": 755, "y": 320, "w": 55, "h": 70, "type": "chest" },
+    { "id": "mailbox", "name": "Buzón de Granja", "x": 880, "y": 335, "w": 45, "h": 65, "type": "decor" },
+    { "id": "tool_hoe", "name": "Azadón de Granja", "x": 580, "y": 440, "w": 45, "h": 55, "type": "tool" },
+    { "id": "tool_watering_can", "name": "Regadera de Metal", "x": 640, "y": 445, "w": 50, "h": 48, "type": "tool" },
+    { "id": "tool_watering_can_copper", "name": "Regadera de Cobre Mejorada", "x": 705, "y": 445, "w": 50, "h": 48, "type": "tool" },
+    { "id": "tool_axe", "name": "Hacha de Leñador", "x": 765, "y": 440, "w": 48, "h": 55, "type": "tool" },
+    { "id": "tool_pickaxe", "name": "Pico de Minero", "x": 885, "y": 440, "w": 50, "h": 55, "type": "tool" }
+  ],
+  "items": [
+    { "id": "crop_turnip", "name": "Nabo de Primavera", "x": 35, "y": 565, "w": 55, "h": 65, "category": "crop", "value": 35 },
+    { "id": "crop_pumpkin_sm", "name": "Calabaza de Otoño", "x": 105, "y": 565, "w": 60, "h": 65, "category": "crop", "value": 120 },
+    { "id": "crop_pumpkin_lg", "name": "Gran Calabaza Dorada", "x": 180, "y": 560, "w": 80, "h": 75, "category": "crop", "value": 320 },
+    { "id": "crop_carrot", "name": "Zanahoria Crujiente", "x": 280, "y": 560, "w": 65, "h": 70, "category": "crop", "value": 45 },
+    { "id": "crop_strawberry", "name": "Fresa Dulce", "x": 360, "y": 565, "w": 55, "h": 65, "category": "crop", "value": 150 },
+    { "id": "fruit_apple_ripe", "name": "Manzana Roja del Huerto", "x": 35, "y": 635, "w": 55, "h": 60, "category": "fruit", "value": 60 },
+    { "id": "fruit_apple_shiny", "name": "Manzana Cristalina", "x": 105, "y": 635, "w": 55, "h": 60, "category": "fruit", "value": 85 },
+    { "id": "coin_gold", "name": "Moneda de Oro Estelar", "x": 185, "y": 635, "w": 55, "h": 58, "category": "currency", "value": 10 },
+    { "id": "potion_mana", "name": "Poción de Energía / Magia", "x": 290, "y": 630, "w": 45, "h": 65, "category": "consumable", "value": 200 },
+    { "id": "fish_river_trout", "name": "Trucha de Río Fresca", "x": 355, "y": 628, "w": 60, "h": 65, "category": "fish", "value": 90 }
+  ],
+  "characters": [
+    {
+      "id": "farmer_hat",
+      "name": "Granjero con Sombrero de Paja",
+      "description": "El clásico agricultor con overol azul y camisa verde",
+      "frames": {
+        "down_idle": { "x": 605, "y": 560, "w": 45, "h": 90 },
+        "down_walk1": { "x": 535, "y": 560, "w": 45, "h": 90 },
+        "down_walk2": { "x": 675, "y": 560, "w": 45, "h": 90 },
+        "watering": { "x": 745, "y": 560, "w": 55, "h": 90 },
+        "axe_action": { "x": 815, "y": 560, "w": 80, "h": 90 },
+        "up_idle": { "x": 925, "y": 560, "w": 45, "h": 90 },
+        "side_walk1": { "x": 605, "y": 660, "w": 45, "h": 90 },
+        "side_walk2": { "x": 675, "y": 660, "w": 45, "h": 90 },
+        "side_idle": { "x": 745, "y": 660, "w": 45, "h": 90 },
+        "up_walk1": { "x": 815, "y": 660, "w": 45, "h": 90 },
+        "up_walk2": { "x": 925, "y": 660, "w": 45, "h": 90 }
+      }
+    },
+    {
+      "id": "farmer_bandana",
+      "name": "Granjera Aventurera con Bandana",
+      "description": "Exploradora de granja con pañuelo rojo, chaqueta rústica y botas",
+      "frames": {
+        "down_idle": { "x": 605, "y": 785, "w": 45, "h": 90 },
+        "down_walk1": { "x": 535, "y": 785, "w": 45, "h": 90 },
+        "down_walk2": { "x": 675, "y": 785, "w": 45, "h": 90 },
+        "watering": { "x": 745, "y": 785, "w": 65, "h": 90 },
+        "hoe_action": { "x": 820, "y": 785, "w": 75, "h": 90 },
+        "up_idle": { "x": 925, "y": 785, "w": 45, "h": 90 },
+        "side_walk1": { "x": 605, "y": 885, "w": 45, "h": 90 },
+        "side_walk2": { "x": 675, "y": 885, "w": 45, "h": 90 },
+        "side_idle": { "x": 745, "y": 885, "w": 45, "h": 90 },
+        "up_walk1": { "x": 815, "y": 885, "w": 45, "h": 90 },
+        "up_walk2": { "x": 925, "y": 885, "w": 45, "h": 90 }
+      }
+    }
+  ]
+}

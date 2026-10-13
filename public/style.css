@@ -11,18 +11,18 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #2b1a10;
+  background-color: #1e2029;
   font-family: 'Press Start 2P', monospace;
-  color: #f7eed8;
+  color: #f8fafc;
   touch-action: none;
   overscroll-behavior: none;
 }
 
-/* MARCO DE DIÁLOGO / MENÚ ESTILO STARDEW VALLEY */
+/* MARCOS DE DIÁLOGO URBANO PIXEL ART */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(18, 10, 5, 0.85);
+  background: rgba(15, 23, 42, 0.88);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -35,12 +35,12 @@ html, body {
   display: none !important;
 }
 
-.stardew-dialog-box {
-  background: #deb887; /* Madera clara / pergamino Stardew */
-  border: 4px solid #5a381e;
+.urban-dialog-box {
+  background: #334155;
+  border: 4px solid #64748b;
   box-shadow:
-    inset 4px 4px 0px #f4e1c1,
-    inset -4px -4px 0px #8b572a,
+    inset 4px 4px 0px #94a3b8,
+    inset -4px -4px 0px #0f172a,
     0 12px 30px rgba(0, 0, 0, 0.85);
   border-radius: 6px;
   padding: 16px 12px;
@@ -54,12 +54,12 @@ html, body {
 }
 
 .dialog-banner {
-  background: #8b3a1a;
-  border: 3px solid #facc15;
-  box-shadow: inset 2px 2px #b91c1c, inset -2px -2px #450a0a;
-  padding: 6px 12px;
+  background: #1e293b;
+  border: 3px solid #38bdf8;
+  box-shadow: inset 2px 2px #0284c7, inset -2px -2px #0f172a;
+  padding: 8px 12px;
   margin-bottom: 14px;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,26 +67,26 @@ html, body {
 
 .dialog-banner h2 {
   font-size: 13px;
-  color: #fef08a;
-  text-shadow: 2px 2px #450a0a;
+  color: #f8fafc;
+  text-shadow: 2px 2px #0f172a;
 }
 
 .sub-banner {
   font-size: 8px;
-  color: #fde047;
+  color: #38bdf8;
 }
 
-.close-wood-btn {
+.close-urban-btn {
   background: none;
   border: none;
-  color: #fde047;
+  color: #94a3b8;
   font-size: 16px;
   cursor: pointer;
   padding: 2px 6px;
 }
 
-/* FILA DE RETRATOS DE PERSONAJES (STARDEW STYLE) */
-.stardew-portraits-row {
+/* FILA DE RETRATOS DE PERSONAJES */
+.urban-portraits-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
@@ -94,9 +94,9 @@ html, body {
 }
 
 .portrait-card {
-  background: #cf9b63;
-  border: 3px solid #6b3e1b;
-  box-shadow: inset 2px 2px #e8be89, inset -2px -2px #4a270f;
+  background: #1e293b;
+  border: 3px solid #475569;
+  box-shadow: inset 2px 2px #64748b, inset -2px -2px #0f172a;
   border-radius: 4px;
   padding: 8px 4px;
   cursor: pointer;
@@ -107,25 +107,25 @@ html, body {
 }
 
 .portrait-card:active, .portrait-card.active {
-  border-color: #facc15;
-  background: #e8be89;
-  box-shadow: inset 3px 3px #fef08a, inset -3px -3px #8b572a, 0 0 12px rgba(250, 204, 21, 0.6);
+  border-color: #38bdf8;
+  background: #0f172a;
+  box-shadow: inset 3px 3px #7dd3fc, inset -3px -3px #0369a1, 0 0 12px rgba(56, 189, 248, 0.6);
   transform: translateY(-3px);
 }
 
-.portrait-wood-frame {
+.portrait-frame {
   width: 70px;
   height: 70px;
-  background: #543118;
-  border: 3px solid #8b572a;
-  box-shadow: inset 2px 2px #1f1107;
+  background: #0f172a;
+  border: 3px solid #334155;
+  box-shadow: inset 2px 2px #020617;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 6px;
 }
 
-.stardew-pixel-portrait {
+.pixel-portrait-canvas {
   width: 64px;
   height: 64px;
   image-rendering: pixelated;
@@ -134,36 +134,36 @@ html, body {
 
 .portrait-name {
   font-size: 9px;
-  color: #3b200c;
+  color: #f8fafc;
   margin-bottom: 4px;
   font-weight: bold;
 }
 
 .portrait-tag {
   font-size: 7px;
-  color: #713f12;
-  background: #f4e1c1;
+  color: #38bdf8;
+  background: #0f172a;
   padding: 2px 4px;
   border-radius: 2px;
-  border: 1px solid #a16207;
+  border: 1px solid #0284c7;
 }
 
-.stardew-btn-wood {
+.urban-btn-primary {
   font-family: 'Press Start 2P', monospace;
   font-size: 11px;
-  background: #3b7a2d;
-  color: #fef08a;
+  background: #16a34a;
+  color: white;
   border: 3px solid #86efac;
-  box-shadow: inset 2px 2px #4ade80, inset -2px -2px #14532d, 0 4px 0 #0f3d19;
+  box-shadow: inset 2px 2px #4ade80, inset -2px -2px #14532d, 0 4px 0 #052e16;
   padding: 12px 20px;
   cursor: pointer;
   border-radius: 4px;
   width: 100%;
 }
 
-.stardew-btn-wood:active {
+.urban-btn-primary:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #0f3d19;
+  box-shadow: 0 1px 0 #052e16;
 }
 
 /* JUEGO PANTALLA COMPLETA */
@@ -173,7 +173,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #2b451d;
+  background: #1e2029;
 }
 
 canvas#gameCanvas {
@@ -186,8 +186,8 @@ canvas#gameCanvas {
   display: block;
 }
 
-/* HUD ULTRA RESPONSIVE MÓVIL (ESTILO STARDEW VALLEY) */
-#stardew-hud {
+/* HUD ULTRA RESPONSIVE MÓVIL */
+#urban-hud {
   position: absolute;
   top: env(safe-area-inset-top, 6px);
   left: 6px;
@@ -201,13 +201,11 @@ canvas#gameCanvas {
   gap: 6px;
 }
 
-/* Insignia Izquierda: Mini retrato + Zona */
 .hud-player-badge {
-  background: rgba(84, 49, 24, 0.92);
-  border: 2.5px solid #deb887;
-  box-shadow: inset 1.5px 1.5px #a16207, inset -1.5px -1.5px #261307;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #475569;
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 3px 6px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -218,8 +216,8 @@ canvas#gameCanvas {
 .hud-mini-canvas {
   width: 26px;
   height: 26px;
-  background: #2b1406;
-  border: 1.5px solid #cf9b63;
+  background: #020617;
+  border: 1.5px solid #334155;
   image-rendering: pixelated;
 }
 
@@ -231,7 +229,7 @@ canvas#gameCanvas {
 
 .hud-name-text {
   font-size: 8px;
-  color: #fef08a;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,18 +237,16 @@ canvas#gameCanvas {
 
 .hud-zone-text {
   font-size: 6px;
-  color: #e2d2b5;
+  color: #94a3b8;
   margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Cajita de Monedas / Bóveda (Derecha - Muy compacta) */
 .hud-wallet-badge {
-  background: rgba(84, 49, 24, 0.92);
-  border: 2.5px solid #eab308;
-  box-shadow: inset 1.5px 1.5px #fde047, inset -1.5px -1.5px #451a03;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #eab308;
   border-radius: 4px;
   padding: 3px 6px;
   display: flex;
@@ -279,7 +275,6 @@ canvas#gameCanvas {
   font-size: 9px;
 }
 
-/* Herramientas Rápidas (Iconos Redondos) */
 .hud-action-icons {
   display: flex;
   gap: 4px;
@@ -289,12 +284,11 @@ canvas#gameCanvas {
 .hud-circle-tool {
   width: 34px;
   height: 34px;
-  background: #543118;
-  border: 2.5px solid #deb887;
-  box-shadow: inset 1.5px 1.5px #a16207, inset -1.5px -1.5px #261307;
+  background: #1e293b;
+  border: 2px solid #475569;
   border-radius: 4px;
   font-size: 14px;
-  color: #fef08a;
+  color: #f8fafc;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -305,18 +299,18 @@ canvas#gameCanvas {
   transform: scale(0.92);
 }
 
-/* TOAST EN PERGAMINO */
-.stardew-scroll-toast {
+/* TOAST */
+.urban-toast {
   position: absolute;
   top: calc(env(safe-area-inset-top, 6px) + 50px);
   left: 50%;
   transform: translateX(-50%);
-  background: #deb887;
-  border: 3px solid #5a381e;
-  box-shadow: inset 2px 2px #f4e1c1, inset -2px -2px #8b572a, 0 6px 18px rgba(0,0,0,0.6);
-  padding: 6px 12px;
+  background: #1e293b;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  padding: 6px 14px;
   font-size: 8px;
-  color: #3b200c;
+  color: #f8fafc;
   border-radius: 3px;
   z-index: 60;
   max-width: 90vw;
@@ -325,14 +319,14 @@ canvas#gameCanvas {
   animation: slideToast 0.2s ease;
 }
 
-.stardew-scroll-toast.hidden { display: none; }
+.urban-toast.hidden { display: none; }
 
 @keyframes slideToast {
   from { opacity: 0; transform: translate(-50%, -10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* CONTROLES TÁCTILES MÓVILES (NO OBSTRUYEN) */
+/* CONTROLES TÁCTILES */
 #mobile-controls {
   position: absolute;
   bottom: env(safe-area-inset-bottom, 10px);
@@ -347,7 +341,6 @@ canvas#gameCanvas {
   padding: 0 14px 6px 14px;
 }
 
-/* JOYSTICK TRANSPARENTE */
 #joystick-area {
   width: 110px;
   height: 110px;
@@ -359,8 +352,8 @@ canvas#gameCanvas {
 #joystick-ring {
   width: 96px;
   height: 96px;
-  background: rgba(30, 20, 10, 0.45);
-  border: 3px solid rgba(222, 184, 135, 0.6);
+  background: rgba(15, 23, 42, 0.5);
+  border: 3px solid rgba(148, 163, 184, 0.6);
   border-radius: 50%;
   position: absolute;
   bottom: 0;
@@ -373,15 +366,14 @@ canvas#gameCanvas {
 #joystick-knob {
   width: 44px;
   height: 44px;
-  background: rgba(207, 155, 99, 0.85);
-  border: 2.5px solid #fef08a;
+  background: rgba(56, 189, 248, 0.85);
+  border: 2.5px solid #ffffff;
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
   pointer-events: none;
   transform: translate(0px, 0px);
 }
 
-/* BOTONES DE LA DERECHA */
 #buttons-area {
   pointer-events: auto;
   display: flex;
@@ -390,28 +382,28 @@ canvas#gameCanvas {
   gap: 8px;
 }
 
-.stardew-mini-btn {
+.urban-mini-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #8b572a;
-  border: 2.5px solid #deb887;
+  background: #334155;
+  border: 2px solid #64748b;
   color: white;
   font-size: 16px;
   box-shadow: 0 3px 8px rgba(0,0,0,0.4);
   cursor: pointer;
 }
 
-.stardew-mini-btn:active { transform: scale(0.9); }
+.urban-mini-btn:active { transform: scale(0.9); }
 
-.stardew-action-btn {
+.urban-action-btn {
   width: 74px;
   height: 74px;
   border-radius: 50%;
-  background: #3b7a2d;
+  background: #16a34a;
   border: 3.5px solid #86efac;
-  box-shadow: inset 2.5px 2.5px #4ade80, inset -2.5px -2.5px #14532d, 0 5px 0 #0f3d19;
-  color: #fef08a;
+  box-shadow: inset 2.5px 2.5px #4ade80, inset -2.5px -2.5px #14532d, 0 5px 0 #052e16;
+  color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -420,17 +412,17 @@ canvas#gameCanvas {
   touch-action: manipulation;
 }
 
-.stardew-action-btn:active {
+.urban-action-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 #0f3d19;
+  box-shadow: 0 2px 0 #052e16;
 }
 
-.stardew-action-btn.pulse {
+.urban-action-btn.pulse {
   border-color: #facc15;
-  animation: stardewGlow 1s infinite;
+  animation: actionGlow 1s infinite;
 }
 
-@keyframes stardewGlow {
+@keyframes actionGlow {
   0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.8); }
   50% { box-shadow: 0 0 14px rgba(250, 204, 21, 0.9); }
   100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.8); }
@@ -444,7 +436,6 @@ canvas#gameCanvas {
   color: #ffffff;
 }
 
-/* BANDEJA DE REACCIONES (DESPLEGABLE ENCIMA DE CONTROLES) */
 #quick-reactions {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 10px) + 90px);
@@ -460,10 +451,10 @@ canvas#gameCanvas {
 
 #quick-reactions.hidden { display: none; }
 
-.stardew-reaction-pill {
-  background: #543118;
-  border: 2px solid #deb887;
-  color: #fef08a;
+.urban-reaction-pill {
+  background: #1e293b;
+  border: 2px solid #475569;
+  color: #f8fafc;
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
   padding: 6px 10px;
@@ -473,31 +464,31 @@ canvas#gameCanvas {
   text-align: left;
 }
 
-.stardew-reaction-pill:active {
-  background: #8b3a1a;
-  border-color: #facc15;
+.urban-reaction-pill:active {
+  background: #0f172a;
+  border-color: #38bdf8;
 }
 
-/* TIENDA STARDEW */
+/* TIENDA */
 .shop-modal-box {
   max-width: 500px;
 }
 
 .dialog-desc {
   font-size: 8px;
-  color: #543118;
+  color: #94a3b8;
   margin-bottom: 12px;
 }
 
-.stardew-shop-grid {
+.urban-shop-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
 .shop-slot {
-  background: #cf9b63;
-  border: 2.5px solid #6b3e1b;
+  background: #1e293b;
+  border: 2px solid #475569;
   border-radius: 4px;
   padding: 8px 4px;
   display: flex;
@@ -506,13 +497,13 @@ canvas#gameCanvas {
 }
 
 .slot-icon { font-size: 28px; margin-bottom: 2px; }
-.slot-title { font-size: 7px; color: #3b200c; margin-bottom: 3px; font-weight: bold; }
-.slot-price { font-size: 8px; color: #78350f; margin-bottom: 6px; font-weight: bold; }
+.slot-title { font-size: 7px; color: #f8fafc; margin-bottom: 3px; font-weight: bold; }
+.slot-price { font-size: 8px; color: #facc15; margin-bottom: 6px; font-weight: bold; }
 
-.btn-buy-wood {
+.btn-buy-urban {
   font-family: 'Press Start 2P', monospace;
   font-size: 7px;
-  background: #3b7a2d;
+  background: #16a34a;
   border: 2px solid #86efac;
   color: white;
   padding: 5px 8px;
@@ -520,7 +511,7 @@ canvas#gameCanvas {
   border-radius: 3px;
 }
 
-.btn-buy-wood.bought {
+.btn-buy-urban.bought {
   background: #475569;
   border-color: #94a3b8;
   cursor: default;

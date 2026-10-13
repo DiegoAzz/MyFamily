@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌾 Stardew Valley Pixel Art Tilemap & Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --wood-dark: #3a2213;
+      --wood-mid: #684224;
+      --wood-light: #9e6939;
+      --parchment: #fae4b5;
+      --parchment-dark: #e0c896;
+      --gold: #f5bc38;
+      --text-brown: #3e2714;
+      --green-grass: #4b7a2d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #25160d url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="%232b1a10"/><rect x="0" y="0" width="20" height="20" fill="%2322140b"/></svg>');
+      color: #fff;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* BARRA SUPERIOR ESTILO MADERA STARDEW */
+    header {
+      background: linear-gradient(180deg, #875529 0%, #523116 100%);
+      border-bottom: 4px solid #231206;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-icon {
+      font-size: 32px;
+      filter: drop-shadow(2px 2px 0 #000);
+    }
+
+    h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 15px;
+      color: #ffe894;
+      text-shadow: 2px 2px 0 #321600, 3px 3px 0 #000;
+      letter-spacing: 0.5px;
+    }
+
+    .sub-title {
+      font-size: 18px;
+      color: #f7d2a3;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(0,0,0,0.35);
+      padding: 5px;
+      border-radius: 8px;
+      border: 2px solid #3c1e08;
+    }
+
+    .tab-btn {
+      background: #5f3a1c;
+      color: #ebd0a7;
+      border: 2px solid #8f5d31;
+      padding: 6px 14px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+      box-shadow: inset 1px 1px 0 #a46d3b, inset -1px -1px 0 #3a1f0a, 0 2px 0 #1b0d04;
+    }
+
+    .tab-btn:hover {
+      background: #784a24;
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: #e2b467;
+      color: #381f08;
+      border-color: #ffe6a3;
+      box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #9e6c27;
+      transform: translateY(1px);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-wood {
+      background: linear-gradient(180deg, #c48e48 0%, #8c5b24 100%);
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 8px 14px;
+      border: 2px solid #ffd480;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 0 #361f0a, 0 6px 10px rgba(0,0,0,0.4);
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    .btn-wood:hover {
+      background: linear-gradient(180deg, #d8a056 0%, #9e692d 100%);
+    }
+
+    .btn-wood:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #361f0a;
+    }
+
+    /* CONTENEDOR PRINCIPAL */
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* PANEL ESTILO MARCO DE MADERA STARDEW */
+    .stardew-frame {
+      background: #deb887 url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" fill="%23e4c498"/><rect x="0" y="0" width="12" height="12" fill="%23dec092"/></svg>');
+      border: 6px solid #4a2c16;
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 4px #b88b58, 0 10px 25px rgba(0,0,0,0.7);
+      color: var(--text-brown);
+      padding: 20px;
+    }
+
+    /* SECCIÓN 1: VISTA GENERAL SPRITESHEET COMPLETO */
+    .spritesheet-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1050px) {
+      .spritesheet-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .canvas-card {
+      background: #2a180e;
+      border: 4px solid #583318;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .spritesheet-canvas-wrapper {
+      max-width: 100%;
+      overflow: auto;
+      border: 3px solid #1a0d05;
+      background: #110803;
+      position: relative;
+      border-radius: 4px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    }
+
+    #spritesheet-view {
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+
+    .canvas-hint {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #ebd1ab;
+      text-align: center;
+    }
+
+    .sidebar-info {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .info-box {
+      background: #fae4b5;
+      border: 3px solid #6b411d;
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: inset 1px 1px 0 #fff;
+    }
+
+    .info-box h3 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      color: #5c2f0b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px dashed #b58d5b;
+      padding-bottom: 6px;
+    }
+
+    .quadrant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quadrant-btn {
+      background: #e8c992;
+      border: 2px solid #825023;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: #4a270b;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .quadrant-btn:hover {
+      background: #f7ddad;
+      transform: scale(1.02);
+    }
+
+    .quadrant-btn.active {
+      background: #478c3b;
+      color: #fff;
+      border-color: #8be07e;
+    }
+
+    .selected-tile-preview {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 10px;
+      background: #eed5a3;
+      padding: 10px;
+      border-radius: 6px;
+      border: 2px solid #aa804c;
+    }
+
+    #tile-inspector-canvas {
+      width: 72px;
+      height: 72px;
+      background: #331d10;
+      border: 3px solid #66391a;
+      image-rendering: pixelated;
+      border-radius: 4px;
+    }
+
+    .tile-meta {
+      flex: 1;
+      font-size: 19px;
+      line-height: 1.3;
+    }
+
+    .tile-meta strong {
+      color: #4a2307;
+      display: block;
+      font-size: 21px;
+    }
+
+    .code-snippet {
+      background: #1e1108;
+      color: #64dfdf;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      overflow-x: auto;
+      border: 2px solid #4a2d18;
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+
+    /* SECCIÓN 2: MAP PAINTER / FARM BUILDER */
+    .painter-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .painter-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .palette-box {
+      background: #fae4b5;
+      border: 4px solid #633816;
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 640px;
+      overflow-y: auto;
+    }
+
+    .palette-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: #5c2f0b;
+      margin: 12px 0 8px 0;
+      border-bottom: 2px solid #ab824e;
+      padding-bottom: 4px;
+    }
+
+    .palette-title:first-child {
+      margin-top: 0;
+    }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .palette-item {
+      aspect-ratio: 1;
+      background: #2a160a;
+      border: 2px solid #7c4c22;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.12s;
+    }
+
+    .palette-item:hover {
+      border-color: #ffd480;
+      transform: scale(1.08);
+      z-index: 2;
+    }
+
+    .palette-item.selected {
+      border-color: #00e676;
+      box-shadow: 0 0 0 2px #00e676, inset 0 0 6px rgba(0,230,118,0.5);
+      transform: scale(1.1);
+      z-index: 3;
+    }
+
+    .palette-item canvas {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+
+    .farm-canvas-container {
+      background: #231206;
+      border: 4px solid #5a3416;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .painter-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tools-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      background: #e5be82;
+      border: 2px solid #73431a;
+      color: #3b1e06;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 7px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 0 #3b1e06;
+    }
+
+    .tool-btn.active {
+      background: #478c3b;
+      color: #fff;
+      border-color: #8be07e;
+    }
+
+    #farm-canvas {
+      background: #4c6e33;
+      border: 3px solid #140903;
+      border-radius: 4px;
+      cursor: pointer;
+      image-rendering: pixelated;
+      max-width: 100%;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+    }
+
+    /* SECCIÓN 3: ANIMACIÓN DE PERSONAJES */
+    .character-lab {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .character-lab {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .char-select-panel {
+      background: #fae4b5;
+      border: 4px solid #633816;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .char-card-btn {
+      background: #ecd1a1;
+      border: 3px solid #875023;
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .char-card-btn:hover {
+      background: #fae1b3;
+    }
+
+    .char-card-btn.active {
+      background: #478c3b;
+      color: #fff;
+      border-color: #a4f598;
+    }
+
+    .char-card-btn canvas {
+      width: 50px;
+      height: 70px;
+      background: #2e180b;
+      border: 2px solid #573014;
+      image-rendering: pixelated;
+      border-radius: 4px;
+    }
+
+    .char-card-btn .char-info h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+
+    .char-card-btn .char-info p {
+      font-size: 17px;
+      opacity: 0.85;
+    }
+
+    .action-keys-box {
+      background: #e2c086;
+      border: 2px dashed #73431a;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    .action-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .char-stage-container {
+      background: #231206;
+      border: 4px solid #5a3416;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    #stage-canvas {
+      background: #4c6e33;
+      border: 3px solid #140903;
+      border-radius: 4px;
+      image-rendering: pixelated;
+      max-width: 100%;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+    }
+
+    /* SECCIÓN 4: COMPENDIO DE ÍTEMS */
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .item-card {
+      background: #fae4b5;
+      border: 3px solid #6e4019;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: inset 1px 1px 0 #fff, 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.15s;
+    }
+
+    .item-card:hover {
+      transform: translateY(-3px);
+      border-color: #9c5c24;
+    }
+
+    .item-card canvas {
+      width: 56px;
+      height: 56px;
+      background: #2d180c;
+      border: 2px solid #573117;
+      border-radius: 6px;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .item-desc h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: #4a2207;
+      margin-bottom: 4px;
+    }
+
+    .item-desc .tag {
+      font-size: 16px;
+      color: #176326;
+      font-weight: bold;
+    }
+
+    .item-desc .price {
+      font-size: 18px;
+      color: #9e6400;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #180b03;
+      border-top: 3px solid #361b07;
+      padding: 12px 20px;
+      text-align: center;
+      font-size: 18px;
+      color: #9e7f5e;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="title-group">
+      <span class="title-icon">🌾</span>
+      <div>
+        <h1>STARDEW VALLEY TILEMAP & SPRITESHEET</h1>
+        <div class="sub-title">16-bit Cozy Pastoral RPG Asset Pack • El Barrio Az</div>
+      </div>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-atlas">🗺️ ATLAS & CÓDIGO</button>
+      <button class="tab-btn" data-tab="tab-painter">🎨 FARM BUILDER</button>
+      <button class="tab-btn" data-tab="tab-characters">🏃 PERSONAJES</button>
+      <button class="tab-btn" data-tab="tab-items">🎒 ÍTEMS & COSECHAS</button>
+    </nav>
+
+    <div class="header-actions">
+      <a href="assets/stardew_tilemap_complete.png" download="stardew_tilemap_complete.png" class="btn-wood">
+        ⬇️ DESCARGAR PNG
+      </a>
+      <a href="assets/stardew_tilemap_atlas.json" download="stardew_tilemap_atlas.json" class="btn-wood">
+        📄 DESCARGAR JSON
+      </a>
+      <a href="index.html" class="btn-wood" style="background: linear-gradient(180deg, #3f8f29 0%, #205c12 100%);">
+        🎮 IR AL JUEGO
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main>
+    <!-- TAB 1: ATLAS & EXPLORADOR -->
+    <div id="tab-atlas" class="tab-content active">
+      <div class="stardew-frame">
+        <div class="spritesheet-layout">
+          <!-- Canvas de vista -->
+          <div class="canvas-card">
+            <div class="spritesheet-canvas-wrapper">
+              <canvas id="spritesheet-view" width="1024" height="1024"></canvas>
+            </div>
+            <p class="canvas-hint">💡 Haz clic o pasa el mouse sobre cualquier sector para inspeccionar coordenadas exactas.</p>
+          </div>
+
+          <!-- Barra lateral informativa -->
+          <div class="sidebar-info">
+            <div class="info-box">
+              <h3>🔍 4 CUADRANTES MAESTROS</h3>
+              <div class="quadrant-grid">
+                <button class="quadrant-btn active" data-q="all">TODOS</button>
+                <button class="quadrant-btn" data-q="terrain">1: TERRENOS</button>
+                <button class="quadrant-btn" data-q="props">2: PROPS & ÁRBOLES</button>
+                <button class="quadrant-btn" data-q="items">3: COSECHAS & ÍTEMS</button>
+                <button class="quadrant-btn" data-q="characters">4: PERSONAJES</button>
+              </div>
+            </div>
+
+            <div class="info-box">
+              <h3>🎯 ELEMENTO SELECCIONADO</h3>
+              <div class="selected-tile-preview">
+                <canvas id="tile-inspector-canvas" width="64" height="64"></canvas>
+                <div class="tile-meta">
+                  <strong id="inspector-name">Césped Silvestre</strong>
+                  <span id="inspector-coords">X: 10, Y: 60, W: 60, H: 60</span><br>
+                  <span id="inspector-cat">Categoría: Terreno (Walkable)</span>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px;">
+                <span style="font-size: 17px; font-weight: bold; color: #5a2e0a;">CÓDIGO DE RECORTE (Canvas / Phaser):</span>
+                <div class="code-snippet" id="inspector-code">ctx.drawImage(spritesheet, 10, 60, 60, 60, destX, destY, 32, 32);</div>
+              </div>
+            </div>
+
+            <div class="info-box">
+              <h3>📊 ESPECIFICACIONES TÉCNICAS</h3>
+              <ul style="list-style: none; font-size: 18px; line-height: 1.5; color: #422108;">
+                <li>• <strong>Resolución Total:</strong> 1024 x 1024 px</li>
+                <li>• <strong>Formato:</strong> PNG RGBA (Compatible Web / Godot / Unity / Phaser)</li>
+                <li>• <strong>Estilo:</strong> Pixel Art 16-bit Cozy Pastoral</li>
+                <li>• <strong>Cuadrantes:</strong> 512 x 512 px por categoría</li>
+                <li>• <strong>Atlas JSON:</strong> Incluido en <code>public/assets/</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: FARM BUILDER / TILEMAP PAINTER -->
+    <div id="tab-painter" class="tab-content">
+      <div class="stardew-frame">
+        <div class="painter-layout">
+          <!-- Paleta de Tiles -->
+          <div class="palette-box">
+            <div class="palette-title">🌱 TERRENOS</div>
+            <div class="palette-grid" id="palette-terrains"></div>
+
+            <div class="palette-title">🌳 NATURALEZA Y OBJETOS</div>
+            <div class="palette-grid" id="palette-props"></div>
+
+            <div class="palette-title">🥕 COSECHAS Y COMIDA</div>
+            <div class="palette-grid" id="palette-crops"></div>
+          </div>
+
+          <!-- Lienzo de la granja interactiva -->
+          <div class="farm-canvas-container">
+            <div class="painter-toolbar">
+              <div class="tools-left">
+                <button class="tool-btn active" id="btn-tool-brush">🖌️ PINTAR</button>
+                <button class="tool-btn" id="btn-tool-bucket">🪣 RELLENAR CÉSPED</button>
+                <button class="tool-btn" id="btn-tool-clear">🧹 LIMPIAR</button>
+              </div>
+              <div>
+                <button class="tool-btn" id="btn-export-farm" style="background:#478c3b; color:#fff;">💾 EXPORTAR MAPA (PNG)</button>
+              </div>
+            </div>
+
+            <canvas id="farm-canvas" width="768" height="576"></canvas>
+            <p style="margin-top: 10px; font-size: 18px; color: #e8caa0;">
+              💡 Haz clic o arrastra para pintar. ¡Puedes crear tu granja personalizada estilo Stardew Valley!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ANIMACIÓN DE PERSONAJES -->
+    <div id="tab-characters" class="tab-content">
+      <div class="stardew-frame">
+        <div class="character-lab">
+          <!-- Panel de selección de personaje -->
+          <div class="char-select-panel">
+            <div class="char-card-btn active" id="char-btn-farmer1">
+              <canvas id="thumb-farmer1" width="45" height="90"></canvas>
+              <div class="char-info">
+                <h4>GRANJERO 1</h4>
+                <p>Sombrero de paja y overol de granja azul clásico.</p>
+              </div>
+            </div>
+
+            <div class="char-card-btn" id="char-btn-farmer2">
+              <canvas id="thumb-farmer2" width="45" height="90"></canvas>
+              <div class="char-info">
+                <h4>GRANJERA 2</h4>
+                <p>Bandana roja y chaqueta de exploradora rural.</p>
+              </div>
+            </div>
+
+            <div class="action-keys-box">
+              <strong style="color: #4a2206;">🎮 CONTROLES:</strong><br>
+              • <strong>Flechas / WASD:</strong> Mover personaje<br>
+              • <strong>Espacio / Botones:</strong> Usar herramienta
+            </div>
+
+            <div class="action-btn-row">
+              <button class="tool-btn" id="btn-char-axe">🪓 TALAR / HACHA</button>
+              <button class="tool-btn" id="btn-char-water">💧 REGADERA</button>
+              <button class="tool-btn" id="btn-char-hoe">⛏️ AZADÓN</button>
+              <button class="tool-btn" id="btn-char-idle">🧍 REPOSO</button>
+            </div>
+          </div>
+
+          <!-- Escenario de prueba interactivo -->
+          <div class="char-stage-container">
+            <canvas id="stage-canvas" width="720" height="480"></canvas>
+            <p style="margin-top: 10px; font-size: 19px; color: #e8caa0;">
+              Usa las teclas de flecha o los botones para ver las animaciones de caminata y acciones de campo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: COMPENDIO DE ÍTEMS -->
+    <div id="tab-items" class="tab-content">
+      <div class="stardew-frame">
+        <h2 style="font-family:'Press Start 2P', monospace; font-size: 13px; color: #50270a; margin-bottom: 15px;">
+          📦 COMPENDIO DE RECURSOS, CULTIVOS Y HERRAMIENTAS
+        </h2>
+        <div class="items-grid" id="items-compendium"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    🌾 El Barrio Az • Pixel Art Stardew Valley Asset Studio • Generado para desarrollo en Canvas, Phaser y Motores 2D
+  </footer>
+
+  <script>
+    // CARGAR IMAGEN DEL SPRITESHEET MAESTRO
+    const spritesheet = new Image();
+    spritesheet.src = 'assets/stardew_tilemap_complete.png';
+
+    let atlasData = null;
+
+    // TABS NAVEGACIÓN
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const targetTab = document.getElementById(btn.getAttribute('data-tab'));
+        if (targetTab) targetTab.classList.add('active');
+
+        if (btn.getAttribute('data-tab') === 'tab-painter') initFarmPainter();
+        if (btn.getAttribute('data-tab') === 'tab-characters') initCharacterLab();
+      });
+    });
+
+    // CARGAR ATLAS JSON
+    fetch('assets/stardew_tilemap_atlas.json')
+      .then(res => res.json())
+      .then(data => {
+        atlasData = data;
+        onAtlasLoaded();
+      })
+      .catch(err => {
+        console.error('Error cargando atlas:', err);
+      });
+
+    function onAtlasLoaded() {
+      initSpritesheetViewer();
+      initPalette();
+      initItemsCompendium();
+      initCharacterLab();
+    }
+
+    // ==========================================
+    // 1. VISOR DE SPRITESHEET Y ATLAS
+    // ==========================================
+    const sprCanvas = document.getElementById('spritesheet-view');
+    const sprCtx = sprCanvas.getContext('2d');
+    const inspCanvas = document.getElementById('tile-inspector-canvas');
+    const inspCtx = inspCanvas.getContext('2d');
+    let activeQuadrant = 'all';
+
+    function initSpritesheetViewer() {
+      spritesheet.onload = () => {
+        drawSpritesheetGrid();
+        selectTile(atlasData.terrains[0]);
+      };
+      if (spritesheet.complete) {
+        drawSpritesheetGrid();
+        selectTile(atlasData.terrains[0]);
+      }
+
+      sprCanvas.addEventListener('click', (e) => {
+        const rect = sprCanvas.getBoundingClientRect();
+        const scaleX = sprCanvas.width / rect.width;
+        const scaleY = sprCanvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+
+        // Buscar elemento en el atlas
+        const allItems = [
+          ...atlasData.terrains,
+          ...atlasData.props,
+          ...atlasData.items
+        ];
+
+        let found = null;
+        for (const item of allItems) {
+          if (clickX >= item.x && clickX <= item.x + item.w &&
+              clickY >= item.y && clickY <= item.y + item.h) {
+            found = item;
+            break;
+          }
+        }
+
+        if (found) {
+          selectTile(found);
+        } else {
+          // Crear un tile genérico de 32x32 alrededor del click
+          const tileX = Math.floor(clickX / 32) * 32;
+          const tileY = Math.floor(clickY / 32) * 32;
+          selectTile({
+            name: `Tile Libre (${tileX}, ${tileY})`,
+            x: tileX,
+            y: tileY,
+            w: 32,
+            h: 32,
+            tags: ["custom"]
+          });
+        }
+      });
+
+      // Filtro de cuadrantes
+      document.querySelectorAll('.quadrant-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.quadrant-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeQuadrant = btn.getAttribute('data-q');
+          drawSpritesheetGrid();
+        });
+      });
+    }
+
+    function drawSpritesheetGrid() {
+      sprCtx.clearRect(0, 0, 1024, 1024);
+      sprCtx.imageSmoothingEnabled = false;
+      sprCtx.drawImage(spritesheet, 0, 0);
+
+      // Resaltar según cuadrante
+      sprCtx.lineWidth = 3;
+      if (activeQuadrant === 'all') {
+        sprCtx.strokeStyle = 'rgba(255, 230, 0, 0.4)';
+        sprCtx.strokeRect(2, 2, 508, 508);
+        sprCtx.strokeRect(514, 2, 508, 508);
+        sprCtx.strokeRect(2, 514, 508, 508);
+        sprCtx.strokeRect(514, 514, 508, 508);
+      } else if (activeQuadrant === 'terrain') {
+        sprCtx.fillStyle = 'rgba(0,0,0,0.6)';
+        sprCtx.fillRect(512, 0, 512, 1024);
+        sprCtx.fillRect(0, 512, 512, 512);
+      } else if (activeQuadrant === 'props') {
+        sprCtx.fillStyle = 'rgba(0,0,0,0.6)';
+        sprCtx.fillRect(0, 0, 512, 1024);
+        sprCtx.fillRect(512, 512, 512, 512);
+      } else if (activeQuadrant === 'items') {
+        sprCtx.fillStyle = 'rgba(0,0,0,0.6)';
+        sprCtx.fillRect(512, 0, 512, 1024);
+        sprCtx.fillRect(0, 0, 512, 512);
+      } else if (activeQuadrant === 'characters') {
+        sprCtx.fillStyle = 'rgba(0,0,0,0.6)';
+        sprCtx.fillRect(0, 0, 512, 1024);
+        sprCtx.fillRect(512, 0, 512, 512);
+      }
+    }
+
+    function selectTile(tile) {
+      document.getElementById('inspector-name').innerText = tile.name;
+      document.getElementById('inspector-coords').innerText = `X: ${tile.x}, Y: ${tile.y}, W: ${tile.w}, H: ${tile.h}`;
+      document.getElementById('inspector-cat').innerText = `Tags: ${(tile.tags || [tile.type || 'prop']).join(', ')}`;
+      document.getElementById('inspector-code').innerText =
+        `// Dibujar en Canvas:\nctx.drawImage(spritesheet, ${tile.x}, ${tile.y}, ${tile.w}, ${tile.h}, dx, dy, ${tile.w}, ${tile.h});`;
+
+      // Dibujar en inspector pequeño
+      inspCtx.clearRect(0, 0, 64, 64);
+      inspCtx.imageSmoothingEnabled = false;
+      inspCtx.drawImage(spritesheet, tile.x, tile.y, tile.w, tile.h, 4, 4, 56, 56);
+    }
+
+    // ==========================================
+    // 2. FARM BUILDER / TILEMAP PAINTER
+    // ==========================================
+    const farmCanvas = document.getElementById('farm-canvas');
+    const farmCtx = farmCanvas.getContext('2d');
+    farmCtx.imageSmoothingEnabled = false;
+
+    const TILE_SIZE = 48; // en pantalla
+    const COLS = 16;
+    const ROWS = 12;
+    let farmGrid = [];
+    let selectedPaletteItem = null;
+    let isPainting = false;
+
+    function initFarmPainter() {
+      if (farmGrid.length === 0) {
+        // Inicializar con césped
+        for (let r = 0; r < ROWS; r++) {
+          farmGrid[r] = [];
+          for (let c = 0; c < COLS; c++) {
+            farmGrid[r][c] = { tile: atlasData.terrains[0] };
+          }
+        }
+      }
+      renderFarm();
+    }
+
+    function initPalette() {
+      const pTerrains = document.getElementById('palette-terrains');
+      const pProps = document.getElementById('palette-props');
+      const pCrops = document.getElementById('palette-crops');
+
+      pTerrains.innerHTML = '';
+      pProps.innerHTML = '';
+      pCrops.innerHTML = '';
+
+      atlasData.terrains.forEach((t, i) => createPaletteBtn(pTerrains, t, i === 0));
+      atlasData.props.forEach(p => createPaletteBtn(pProps, p, false));
+      atlasData.items.forEach(c => createPaletteBtn(pCrops, c, false));
+    }
+
+    function createPaletteBtn(container, item, isDefault) {
+      const div = document.createElement('div');
+      div.className = 'palette-item' + (isDefault ? ' selected' : '');
+      div.title = item.name;
+
+      const c = document.createElement('canvas');
+      c.width = 32;
+      c.height = 32;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+
+      const drawThumb = () => {
+        ctx.drawImage(spritesheet, item.x, item.y, item.w, item.h, 0, 0, 32, 32);
+      };
+      if (spritesheet.complete) drawThumb();
+      else spritesheet.addEventListener('load', drawThumb);
+
+      div.appendChild(c);
+
+      div.addEventListener('click', () => {
+        document.querySelectorAll('.palette-item').forEach(el => el.classList.remove('selected'));
+        div.classList.add('selected');
+        selectedPaletteItem = item;
+      });
+
+      if (isDefault) selectedPaletteItem = item;
+      container.appendChild(div);
+    }
+
+    function renderFarm() {
+      farmCtx.clearRect(0, 0, farmCanvas.width, farmCanvas.height);
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = farmGrid[r][c];
+          if (cell && cell.tile) {
+            farmCtx.drawImage(
+              spritesheet,
+              cell.tile.x, cell.tile.y, cell.tile.w, cell.tile.h,
+              c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE
+            );
+          }
+        }
+      }
+
+      // Cuadrícula sutil
+      farmCtx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+      farmCtx.lineWidth = 1;
+      for (let c = 0; c <= COLS; c++) {
+        farmCtx.beginPath();
+        farmCtx.moveTo(c * TILE_SIZE, 0);
+        farmCtx.lineTo(c * TILE_SIZE, farmCanvas.height);
+        farmCtx.stroke();
+      }
+      for (let r = 0; r <= ROWS; r++) {
+        farmCtx.beginPath();
+        farmCtx.moveTo(0, r * TILE_SIZE);
+        farmCtx.lineTo(farmCanvas.width, r * TILE_SIZE);
+        farmCtx.stroke();
+      }
+    }
+
+    function paintAtEvent(e) {
+      if (!selectedPaletteItem) return;
+      const rect = farmCanvas.getBoundingClientRect();
+      const scaleX = farmCanvas.width / rect.width;
+      const scaleY = farmCanvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      const col = Math.floor(x / TILE_SIZE);
+      const row = Math.floor(y / TILE_SIZE);
+
+      if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+        farmGrid[row][col] = { tile: selectedPaletteItem };
+        renderFarm();
+      }
+    }
+
+    farmCanvas.addEventListener('mousedown', (e) => {
+      isPainting = true;
+      paintAtEvent(e);
+    });
+
+    window.addEventListener('mouseup', () => isPainting = false);
+
+    farmCanvas.addEventListener('mousemove', (e) => {
+      if (isPainting) paintAtEvent(e);
+    });
+
+    // Herramientas
+    document.getElementById('btn-tool-brush').addEventListener('click', (e) => {
+      document.querySelectorAll('.painter-toolbar .tool-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+    });
+
+    document.getElementById('btn-tool-bucket').addEventListener('click', () => {
+      const grass = atlasData.terrains[0];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          farmGrid[r][c] = { tile: grass };
+        }
+      }
+      renderFarm();
+    });
+
+    document.getElementById('btn-tool-clear').addEventListener('click', () => {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          farmGrid[r][c] = { tile: null };
+        }
+      }
+      renderFarm();
+    });
+
+    document.getElementById('btn-export-farm').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'mi_granja_stardew.png';
+      link.href = farmCanvas.toDataURL();
+      link.click();
+    });
+
+    // ==========================================
+    // 3. LABORATORIO DE PERSONAJES Y ANIMACIONES
+    // ==========================================
+    const stageCanvas = document.getElementById('stage-canvas');
+    const stageCtx = stageCanvas.getContext('2d');
+    stageCtx.imageSmoothingEnabled = false;
+
+    let selectedCharKey = 'farmer_hat';
+    let playerX = 360;
+    let playerY = 240;
+    let playerDir = 'down';
+    let currentAnimAction = 'idle';
+    let walkStep = 0;
+    const keysDown = {};
+
+    function initCharacterLab() {
+      // Dibujar miniaturas en botones
+      drawCharThumb('thumb-farmer1', atlasData.characters[0].frames.down_idle);
+      drawCharThumb('thumb-farmer2', atlasData.characters[1].frames.down_idle);
+
+      document.getElementById('char-btn-farmer1').addEventListener('click', () => {
+        document.getElementById('char-btn-farmer1').classList.add('active');
+        document.getElementById('char-btn-farmer2').classList.remove('active');
+        selectedCharKey = 'farmer_hat';
+      });
+
+      document.getElementById('char-btn-farmer2').addEventListener('click', () => {
+        document.getElementById('char-btn-farmer2').classList.add('active');
+        document.getElementById('char-btn-farmer1').classList.remove('active');
+        selectedCharKey = 'farmer_bandana';
+      });
+
+      // Botones de acción rápida
+      document.getElementById('btn-char-axe').addEventListener('click', () => triggerAction('axe'));
+      document.getElementById('btn-char-water').addEventListener('click', () => triggerAction('water'));
+      document.getElementById('btn-char-hoe').addEventListener('click', () => triggerAction('hoe'));
+      document.getElementById('btn-char-idle').addEventListener('click', () => currentAnimAction = 'idle');
+
+      requestAnimationFrame(stageLoop);
+    }
+
+    function drawCharThumb(canvasId, frame) {
+      const c = document.getElementById(canvasId);
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      const render = () => {
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.drawImage(spritesheet, frame.x, frame.y, frame.w, frame.h, 0, 0, c.width, c.height);
+      };
+      if (spritesheet.complete) render();
+      else spritesheet.addEventListener('load', render);
+    }
+
+    function triggerAction(action) {
+      currentAnimAction = action;
+      setTimeout(() => {
+        currentAnimAction = 'idle';
+      }, 1200);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      keysDown[e.key] = true;
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        triggerAction('axe');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      delete keysDown[e.key];
+    });
+
+    function stageLoop() {
+      updateStage();
+      renderStage();
+      requestAnimationFrame(stageLoop);
+    }
+
+    function updateStage() {
+      let vx = 0;
+      let vy = 0;
+      const speed = 3.2;
+
+      if (keysDown['ArrowUp'] || keysDown['w'] || keysDown['W']) { vy -= speed; playerDir = 'up'; }
+      if (keysDown['ArrowDown'] || keysDown['s'] || keysDown['S']) { vy += speed; playerDir = 'down'; }
+      if (keysDown['ArrowLeft'] || keysDown['a'] || keysDown['A']) { vx -= speed; playerDir = 'side_left'; }
+      if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) { vx += speed; playerDir = 'side_right'; }
+
+      const isMoving = vx !== 0 || vy !== 0;
+      if (isMoving) {
+        walkStep += 0.2;
+        playerX = Math.max(50, Math.min(stageCanvas.width - 50, playerX + vx));
+        playerY = Math.max(50, Math.min(stageCanvas.height - 50, playerY + vy));
+        if (currentAnimAction === 'idle') {
+          currentAnimAction = 'walk';
+        }
+      } else if (currentAnimAction === 'walk') {
+        currentAnimAction = 'idle';
+      }
+    }
+
+    function renderStage() {
+      stageCtx.clearRect(0, 0, stageCanvas.width, stageCanvas.height);
+
+      // Fondo de granja con césped y camino
+      const grass = atlasData ? atlasData.terrains[0] : null;
+      const path = atlasData ? atlasData.terrains[4] : null;
+
+      if (grass && spritesheet.complete) {
+        for (let x = 0; x < stageCanvas.width; x += 48) {
+          for (let y = 0; y < stageCanvas.height; y += 48) {
+            stageCtx.drawImage(spritesheet, grass.x, grass.y, grass.w, grass.h, x, y, 48, 48);
+          }
+        }
+        // Camino de piedra en el centro
+        for (let x = 0; x < stageCanvas.width; x += 48) {
+          stageCtx.drawImage(spritesheet, path.x, path.y, path.w, path.h, x, 240, 48, 48);
+        }
+      }
+
+      // Dibujar decoraciones (Árbol, Roca, Cofre)
+      if (atlasData && atlasData.props && spritesheet.complete) {
+        const tree = atlasData.props[0]; // roble
+        stageCtx.drawImage(spritesheet, tree.x, tree.y, tree.w, tree.h, 80, 50, 110, 140);
+        const chest = atlasData.props[8]; // cofre oro
+        stageCtx.drawImage(spritesheet, chest.x, chest.y, chest.w, chest.h, 550, 150, 60, 60);
+      }
+
+      // Sombra del jugador
+      stageCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      stageCtx.beginPath();
+      stageCtx.ellipse(playerX, playerY + 38, 20, 9, 0, 0, Math.PI * 2);
+      stageCtx.fill();
+
+      // Resolver frame del personaje
+      const charConfig = atlasData.characters.find(c => c.id === selectedCharKey);
+      if (!charConfig || !spritesheet.complete) return;
+
+      let frame = charConfig.frames.down_idle;
+
+      if (currentAnimAction === 'axe') {
+        frame = charConfig.frames.axe_action || charConfig.frames.watering;
+      } else if (currentAnimAction === 'water') {
+        frame = charConfig.frames.watering;
+      } else if (currentAnimAction === 'hoe') {
+        frame = charConfig.frames.hoe_action || charConfig.frames.watering;
+      } else if (currentAnimAction === 'walk') {
+        const isStep1 = Math.floor(walkStep) % 2 === 0;
+        if (playerDir === 'up') {
+          frame = isStep1 ? charConfig.frames.up_walk1 : charConfig.frames.up_walk2;
+        } else if (playerDir === 'down') {
+          frame = isStep1 ? charConfig.frames.down_walk1 : charConfig.frames.down_walk2;
+        } else {
+          frame = isStep1 ? charConfig.frames.side_walk1 : charConfig.frames.side_walk2;
+        }
+      } else {
+        if (playerDir === 'up') frame = charConfig.frames.up_idle;
+        else if (playerDir === 'down') frame = charConfig.frames.down_idle;
+        else frame = charConfig.frames.side_idle;
+      }
+
+      const flip = playerDir === 'side_left';
+
+      stageCtx.save();
+      stageCtx.translate(playerX, playerY);
+      if (flip) stageCtx.scale(-1, 1);
+
+      stageCtx.drawImage(
+        spritesheet,
+        frame.x, frame.y, frame.w, frame.h,
+        -frame.w / 2, -frame.h / 2, frame.w, frame.h
+      );
+      stageCtx.restore();
+    }
+
+    // ==========================================
+    // 4. COMPENDIO DE ÍTEMS Y COSECHAS
+    // ==========================================
+    function initItemsCompendium() {
+      const container = document.getElementById('items-compendium');
+      container.innerHTML = '';
+
+      const allCollectibles = [
+        ...atlasData.items,
+        ...atlasData.props.filter(p => p.type === 'tool' || p.type === 'storage' || p.type === 'chest')
+      ];
+
+      allCollectibles.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+
+        const c = document.createElement('canvas');
+        c.width = 48;
+        c.height = 48;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        const drawIcon = () => {
+          ctx.drawImage(spritesheet, item.x, item.y, item.w, item.h, 2, 2, 44, 44);
+        };
+        if (spritesheet.complete) drawIcon();
+        else spritesheet.addEventListener('load', drawIcon);
+
+        const desc = document.createElement('div');
+        desc.className = 'item-desc';
+        desc.innerHTML = `
+          <h4>${item.name}</h4>
+          <span class="tag">🏷️ ${item.category || item.type || 'objeto'}</span>
+          <span class="price">${item.value ? '💰 ' + item.value + 'g' : '🛠️ Equipo Granjero'}</span>
+        `;
+
+        card.appendChild(c);
+        card.appendChild(desc);
+        container.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
