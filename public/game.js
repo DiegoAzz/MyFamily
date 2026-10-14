@@ -3,7 +3,8 @@
 // Motor 3D WebGL con Three.js estilo Temple Run:
 // Perspectiva en 3ra persona sobre el puente del templo,
 // diamantes dorados giratorios, enredaderas selváticas,
-// controles de 3 carriles y cero frustración para niños de 4 años.
+// colisiones reales con vidas (¡si no saltas te caes y pierdes!),
+// controles táctiles gigantes y didáctica para niños de 4 años.
 // ==============================================================
 
 (function() {
@@ -12,12 +13,12 @@
   // CONFIGURACIÓN DEL JUEGO
   const CONFIG = {
     laneWidth: 2.1,          // Distancia entre los 3 carriles (-2.1, 0, +2.1)
-    baseSpeed: 18.0,          // Velocidad del corredor
-    maxSpeed: 28.0,
-    speedIncrement: 0.003,
-    gravity: 34.0,           // Gravedad del salto
-    jumpVelocity: 14.0,      // Altura del salto
-    chunkLength: 40,         // Longitud de cada segmento de puente 3D
+    baseSpeed: 17.0,         // Velocidad inicial agradable
+    maxSpeed: 26.0,
+    speedIncrement: 0.0025,
+    gravity: 36.0,           // Gravedad de salto
+    jumpVelocity: 14.5,      // Altura para saltar troncos y rocas
+    chunkLength: 40,         // Longitud de cada segmento del templo
     numChunks: 7             // Chunks activos simultáneamente
   };
 
@@ -29,14 +30,15 @@
     speed: CONFIG.baseSpeed,
     currentLane: 0,          // -1: Izquierda, 0: Centro, 1: Derecha
     targetX: 0,
-    hearts: 3,
+    hearts: 3,               // 3 Vidas reales: Si choca, ¡pierde un corazón y si llega a 0 muere!
     soundEnabled: true,
     voiceEnabled: true,
-    speedMode: 'gentle',     // 'gentle' | 'fast'
-    powerup: null,           // { type: 'magnet'|'wings'|'shield', duration: 400, maxDuration: 400 }
+    speedMode: 'gentle',
+    powerup: null,           // { type: 'magnet'|'shield', duration: 400, maxDuration: 400 }
     isSliding: false,
     slideTimer: 0,
-    invincibleTimer: 0
+    invincibleTimer: 0,      // Parpadeo tras tropezar
+    isFallen: false          // Caída por Game Over
   };
 
   // Frases didácticas en español
@@ -47,7 +49,7 @@
 
   const PRAISES = [
     '¡Increíble, Diego!', '¡Súper explorador!', '¡Qué rápido eres!',
-    '¡Eres un campeón!', '¡Bravo Diego Jr!', '¡Excelente!'
+    '¡Eres un campeón!', '¡Bravo Diego Jr!', '¡Excelente salto!'
   ];
 
   // REFERENCIAS DOM
@@ -79,6 +81,12 @@
     btnToggleVoice: document.getElementById('btn-toggle-voice'),
     btnToggleSpeed: document.getElementById('btn-toggle-speed'),
 
+    gameoverScreen: document.getElementById('gameover-screen'),
+    gameoverCoins: document.getElementById('gameover-coins'),
+    gameoverDistance: document.getElementById('gameover-distance'),
+    btnGameoverRetry: document.getElementById('btn-gameover-retry'),
+    btnGameoverMenu: document.getElementById('btn-gameover-menu'),
+
     celebrationScreen: document.getElementById('celebration-screen'),
     recapCoins: document.getElementById('recap-coins'),
     recapDistance: document.getElementById('recap-distance'),
@@ -101,7 +109,7 @@
     }
   }
 
-  // Sonido de Diamante Dorado (Idéntico brillo de Temple Run)
+  // Sonido de Diamante Dorado
   const COIN_CHORD = [587.33, 659.25, 783.99, 880.00, 1046.50];
   function playCoinSound(index = 0) {
     if (!state.soundEnabled) return;
@@ -137,20 +145,20 @@
     const gain = audioCtx.createGain();
 
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(240, now);
-    osc.frequency.exponentialRampToValueAtTime(520, now + 0.18);
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(560, now + 0.2);
 
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start(now);
-    osc.stop(now + 0.2);
+    osc.stop(now + 0.22);
   }
 
-  // Sonido de Tambor del Templo al deslizarse
-  function playSlideSound() {
+  // Sonido de Choque / Tropiezo con obstáculo
+  function playCrashSound() {
     if (!state.soundEnabled) return;
     initAudio();
     if (!audioCtx) return;
@@ -161,42 +169,39 @@
 
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(140, now);
-    osc.frequency.linearRampToValueAtTime(80, now + 0.2);
+    osc.frequency.linearRampToValueAtTime(50, now + 0.35);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start(now);
-    osc.stop(now + 0.2);
+    osc.stop(now + 0.35);
   }
 
-  // Rebote divertido al chocar (Sin muerte)
-  function playBoingSound() {
+  // Sonido de Derrota / Game Over
+  function playGameOverSound() {
     if (!state.soundEnabled) return;
     initAudio();
     if (!audioCtx) return;
 
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(180, now);
-    osc.frequency.linearRampToValueAtTime(360, now + 0.12);
-    osc.frequency.linearRampToValueAtTime(150, now + 0.25);
-
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.25);
+    const notes = [329.63, 293.66, 261.63, 196.00];
+    notes.forEach((freq, idx) => {
+      const t = audioCtx.currentTime + idx * 0.16;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.22);
+    });
   }
 
-  // Voz didáctica en español
   function speak(text) {
     if (!state.voiceEnabled) return;
     try {
@@ -216,14 +221,28 @@
     } catch (e) {}
   }
 
-  function vibrate(ms = 30) {
+  function vibrate(ms = 35) {
     if (navigator.vibrate) {
       try { navigator.vibrate(ms); } catch (e) {}
     }
   }
 
+  // Actualizar indicador de corazones en el HUD
+  function updateHeartsHud() {
+    const h = state.hearts;
+    let html = '';
+    for (let i = 0; i < 3; i++) {
+      if (i < h) {
+        html += '<span class="heart-pulse">❤️</span>';
+      } else {
+        html += '<span class="heart-pulse" style="opacity: 0.25; filter: grayscale(1);">💔</span>';
+      }
+    }
+    dom.hudHearts.innerHTML = html;
+  }
+
   // ==============================================================
-  // 2. TEXTURAS PROCEDURALES EN CANVAS (100% LIBRE DE 404)
+  // 2. TEXTURAS PROCEDURALES EN CANVAS (ALTA FIDELIDAD)
   // ==============================================================
   function createStoneBridgeTexture() {
     const c = document.createElement('canvas');
@@ -235,7 +254,7 @@
     ctx.fillStyle = '#b48a52';
     ctx.fillRect(0, 0, 512, 512);
 
-    // Baldosas de piedra tallada
+    // Baldosas de piedra tallada con relieve pronunciado
     const rows = 8;
     const cols = 4;
     const rh = 512 / rows;
@@ -247,21 +266,25 @@
         const x = col * cw + offset;
         const y = r * rh;
 
-        // Tonalidad de piedra
-        const shade = Math.floor(180 + Math.random() * 40);
-        ctx.fillStyle = `rgb(${shade}, ${shade * 0.78}, ${shade * 0.45})`;
-        ctx.fillRect(x + 3, y + 3, cw - 6, rh - 6);
+        // Tonalidad de piedra cálida
+        const shade = Math.floor(190 + Math.random() * 45);
+        ctx.fillStyle = `rgb(${shade}, ${shade * 0.76}, ${shade * 0.42})`;
+        ctx.fillRect(x + 4, y + 4, cw - 8, rh - 8);
 
-        // Borde biselado
-        ctx.strokeStyle = '#6d4c20';
-        ctx.lineWidth = 3;
+        // Bisel superior iluminado
+        ctx.fillStyle = 'rgba(255, 245, 210, 0.35)';
+        ctx.fillRect(x + 4, y + 4, cw - 8, 4);
+
+        // Borde profundo entre baldosas
+        ctx.strokeStyle = '#4e3312';
+        ctx.lineWidth = 4;
         ctx.strokeRect(x + 2, y + 2, cw - 4, rh - 4);
 
-        // Manchas de musgo verde selvático
-        if (Math.random() < 0.3) {
-          ctx.fillStyle = 'rgba(45, 106, 63, 0.45)';
+        // Manchas de musgo verde de la selva
+        if (Math.random() < 0.35) {
+          ctx.fillStyle = 'rgba(34, 100, 50, 0.55)';
           ctx.beginPath();
-          ctx.arc(x + cw * 0.4, y + rh * 0.5, 12 + Math.random() * 10, 0, Math.PI * 2);
+          ctx.arc(x + cw * 0.45, y + rh * 0.55, 14 + Math.random() * 12, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -279,19 +302,19 @@
     c.height = 256;
     const ctx = c.getContext('2d');
 
-    ctx.fillStyle = '#5c3a21';
+    ctx.fillStyle = '#4a2c14';
     ctx.fillRect(0, 0, 256, 256);
 
     for (let i = 0; i < 8; i++) {
       const y = i * 32;
-      ctx.fillStyle = i % 2 === 0 ? '#724728' : '#54341d';
-      ctx.fillRect(0, y + 2, 256, 28);
+      ctx.fillStyle = i % 2 === 0 ? '#633c1c' : '#45270f';
+      ctx.fillRect(0, y + 3, 256, 26);
 
-      // Remaches de cuerda / metal
-      ctx.fillStyle = '#22150c';
+      // Clavos y textura
+      ctx.fillStyle = '#1c0f05';
       ctx.beginPath();
-      ctx.arc(14, y + 16, 3, 0, Math.PI * 2);
-      ctx.arc(242, y + 16, 3, 0, Math.PI * 2);
+      ctx.arc(16, y + 16, 3, 0, Math.PI * 2);
+      ctx.arc(240, y + 16, 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -305,22 +328,22 @@
   // 3. MOTOR THREE.JS Y ESCENA 3D
   // ==============================================================
   let scene, camera, renderer;
-  let playerGroup, playerAnim = { legL: null, legR: null, armL: null, armR: null, hat: null };
+  let playerGroup, playerAnim = { legL: null, legR: null, armL: null, armR: null, hat: null, body: null };
   let chunks = [];
   let coins = [];
   let obstacles = [];
-  let particles3D = [];
+  let cameraShake = 0;
 
   let stoneTex, woodTex;
-  let stoneMat, woodMat, goldMat, obstacleMat;
+  let stoneMat, woodMat, goldMat, trunkMat, totemMat;
 
   function initThree() {
-    // 1. Escena con niebla tropical profunda
+    // 1. Escena con niebla tropical de templo
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x225566);
-    scene.fog = new THREE.FogExp2(0x225566, 0.016);
+    scene.background = new THREE.Color(0x1a454d);
+    scene.fog = new THREE.FogExp2(0x1a454d, 0.014);
 
-    // 2. Cámara (Perspectiva idéntica a Temple Run: detrás del personaje)
+    // 2. Cámara en tercera persona detrás de Diego Jr
     const aspect = window.innerWidth / window.innerHeight;
     camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 400);
     camera.position.set(0, 3.8, 6.2);
@@ -336,28 +359,28 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
 
-    // 4. Iluminación ambiental y solar
-    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.7);
+    // 4. Luces ambientales y solar
+    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.75);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
-    sunLight.position.set(15, 30, 20);
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.0);
+    sunLight.position.set(16, 32, 22);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
     scene.add(sunLight);
 
-    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x1b4d2e, 0.5);
+    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x1b4d2e, 0.55);
     scene.add(hemiLight);
 
-    // 5. Materiales compartidos
+    // 5. Materiales
     stoneTex = createStoneBridgeTexture();
     woodTex = createWoodPlankTexture();
 
     stoneMat = new THREE.MeshStandardMaterial({
       map: stoneTex,
-      roughness: 0.75,
-      metalness: 0.15
+      roughness: 0.7,
+      metalness: 0.12
     });
 
     woodMat = new THREE.MeshStandardMaterial({
@@ -365,23 +388,28 @@
       roughness: 0.85
     });
 
-    // Diamante Dorado de Temple Run (Brillo oro radiante)
+    // Diamante Dorado con resplandor oro (idéntico a Temple Run)
     goldMat = new THREE.MeshStandardMaterial({
       color: 0xffcc00,
-      emissive: 0x996600,
-      metalness: 0.9,
-      roughness: 0.15
+      emissive: 0xb37700,
+      metalness: 0.95,
+      roughness: 0.12
     });
 
-    obstacleMat = new THREE.MeshStandardMaterial({
+    trunkMat = new THREE.MeshStandardMaterial({
+      color: 0x5c3317,
+      roughness: 0.85
+    });
+
+    totemMat = new THREE.MeshStandardMaterial({
       color: 0x78350f,
-      roughness: 0.8
+      roughness: 0.75
     });
 
     // 6. Construir al personaje Diego Jr Explorador
     buildDiegoJr();
 
-    // 7. Generar segmentos iniciales del puente
+    // 7. Generar segmentos de pista
     initTrackChunks();
 
     window.addEventListener('resize', onWindowResize);
@@ -394,40 +422,43 @@
   }
 
   // ==============================================================
-  // 4. MODELO 3D PROCEDURAL: DIEGO JR EXPLORADOR (4 AÑOS)
+  // 4. MODELO 3D: DIEGO JR EXPLORADOR (4 AÑOS)
   // ==============================================================
   function buildDiegoJr() {
     playerGroup = new THREE.Group();
 
-    // 1. Torso con camisa de explorador safari y correaje
-    const bodyGeo = new THREE.BoxGeometry(0.75, 0.85, 0.5);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe5d0ba }); // Camisa beige safari
+    // 1. Torso con camisa de explorador
+    const bodyGeo = new THREE.BoxGeometry(0.76, 0.85, 0.52);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe5d0ba });
     const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     bodyMesh.position.y = 1.05;
+    bodyMesh.castShadow = true;
     playerGroup.add(bodyMesh);
+    playerAnim.body = bodyMesh;
 
-    // Bandolera / Mochila cruzada de explorador
-    const strapGeo = new THREE.BoxGeometry(0.8, 0.12, 0.54);
+    // Bandolera cruzada
+    const strapGeo = new THREE.BoxGeometry(0.82, 0.12, 0.56);
     const strapMat = new THREE.MeshStandardMaterial({ color: 0x5c3317 });
     const strapMesh = new THREE.Mesh(strapGeo, strapMat);
     strapMesh.position.y = 1.05;
     strapMesh.rotation.z = 0.55;
     playerGroup.add(strapMesh);
 
-    // Bolso de explorador en la cadera
+    // Bolso en la cadera
     const bagGeo = new THREE.BoxGeometry(0.32, 0.35, 0.22);
     const bagMesh = new THREE.Mesh(bagGeo, strapMat);
-    bagMesh.position.set(-0.42, 0.85, 0.05);
+    bagMesh.position.set(-0.44, 0.85, 0.05);
     playerGroup.add(bagMesh);
 
-    // 2. Cabeza redonda sonriente de Diego Jr
+    // 2. Cabeza de Diego Jr
     const headGeo = new THREE.SphereGeometry(0.36, 16, 16);
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd2a5, roughness: 0.6 });
     const headMesh = new THREE.Mesh(headGeo, skinMat);
     headMesh.position.y = 1.72;
+    headMesh.castShadow = true;
     playerGroup.add(headMesh);
 
-    // Ojos brillantes
+    // Ojos
     const eyeGeo = new THREE.SphereGeometry(0.06, 8, 8);
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
     const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
@@ -437,22 +468,19 @@
     playerGroup.add(eyeL);
     playerGroup.add(eyeR);
 
-    // 3. Sombrero Fedora de Explorador (Igual a Temple Run / Indiana Jones)
+    // 3. Sombrero Fedora de Explorador (Temple Run)
     const hatGroup = new THREE.Group();
-    // Ala ancha del sombrero
-    const brimGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.04, 20);
+    const brimGeo = new THREE.CylinderGeometry(0.72, 0.72, 0.04, 20);
     const hatMat = new THREE.MeshStandardMaterial({ color: 0x6e4726, roughness: 0.8 });
     const brimMesh = new THREE.Mesh(brimGeo, hatMat);
     brimMesh.position.y = 1.95;
     hatGroup.add(brimMesh);
 
-    // Copa del sombrero
     const crownGeo = new THREE.CylinderGeometry(0.38, 0.44, 0.32, 16);
     const crownMesh = new THREE.Mesh(crownGeo, hatMat);
     crownMesh.position.y = 2.1;
     hatGroup.add(crownMesh);
 
-    // Cinta de cuero del sombrero
     const bandGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.08, 16);
     const bandMat = new THREE.MeshStandardMaterial({ color: 0x2b1708 });
     const bandMesh = new THREE.Mesh(bandGeo, bandMat);
@@ -476,7 +504,7 @@
     playerGroup.add(armR);
     playerAnim.armR = armR;
 
-    // 5. Piernas con pantalones cortos y botas de explorador
+    // 5. Piernas y botas
     const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
     legGeo.translate(0, -0.35, 0);
     const pantsMat = new THREE.MeshStandardMaterial({ color: 0x4a2e19 });
@@ -502,13 +530,12 @@
     bootR.position.set(0, -0.68, -0.06);
     legR.add(bootR);
 
-    // Posición inicial de Diego Jr
     playerGroup.position.set(0, 0, 0);
     scene.add(playerGroup);
   }
 
   // ==============================================================
-  // 5. GENERADOR DE PUENTES DEL TEMPLO (CHUNKS 3D ENDLESS)
+  // 5. CHUNKS DEL TEMPLO (ENDLESS RUNNER 3D)
   // ==============================================================
   function createBridgeChunk(zPos, isWoodBridge = false) {
     const chunk = new THREE.Group();
@@ -517,14 +544,14 @@
     const len = CONFIG.chunkLength;
     const width = 6.4;
 
-    // 1. Suelo del puente
+    // Suelo
     const floorGeo = new THREE.BoxGeometry(width, 1.2, len);
     const floorMesh = new THREE.Mesh(floorGeo, isWoodBridge ? woodMat : stoneMat);
     floorMesh.position.y = -0.6;
     floorMesh.receiveShadow = true;
     chunk.add(floorMesh);
 
-    // 2. Muros y almenas de piedra a los lados (Idénticos al screenshot)
+    // Muros laterales
     const wallGeo = new THREE.BoxGeometry(0.55, 1.1, len);
     const wallL = new THREE.Mesh(wallGeo, stoneMat);
     wallL.position.set(-width / 2 + 0.25, 0.45, 0);
@@ -536,7 +563,7 @@
     wallR.castShadow = true;
     chunk.add(wallR);
 
-    // Bloques almenados decorativos a lo largo de las paredes
+    // Almenas decorativas
     const blockGeo = new THREE.BoxGeometry(0.65, 0.45, 1.2);
     for (let bz = -len / 2 + 2; bz < len / 2; bz += 3.5) {
       const blkL = new THREE.Mesh(blockGeo, stoneMat);
@@ -548,37 +575,37 @@
       chunk.add(blkR);
     }
 
-    // 3. Pilares del templo y árboles selváticos en el abismo
-    const pillarGeo = new THREE.CylinderGeometry(1.4, 1.8, 45, 12);
-    const p1 = new THREE.Mesh(pillarGeo, stoneMat);
-    p1.position.set(-width / 2 - 0.5, -22, -len * 0.3);
-    chunk.add(p1);
-
-    const p2 = new THREE.Mesh(pillarGeo, stoneMat);
-    p2.position.set(width / 2 + 0.5, -22, len * 0.3);
-    chunk.add(p2);
-
-    // Árboles y palmeras a los costados
-    createJungleTree(chunk, -width - 4, -8, -len * 0.25);
-    createJungleTree(chunk, width + 4, -8, len * 0.25);
+    // Palmeras y vegetación tropical en el abismo
+    createTropicalPalm(chunk, -width - 4.5, -8, -len * 0.25);
+    createTropicalPalm(chunk, width + 4.5, -8, len * 0.25);
 
     scene.add(chunk);
     return chunk;
   }
 
-  function createJungleTree(parent, x, y, z) {
-    const trunkGeo = new THREE.CylinderGeometry(0.6, 1.0, 16, 8);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2c14, roughness: 0.9 });
-    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-    trunk.position.set(x, y + 8, z);
-    parent.add(trunk);
+  // Palmeras tropicales detalladas con hojas arqueadas
+  function createTropicalPalm(parent, x, y, z) {
+    const treeGroup = new THREE.Group();
+    treeGroup.position.set(x, y, z);
 
-    // Copa de hojas verdes tropicales
-    const leavesGeo = new THREE.SphereGeometry(3.5, 8, 8);
-    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x1b4d2e, roughness: 0.7 });
-    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-    leaves.position.set(x, y + 17, z);
-    parent.add(leaves);
+    // Tronco curvado
+    const trunkGeo = new THREE.CylinderGeometry(0.55, 0.95, 18, 8);
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 9;
+    treeGroup.add(trunk);
+
+    // Hojas en abanico
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x1b4d2e, roughness: 0.6 });
+    for (let i = 0; i < 7; i++) {
+      const leafGeo = new THREE.ConeGeometry(1.6, 6.5, 4);
+      leafGeo.rotateX(Math.PI / 2.8);
+      const leaf = new THREE.Mesh(leafGeo, leafMat);
+      leaf.position.set(0, 18, 0);
+      leaf.rotation.y = (i / 7) * Math.PI * 2;
+      treeGroup.add(leaf);
+    }
+
+    parent.add(treeGroup);
   }
 
   function initTrackChunks() {
@@ -588,7 +615,6 @@
       const chk = createBridgeChunk(z, isWood);
       chunks.push({ group: chk, z: z });
 
-      // Generar diamantes dorados y obstáculos a lo largo del camino
       if (i > 0) {
         spawnCoinsOnChunk(z);
         spawnObstacleOnChunk(z);
@@ -597,14 +623,11 @@
   }
 
   // ==============================================================
-  // 6. DIAMANTES DORADOS GIRATORIOS Y OBSTÁCULOS AMIGABLES
+  // 6. DIAMANTES DORADOS GIRATORIOS Y OBSTÁCULOS REALES
   // ==============================================================
-
-  // Crear la moneda con forma de DIAMANTE ROMBO (idéntica a Temple Run)
   function createDiamondCoin(x, y, z) {
-    // Octaedro escalado para darle la forma perfecta de diamante romboidal
     const geo = new THREE.OctahedronGeometry(0.42, 0);
-    geo.scale(1.0, 1.45, 0.45); // Forma alargada de rombo
+    geo.scale(1.0, 1.45, 0.45);
 
     const mesh = new THREE.Mesh(geo, goldMat);
     mesh.position.set(x, y, z);
@@ -618,11 +641,9 @@
   }
 
   function spawnCoinsOnChunk(chunkZ) {
-    // Escoger un carril al azar (-1, 0, 1) para la línea de diamantes
     const lane = Math.floor(Math.random() * 3) - 1;
     const laneX = lane * CONFIG.laneWidth;
 
-    // Fila de 5 diamantes seguidos (como en la foto de Temple Run)
     const count = 5;
     const spacing = 2.4;
     const startZ = chunkZ + (CONFIG.chunkLength / 2) - 8;
@@ -634,37 +655,54 @@
     }
   }
 
+  // Obstáculos que EXIGEN interacción (saltar o esquivar)
   function spawnObstacleOnChunk(chunkZ) {
-    if (Math.random() < 0.35) return; // No saturar para niños de 4 años
-
     const lane = Math.floor(Math.random() * 3) - 1;
     const laneX = lane * CONFIG.laneWidth;
-    const z = chunkZ - (CONFIG.chunkLength * 0.25);
+    const z = chunkZ - (CONFIG.chunkLength * 0.28);
 
-    // Obstáculo: Tronco antiguo de piedra o pequeña barrera
-    const obsGeo = new THREE.BoxGeometry(1.6, 0.65, 0.8);
-    const obsMesh = new THREE.Mesh(obsGeo, obstacleMat);
-    obsMesh.position.set(laneX, 0.35, z);
-    obsMesh.castShadow = true;
-    scene.add(obsMesh);
+    const type = Math.random() < 0.5 ? 'hurdle' : 'totem';
+
+    let mesh;
+    let height = 0.65;
+
+    if (type === 'hurdle') {
+      // Tronco caído / valla de piedra (¡TIENES QUE SALTARLO!)
+      const geo = new THREE.CylinderGeometry(0.35, 0.35, 2.0, 8);
+      geo.rotateZ(Math.PI / 2);
+      mesh = new THREE.Mesh(geo, trunkMat);
+      mesh.position.set(laneX, 0.35, z);
+      height = 0.65;
+    } else {
+      // Tótem / Pilar alto de piedra (¡TIENES QUE ESQUIVARLO CAMBIANDO DE CARRIL!)
+      const geo = new THREE.BoxGeometry(1.2, 2.2, 1.2);
+      mesh = new THREE.Mesh(geo, totemMat);
+      mesh.position.set(laneX, 1.1, z);
+      height = 2.2;
+    }
+
+    mesh.castShadow = true;
+    scene.add(mesh);
 
     obstacles.push({
-      mesh: obsMesh,
+      mesh: mesh,
       x: laneX,
       z: z,
+      type: type,
+      height: height,
       cleared: false
     });
   }
 
   // ==============================================================
-  // 7. FÍSICAS DE MOVIMIENTO Y CONTROL (DIEGO JR)
+  // 7. FÍSICAS DE MOVIMIENTO Y CONTROL (SIN AUTO-SALTO)
   // ==============================================================
   let playerY = 0;
   let playerVy = 0;
   let isGrounded = true;
 
   function handleLaneChange(dir) {
-    if (!state.running || state.paused) return;
+    if (!state.running || state.paused || state.isFallen) return;
 
     state.currentLane = Math.max(-1, Math.min(1, state.currentLane + dir));
     state.targetX = state.currentLane * CONFIG.laneWidth;
@@ -674,7 +712,7 @@
   }
 
   function handleJump() {
-    if (!state.running || state.paused) return;
+    if (!state.running || state.paused || state.isFallen) return;
 
     if (isGrounded) {
       playerVy = CONFIG.jumpVelocity;
@@ -684,17 +722,55 @@
     }
   }
 
-  function handleSlide() {
-    if (!state.running || state.paused) return;
+  // ==============================================================
+  // 8. COLISIONES REALES Y SISTEMA DE VIDAS (GAME OVER)
+  // ==============================================================
+  function handleObstacleCrash() {
+    if (state.invincibleTimer > 0 || state.isFallen) return;
 
-    state.isSliding = true;
-    state.slideTimer = 28; // ~0.5 segundos de deslizamiento
-    playSlideSound();
-    vibrate(30);
+    playCrashSound();
+    vibrate(70);
+    cameraShake = 0.55;
+
+    // Perder un corazón
+    state.hearts--;
+    updateHeartsHud();
+
+    if (state.hearts <= 0) {
+      // ¡SE ACABARON LAS VIDAS! -> GAME OVER REAL
+      triggerGameOver();
+    } else {
+      // Tropiezo temporal con invulnerabilidad
+      state.invincibleTimer = 80; // ~1.3 segundos de parpadeo
+      speak(state.hearts === 1 ? '¡Cuidado Diego! ¡Te queda una vida!' : '¡Ay! ¡Tropezaste!');
+    }
+  }
+
+  function triggerGameOver() {
+    state.isFallen = true;
+    state.running = false;
+
+    // Animación de caída hacia adelante
+    playerAnim.body.rotation.x = Math.PI / 2.2;
+    playerAnim.hat.position.z = -1.2; // El sombrero sale rodando
+    playerY = 0.2;
+
+    playGameOverSound();
+    speak('¡Oh no! ¡Te has caído, Diego! ¡Inténtalo de nuevo!');
+
+    setTimeout(() => {
+      dom.gameHud.classList.add('hidden');
+      dom.touchControls.classList.add('hidden');
+      dom.powerupBanner.classList.add('hidden');
+
+      dom.gameoverCoins.textContent = state.coins;
+      dom.gameoverDistance.textContent = `${Math.floor(state.distance)}m`;
+      dom.gameoverScreen.classList.remove('hidden');
+    }, 1100);
   }
 
   // ==============================================================
-  // 8. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA (60 FPS)
+  // 9. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA (60 FPS)
   // ==============================================================
   let clock = new THREE.Clock();
 
@@ -703,11 +779,11 @@
 
     const delta = clock.getDelta();
 
-    if (state.running && !state.paused) {
+    if (state.running && !state.paused && !state.isFallen) {
       updateGame(delta);
     }
 
-    // Rotar diamantes dorados continuamente (efecto radiante)
+    // Rotar diamantes dorados continuamente
     const time = Date.now() * 0.003;
     for (let i = 0; i < coins.length; i++) {
       const c = coins[i];
@@ -721,22 +797,29 @@
   }
 
   function updateGame(delta) {
-    // 1. Avanzar la velocidad y distancia
+    // 1. Distancia
     state.distance += state.speed * delta;
     dom.hudDistance.textContent = `${Math.floor(state.distance)}m`;
-
-    if (state.speedMode === 'fast') {
-      state.speed = Math.min(CONFIG.maxSpeed, state.speed + CONFIG.speedIncrement);
-    }
 
     // 2. Movimiento suave entre carriles (Interpolación LERP)
     playerGroup.position.x += (state.targetX - playerGroup.position.x) * 14 * delta;
 
-    // Inclinación de la cámara al cambiar de carril (Sensación Temple Run)
+    // Inclinación dinámica de la cámara al cambiar de carril
     const rollAngle = (state.targetX - playerGroup.position.x) * 0.06;
     camera.rotation.z = -rollAngle;
 
-    // 3. Físicas de Salto y Gravedad
+    // Sacudida de cámara al chocar
+    if (cameraShake > 0) {
+      camera.position.x += (Math.random() - 0.5) * cameraShake;
+      camera.position.y += (Math.random() - 0.5) * cameraShake;
+      cameraShake *= 0.88;
+      if (cameraShake < 0.02) cameraShake = 0;
+    } else {
+      camera.position.x = playerGroup.position.x * 0.35;
+      camera.position.y = 3.8;
+    }
+
+    // 3. Físicas de Salto
     if (!isGrounded) {
       playerVy -= CONFIG.gravity * delta;
       playerY += playerVy * delta;
@@ -749,52 +832,42 @@
     }
     playerGroup.position.y = playerY;
 
-    // 4. Animación de Carrera de Diego Jr
-    const runCycle = Date.now() * 0.014 * (state.speed / 18);
+    // 4. Animación de Carrera
+    const runCycle = Date.now() * 0.014 * (state.speed / 17);
     if (isGrounded) {
-      if (state.isSliding) {
-        // Postura agachada
-        playerAnim.legL.rotation.x = -1.2;
-        playerAnim.legR.rotation.x = -1.2;
-        playerAnim.armL.rotation.x = 0.8;
-        playerAnim.armR.rotation.x = 0.8;
-        playerGroup.scale.set(1, 0.55, 1);
-        state.slideTimer--;
-        if (state.slideTimer <= 0) {
-          state.isSliding = false;
-          playerGroup.scale.set(1, 1, 1);
-        }
-      } else {
-        // Carrera normal alegre
-        playerAnim.legL.rotation.x = Math.sin(runCycle) * 0.75;
-        playerAnim.legR.rotation.x = -Math.sin(runCycle) * 0.75;
-        playerAnim.armL.rotation.x = -Math.sin(runCycle) * 0.75;
-        playerAnim.armR.rotation.x = Math.sin(runCycle) * 0.75;
-        playerAnim.hat.rotation.z = Math.sin(runCycle * 0.5) * 0.08;
-      }
+      playerAnim.legL.rotation.x = Math.sin(runCycle) * 0.75;
+      playerAnim.legR.rotation.x = -Math.sin(runCycle) * 0.75;
+      playerAnim.armL.rotation.x = -Math.sin(runCycle) * 0.75;
+      playerAnim.armR.rotation.x = Math.sin(runCycle) * 0.75;
+      playerAnim.hat.rotation.z = Math.sin(runCycle * 0.5) * 0.08;
     } else {
-      // Salto triunfal con brazos arriba
+      // Brazos arriba al saltar
       playerAnim.legL.rotation.x = 0.4;
       playerAnim.legR.rotation.x = -0.3;
       playerAnim.armL.rotation.x = -2.2;
       playerAnim.armR.rotation.x = -2.2;
     }
 
-    // 5. Mover los Chunks del puente hacia la cámara
+    // Parpadeo de invulnerabilidad tras choque
+    if (state.invincibleTimer > 0) {
+      state.invincibleTimer--;
+      playerGroup.visible = (Math.floor(state.invincibleTimer / 4) % 2 === 0);
+    } else {
+      playerGroup.visible = true;
+    }
+
+    // 5. Avance continuo
     const moveZ = state.speed * delta;
     playerGroup.position.z -= moveZ;
     camera.position.z = playerGroup.position.z + 6.2;
-    camera.position.x = playerGroup.position.x * 0.35;
 
-    // Reciclar chunks que quedan detrás
+    // Reciclar chunks
     for (let i = 0; i < chunks.length; i++) {
       const chk = chunks[i];
       if (chk.group.position.z > camera.position.z + 10) {
-        // Mover el chunk hacia el frente del camino infinito
         const farthestZ = Math.min(...chunks.map(c => c.group.position.z));
         chk.group.position.z = farthestZ - CONFIG.chunkLength;
 
-        // Nuevos diamantes y obstáculos en el segmento reciclado
         spawnCoinsOnChunk(chk.group.position.z);
         spawnObstacleOnChunk(chk.group.position.z);
       }
@@ -808,7 +881,7 @@
       const pPos = playerGroup.position;
       const cPos = coin.mesh.position;
 
-      // Efecto Imán: atrae diamantes hacia Diego Jr
+      // Imán
       if (state.powerup && state.powerup.type === 'magnet') {
         const dx = pPos.x - cPos.x;
         const dz = pPos.z - cPos.z;
@@ -818,7 +891,6 @@
 
       const dist = Math.hypot(pPos.x - cPos.x, pPos.z - cPos.z);
       if (dist < 1.3 && Math.abs(pPos.y + 0.9 - cPos.y) < 1.5) {
-        // ¡Diamante recogido!
         coin.collected = true;
         scene.remove(coin.mesh);
         coins.splice(i, 1);
@@ -828,7 +900,6 @@
         playCoinSound(state.coins);
         vibrate(20);
 
-        // Didáctica de números en voz alta cada número hasta 10, luego cada 10
         if (state.coins <= 10) {
           showDidacticFloat(state.coins, NUMBER_WORDS[state.coins]);
           speak(NUMBER_WORDS[state.coins]);
@@ -842,28 +913,25 @@
       }
     }
 
-    // 7. Colisión con Obstáculos (Amigable: Sin muerte súbita)
+    // 7. Colisiones con Obstáculos (¡SIN AUTO-SALTO!)
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
       if (obs.cleared) continue;
 
       const pPos = playerGroup.position;
-      const dist = Math.hypot(pPos.x - obs.x, pPos.z - obs.z);
+      const dx = Math.abs(pPos.x - obs.x);
+      const dz = Math.abs(pPos.z - obs.z);
 
-      if (dist < 1.1 && playerY < 0.6) {
-        obs.cleared = true;
-
-        if (state.powerup && state.powerup.type === 'shield') {
-          // Escudo rompe el obstáculo
-          playCoinSound(4);
-          speak('¡Escudo protector!');
+      // Si está en el mismo carril y a la misma altura longitudinal
+      if (dx < 1.0 && dz < 1.1) {
+        if (obs.type === 'hurdle' && playerY >= 0.8) {
+          // ¡Saltó con éxito por encima del tronco!
+          obs.cleared = true;
+          playJumpSound();
         } else {
-          // Choque suave: ¡Rebota, no muere!
-          playBoingSound();
-          vibrate(60);
-          playerVy = 10.0;
-          isGrounded = false;
-          speak('¡Cuidado con la piedra, Diego!');
+          // ¡NO SALTÓ NI CAMBIÓ DE CARRIL -> CHOCA Y PIERDE VIDA!
+          obs.cleared = true;
+          handleObstacleCrash();
         }
       } else if (obs.z > camera.position.z + 10) {
         scene.remove(obs.mesh);
@@ -871,7 +939,7 @@
       }
     }
 
-    // 8. Temporizador de Power-up
+    // 8. Power-up
     if (state.powerup) {
       state.powerup.duration--;
       const pct = (state.powerup.duration / state.powerup.maxDuration) * 100;
@@ -880,12 +948,10 @@
       if (state.powerup.duration <= 0) {
         state.powerup = null;
         dom.powerupBanner.classList.add('hidden');
-        speak('¡Sigue corriendo, Diego!');
       }
     }
   }
 
-  // Didáctica flotante
   function showDidacticFloat(num, word) {
     dom.didacticBigNum.textContent = num;
     dom.didacticWord.textContent = word;
@@ -898,65 +964,65 @@
   }
 
   // ==============================================================
-  // 9. FLUJO DEL JUEGO Y GESTIÓN DE EVENTOS
+  // 10. REINICIO Y GESTIÓN DE EVENTOS
   // ==============================================================
   function startGame() {
     state.running = true;
     state.paused = false;
+    state.isFallen = false;
     state.coins = 0;
     state.distance = 0;
     state.currentLane = 0;
     state.targetX = 0;
+    state.hearts = 3;
+    state.invincibleTimer = 0;
     state.speed = state.speedMode === 'gentle' ? CONFIG.baseSpeed : CONFIG.baseSpeed * 1.25;
 
+    // Restaurar postura de Diego Jr
     playerGroup.position.set(0, 0, 0);
+    playerAnim.body.rotation.x = 0;
+    playerAnim.hat.position.set(0, 0, 0);
     playerY = 0;
     playerVy = 0;
     isGrounded = true;
 
+    updateHeartsHud();
     dom.hudCoins.textContent = '0';
     dom.hudDistance.textContent = '0m';
 
     dom.menuScreen.classList.add('hidden');
+    dom.gameoverScreen.classList.add('hidden');
     dom.celebrationScreen.classList.add('hidden');
     dom.gameHud.classList.remove('hidden');
     dom.touchControls.classList.remove('hidden');
 
     initAudio();
-    speak('¡A correr por el templo! ¡Recoge los diamantes!');
+    speak('¡A correr por el templo! ¡Salta sobre los troncos para no caer!');
   }
 
-  function pauseGame() {
-    state.paused = !state.paused;
-    dom.btnPause.textContent = state.paused ? '▶' : '⏸';
-    if (state.paused) speak('Pausa');
-  }
-
-  function finishCelebration() {
-    state.running = false;
-    dom.gameHud.classList.add('hidden');
-    dom.touchControls.classList.add('hidden');
-    dom.powerupBanner.classList.add('hidden');
-
-    dom.recapCoins.textContent = state.coins;
-    dom.recapDistance.textContent = `${Math.floor(state.distance)}m`;
-    dom.celebrationScreen.classList.remove('hidden');
-
-    speak('¡Eres un gran explorador del templo, Diego Junior!');
-  }
-
-  // Configuración de controles táctiles, gestos y teclado
   function setupControls() {
-    // 1. Botones del Menú
+    // Botones de inicio y reintentar
     dom.btnStart.onclick = startGame;
+    dom.btnGameoverRetry.onclick = startGame;
     dom.btnPlayAgain.onclick = startGame;
+
+    dom.btnGameoverMenu.onclick = () => {
+      dom.gameoverScreen.classList.add('hidden');
+      dom.menuScreen.classList.remove('hidden');
+    };
+
     dom.btnMenuBack.onclick = () => {
       dom.celebrationScreen.classList.add('hidden');
       dom.menuScreen.classList.remove('hidden');
     };
-    dom.btnPause.onclick = pauseGame;
 
-    // 2. Botones de opciones
+    dom.btnPause.onclick = () => {
+      state.paused = !state.paused;
+      dom.btnPause.textContent = state.paused ? '▶' : '⏸';
+      if (state.paused) speak('Pausa');
+    };
+
+    // Botones de opciones
     dom.btnToggleSound.onclick = () => {
       state.soundEnabled = !state.soundEnabled;
       dom.btnToggleSound.textContent = state.soundEnabled ? '🔊 Sonido: ON' : '🔈 Sonido: OFF';
@@ -975,7 +1041,7 @@
       dom.btnToggleSpeed.textContent = state.speedMode === 'gentle' ? '🐢 Velocidad: Suave' : '🚀 Velocidad: Rápida';
     };
 
-    // 3. Botones táctiles gigantes en pantalla
+    // Controles táctiles en pantalla
     dom.btnTouchLeft.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       handleLaneChange(-1);
@@ -991,7 +1057,31 @@
       handleJump();
     });
 
-    // 4. Gestos de Swipe en la pantalla (como el auténtico Temple Run)
+    // Toque directo en la pantalla: izquierda cambia a izquierda, derecha cambia a derecha, arriba salta
+    dom.canvas.addEventListener('pointerdown', (e) => {
+      if (!state.running || state.paused || state.isFallen) return;
+
+      const screenW = window.innerWidth;
+      const screenH = window.innerHeight;
+      const x = e.clientX;
+      const y = e.clientY;
+
+      if (y < screenH * 0.65) {
+        // Tocar arriba salta
+        handleJump();
+      } else if (x < screenW * 0.4) {
+        // Tocar izquierda
+        handleLaneChange(-1);
+      } else if (x > screenW * 0.6) {
+        // Tocar derecha
+        handleLaneChange(1);
+      } else {
+        // Tocar centro
+        handleJump();
+      }
+    });
+
+    // Deslizar con el dedo (Swipe como Temple Run auténtico)
     let touchStartX = 0;
     let touchStartY = 0;
 
@@ -1006,18 +1096,15 @@
       const dx = touchEndX - touchStartX;
       const dy = touchEndY - touchStartY;
 
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35) {
-        // Deslizar izquierda / derecha
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
         if (dx > 0) handleLaneChange(1);
         else handleLaneChange(-1);
-      } else if (Math.abs(dy) > 35) {
-        // Deslizar arriba (saltar) / abajo (deslizar)
-        if (dy < 0) handleJump();
-        else handleSlide();
+      } else if (dy < -30) {
+        handleJump();
       }
     }, { passive: true });
 
-    // 5. Teclado de computadora
+    // Teclado
     window.addEventListener('keydown', (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
         handleLaneChange(-1);
@@ -1026,16 +1113,10 @@
       } else if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
         e.preventDefault();
         handleJump();
-      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-        e.preventDefault();
-        handleSlide();
-      } else if (e.code === 'KeyP') {
-        pauseGame();
       }
     });
   }
 
-  // Iniciar al cargar
   document.addEventListener('DOMContentLoaded', () => {
     initThree();
     setupControls();

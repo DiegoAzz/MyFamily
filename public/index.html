@@ -138,13 +138,51 @@
         </div>
 
         <div class="controls-hint">
-          <span>👈 <strong>Desliza o toca las flechas</strong> para moverte • <strong>Salta</strong> para flotar</span>
+          <span>👈 <strong>Toca las flechas</strong> para moverte • <strong>¡Tienes que SALTAR para no chocar!</strong></span>
         </div>
       </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- 3. PANTALLA DE CELEBRACIÓN / FIESTA DEL TEMPLO                 -->
+    <!-- 3. PANTALLA DE GAME OVER (CUANDO CHOCA Y PIERDE LAS VIDAS)     -->
+    <!-- ============================================================== -->
+    <div id="gameover-screen" class="ui-screen hidden">
+      <div class="celeb-box gameover-box">
+        <span class="celeb-sparkles">💥 💔 🤕 ⚠️</span>
+        <h2 class="celeb-title text-danger">¡OH NO! ¡TE HAS CAÍDO!</h2>
+        <p class="celeb-sub">¡Tropezaste con las rocas del templo! ¡Debes presionar <strong>SALTAR</strong> a tiempo!</p>
+
+        <div class="trophy-wrap">
+          <span class="giant-trophy">🤠💥</span>
+          <span class="trophy-badge badge-retry">¡NO TE RINDAS, DIEGO!</span>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-ico">🔶</span>
+            <span class="stat-lbl">Diamantes</span>
+            <span id="gameover-coins" class="stat-val">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-ico">🏃</span>
+            <span class="stat-lbl">Metros</span>
+            <span id="gameover-distance" class="stat-val">0m</span>
+          </div>
+        </div>
+
+        <div class="celeb-actions">
+          <button id="btn-gameover-retry" class="btn-giant-play btn-retry-bounce">
+            🔄 ¡VOLVER A INTENTARLO!
+          </button>
+          <button id="btn-gameover-menu" class="btn-pill-opt full-w">
+            🏠 Volver al Inicio
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 4. PANTALLA DE CELEBRACIÓN / FIESTA DEL TEMPLO                 -->
     <!-- ============================================================== -->
     <div id="celebration-screen" class="ui-screen hidden">
       <div class="celeb-box">
