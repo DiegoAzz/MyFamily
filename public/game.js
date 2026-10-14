@@ -334,8 +334,48 @@
   let obstacles = [];
   let cameraShake = 0;
 
+  // Configuración dinámica de cámara para celulares verticales y horizontales
+  const cameraConfig = {
+    baseY: 3.8,
+    offsetZ: 6.2,
+    lookY: 1.8,
+    lookAheadZ: -12
+  };
+
   let stoneTex, woodTex;
   let stoneMat, woodMat, goldMat, trunkMat, totemMat;
+
+  function updateCameraAspect() {
+    if (!camera || !renderer) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const aspect = w / h;
+
+    camera.aspect = aspect;
+
+    // En celulares verticales (portrait, aspect < 1.0):
+    // Ampliamos el FOV vertical y reposicionamos la cámara ligeramente atrás/arriba
+    // para abarcar los 3 carriles del puente y tener la perspectiva idéntica a Temple Run
+    if (aspect < 1.0) {
+      const extraFov = Math.min(14, (1.0 - aspect) * 18);
+      camera.fov = 76 + extraFov;
+      cameraConfig.baseY = 4.4;
+      cameraConfig.offsetZ = 7.2;
+      cameraConfig.lookY = 1.4;
+      cameraConfig.lookAheadZ = -14;
+    } else {
+      // Modo horizontal / Escritorio / Tablet
+      camera.fov = 62;
+      cameraConfig.baseY = 3.8;
+      cameraConfig.offsetZ = 6.2;
+      cameraConfig.lookY = 1.8;
+      cameraConfig.lookAheadZ = -12;
+    }
+
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  }
 
   function initThree() {
     // 1. Escena con niebla tropical de templo
@@ -344,20 +384,18 @@
     scene.fog = new THREE.FogExp2(0x1a454d, 0.014);
 
     // 2. Cámara en tercera persona detrás de Diego Jr
-    const aspect = window.innerWidth / window.innerHeight;
-    camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 400);
-    camera.position.set(0, 3.8, 6.2);
-    camera.lookAt(0, 1.8, -12);
+    camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 400);
 
-    // 3. Renderizador WebGL
+    // 3. Renderizador WebGL optimizado para GPUs móviles (60fps locked)
     renderer = new THREE.WebGLRenderer({
       canvas: dom.canvas,
       antialias: true,
       powerPreference: 'high-performance'
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+
+    // Ajustar resolución y FOV para la orientación actual
+    updateCameraAspect();
 
     // 4. Luces ambientales y solar
     const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.75);
@@ -412,13 +450,11 @@
     // 7. Generar segmentos de pista
     initTrackChunks();
 
-    window.addEventListener('resize', onWindowResize);
-  }
-
-  function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Adaptación a rotación de pantalla en móviles y redimensión
+    window.addEventListener('resize', updateCameraAspect);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(updateCameraAspect, 150);
+    });
   }
 
   // ==============================================================
@@ -793,6 +829,11 @@
       }
     }
 
+    // Mantener la cámara enfocada hacia el horizonte del puente
+    if (playerGroup) {
+      camera.lookAt(playerGroup.position.x * 0.25, cameraConfig.lookY, playerGroup.position.z + cameraConfig.lookAheadZ);
+    }
+
     renderer.render(scene, camera);
   }
 
@@ -816,7 +857,7 @@
       if (cameraShake < 0.02) cameraShake = 0;
     } else {
       camera.position.x = playerGroup.position.x * 0.35;
-      camera.position.y = 3.8;
+      camera.position.y = cameraConfig.baseY;
     }
 
     // 3. Físicas de Salto
@@ -859,7 +900,7 @@
     // 5. Avance continuo
     const moveZ = state.speed * delta;
     playerGroup.position.z -= moveZ;
-    camera.position.z = playerGroup.position.z + 6.2;
+    camera.position.z = playerGroup.position.z + cameraConfig.offsetZ;
 
     // Reciclar chunks
     for (let i = 0; i < chunks.length; i++) {
@@ -966,6 +1007,31 @@
   // ==============================================================
   // 10. REINICIO Y GESTIÓN DE EVENTOS
   // ==============================================================
+  function resetWorld() {
+    // 1. Limpiar monedas de la escena
+    for (let i = 0; i < coins.length; i++) {
+      if (coins[i] && coins[i].mesh) scene.remove(coins[i].mesh);
+    }
+    coins = [];
+
+    // 2. Limpiar obstáculos de la escena
+    for (let i = 0; i < obstacles.length; i++) {
+      if (obstacles[i] && obstacles[i].mesh) scene.remove(obstacles[i].mesh);
+    }
+    obstacles = [];
+
+    // 3. Resetear posición de los chunks desde el inicio (z = 0)
+    for (let i = 0; i < chunks.length; i++) {
+      const z = -i * CONFIG.chunkLength;
+      chunks[i].group.position.z = z;
+      chunks[i].z = z;
+      if (i > 0) {
+        spawnCoinsOnChunk(z);
+        spawnObstacleOnChunk(z);
+      }
+    }
+  }
+
   function startGame() {
     state.running = true;
     state.paused = false;
@@ -978,13 +1044,18 @@
     state.invincibleTimer = 0;
     state.speed = state.speedMode === 'gentle' ? CONFIG.baseSpeed : CONFIG.baseSpeed * 1.25;
 
-    // Restaurar postura de Diego Jr
+    resetWorld();
+
+    // Restaurar postura y cámara de Diego Jr
     playerGroup.position.set(0, 0, 0);
     playerAnim.body.rotation.x = 0;
     playerAnim.hat.position.set(0, 0, 0);
     playerY = 0;
     playerVy = 0;
     isGrounded = true;
+
+    camera.position.set(0, cameraConfig.baseY, cameraConfig.offsetZ);
+    camera.rotation.set(0, 0, 0);
 
     updateHeartsHud();
     dom.hudCoins.textContent = '0';
@@ -1041,70 +1112,81 @@
       dom.btnToggleSpeed.textContent = state.speedMode === 'gentle' ? '🐢 Velocidad: Suave' : '🚀 Velocidad: Rápida';
     };
 
-    // Controles táctiles en pantalla
+    // Controles táctiles en pantalla (botones físicos de pulgar para manos pequeñas)
     dom.btnTouchLeft.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleLaneChange(-1);
     });
 
     dom.btnTouchRight.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleLaneChange(1);
     });
 
     dom.btnTouchJump.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleJump();
     });
 
-    // Toque directo en la pantalla: izquierda cambia a izquierda, derecha cambia a derecha, arriba salta
+    // Control táctil directo en el canvas 3D (Soporta Deslizar/Swipe y Toques/Tap)
+    let touchStartX = 0;
+    let touchStartY = 0;
+
     dom.canvas.addEventListener('pointerdown', (e) => {
       if (!state.running || state.paused || state.isFallen) return;
+      touchStartX = e.clientX;
+      touchStartY = e.clientY;
+    });
 
+    dom.canvas.addEventListener('pointerup', (e) => {
+      if (!state.running || state.paused || state.isFallen) return;
+
+      const dx = e.clientX - touchStartX;
+      const dy = e.clientY - touchStartY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // Si el movimiento supera el umbral, se considera deslizamiento (Swipe)
+      if (Math.hypot(dx, dy) > 28) {
+        if (absDx > absDy) {
+          if (dx > 0) handleLaneChange(1);
+          else handleLaneChange(-1);
+        } else if (dy < -25) {
+          handleJump();
+        }
+        return;
+      }
+
+      // Si fue un toque rápido (Tap) en pantalla según coordenadas:
       const screenW = window.innerWidth;
       const screenH = window.innerHeight;
       const x = e.clientX;
       const y = e.clientY;
 
-      if (y < screenH * 0.65) {
-        // Tocar arriba salta
+      if (y < screenH * 0.58) {
+        // Mitad superior -> Salto
         handleJump();
-      } else if (x < screenW * 0.4) {
-        // Tocar izquierda
+      } else if (x < screenW * 0.38) {
+        // Lado izquierdo -> Mover a carril izquierdo
         handleLaneChange(-1);
-      } else if (x > screenW * 0.6) {
-        // Tocar derecha
+      } else if (x > screenW * 0.62) {
+        // Lado derecho -> Mover a carril derecho
         handleLaneChange(1);
       } else {
-        // Tocar centro
+        // Centro inferior -> Salto
         handleJump();
       }
     });
 
-    // Deslizar con el dedo (Swipe como Temple Run auténtico)
-    let touchStartX = 0;
-    let touchStartY = 0;
+    // Prevenir gestos predeterminados del navegador al arrastrar sobre el juego
+    dom.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
 
-    window.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-      touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      const touchEndX = e.changedTouches[0].screenX;
-      const touchEndY = e.changedTouches[0].screenY;
-      const dx = touchEndX - touchStartX;
-      const dy = touchEndY - touchStartY;
-
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
-        if (dx > 0) handleLaneChange(1);
-        else handleLaneChange(-1);
-      } else if (dy < -30) {
-        handleJump();
-      }
-    }, { passive: true });
-
-    // Teclado
+    // Teclado (para pruebas en PC)
     window.addEventListener('keydown', (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
         handleLaneChange(-1);
