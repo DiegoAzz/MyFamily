@@ -2,422 +2,247 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#141414">
-  <title>AzFlix - Prototipo de Streaming Estilo Netflix</title>
-  
-  <!-- Tipografías Google Fonts estilo Netflix -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#38bdf8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Super Diego Jr: Carrera Mágica 🌟</title>
+
+  <!-- Fuentes divertidas y legibles para niños -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Grandstander:wght@800;900&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="netflix-body">
+<body>
 
-  <!-- ============================================================== -->
-  <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR (STICKY NAVBAR)                 -->
-  <!-- ============================================================== -->
-  <header id="navbar" class="netflix-navbar">
-    <div class="nav-left">
-      <!-- Logo AzFlix con sonido Ta-dum al click -->
-      <a href="#" id="brand-logo" class="brand-logo" title="AzFlix - Inicio">
-        <span class="logo-red">AZ</span><span class="logo-white">FLIX</span>
-      </a>
+  <div id="game-wrapper">
 
-      <!-- Menú principal de navegación -->
-      <nav class="nav-links">
-        <button class="nav-item active" data-view="home">Inicio</button>
-        <button class="nav-item" data-view="series">Series</button>
-        <button class="nav-item" data-view="movies">Películas</button>
-        <button class="nav-item" data-view="trending">Novedades populares</button>
-        <button class="nav-item" data-view="mylist">Mi lista <span id="my-list-counter" class="badge-count hidden">0</span></button>
-      </nav>
-    </div>
-
-    <div class="nav-right">
-      <!-- Buscador en tiempo real expandible -->
-      <div id="search-box" class="search-box">
-        <button id="btn-toggle-search" class="search-btn" title="Buscar títulos, personas o géneros">
-          🔍
-        </button>
-        <input 
-          type="text" 
-          id="search-input" 
-          class="search-input" 
-          placeholder="Títulos, personas, géneros..."
-          autocomplete="off"
-        >
-        <button id="btn-clear-search" class="search-clear hidden">✖</button>
+    <!-- ============================================================== -->
+    <!-- 1. PANTALLA PRINCIPAL DE INICIO (MENU AMIGABLE DE DIEGO JR)    -->
+    <!-- ============================================================== -->
+    <div id="start-screen" class="ui-screen">
+      <div class="menu-decorations">
+        <span class="cloud-dec cloud-1">☁️</span>
+        <span class="cloud-dec cloud-2">🌈</span>
+        <span class="cloud-dec cloud-3">☀️</span>
+        <span class="cloud-dec cloud-4">⭐</span>
       </div>
 
-      <!-- Modo Niños Toggle -->
-      <button id="btn-kids-mode" class="kids-pill-btn" title="Alternar Modo Niños">
-        NIÑOS
+      <div class="start-card">
+        <div class="logo-box">
+          <span class="badge-kids">JUEGO PARA DIEGO JR (4 AÑOS)</span>
+          <h1 class="game-title">
+            SUPER DIEGO JR<br>
+            <span class="subtitle-fun">¡CARRERA MÁGICA! 🚀</span>
+          </h1>
+        </div>
+
+        <!-- Avatar previo animado de Diego Jr -->
+        <div class="avatar-preview-box" id="avatar-preview-container">
+          <canvas id="previewCanvas" width="160" height="180"></canvas>
+          <div class="suit-name-tag" id="preview-suit-name">Super Diego (Capa Roja)</div>
+        </div>
+
+        <!-- Botones de Acción del Menú -->
+        <div class="menu-buttons-col">
+          <button id="btn-start-game" class="btn-giant btn-play-bounce">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">¡A CORRER!</span>
+          </button>
+
+          <div class="menu-sub-row">
+            <button id="btn-open-closet" class="btn-secondary-squishy">
+              👕 Elegir Traje
+            </button>
+            <button id="btn-toggle-sound" class="btn-secondary-squishy">
+              🔊 Sonido: ON
+            </button>
+            <button id="btn-toggle-voice" class="btn-secondary-squishy active">
+              🗣️ Voz Didáctica: ON
+            </button>
+          </div>
+        </div>
+
+        <!-- Mensaje de bienvenida para Diego -->
+        <div class="welcome-badge">
+          ⭐ ¡Toca la pantalla para saltar y volar como un superhéroe! ⭐
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 2. HUD DEL JUEGO EN VIVO (DURANTE LA CARRERA)                  -->
+    <!-- ============================================================== -->
+    <header id="game-hud" class="hidden">
+      <!-- Contador de Estrellas -->
+      <div class="hud-pill hud-stars">
+        <span class="hud-emoji star-spin">⭐</span>
+        <span id="hud-star-count" class="hud-val">0</span>
+      </div>
+
+      <!-- Contador de Metros -->
+      <div class="hud-pill hud-distance">
+        <span class="hud-emoji">🏁</span>
+        <span id="hud-distance-val" class="hud-val">0m</span>
+      </div>
+
+      <!-- Corazones mágicos amigables -->
+      <div class="hud-pill hud-hearts" id="hud-hearts-container">
+        <span class="heart-icon">❤️</span>
+        <span class="heart-icon">❤️</span>
+        <span class="heart-icon">❤️</span>
+      </div>
+
+      <!-- Botón de pausa amigable -->
+      <button id="btn-pause" class="hud-btn-circle" title="Pausa">⏸</button>
+    </header>
+
+    <!-- Banner flotante de Power-up Activo -->
+    <div id="powerup-banner" class="powerup-alert hidden">
+      <span id="powerup-icon" class="powerup-big-icon">🚀</span>
+      <div class="powerup-texts">
+        <span id="powerup-title" class="powerup-title-text">¡COHETE MÁGICO!</span>
+        <div class="powerup-timer-bar">
+          <div id="powerup-fill" class="powerup-fill-inner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner de Aprendizaje Didáctico (Números y Colores en Grande) -->
+    <div id="didactic-toast" class="didactic-float hidden">
+      <span id="didactic-number" class="didactic-num">1</span>
+      <span id="didactic-word" class="didactic-text">¡UNO!</span>
+    </div>
+
+    <!-- Banner de Vitores Familiares en Tiempo Real (Socket.io) -->
+    <div id="family-cheer-banner" class="family-cheer hidden">
+      <span class="cheer-emoji" id="cheer-emoji">❤️</span>
+      <div class="cheer-texts">
+        <span class="cheer-sender" id="cheer-sender">Papá Diego te envió amor:</span>
+        <span class="cheer-msg" id="cheer-msg">¡Bravo Diego Jr! ¡Eres el mejor!</span>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 3. CANVAS DEL JUEGO (60 FPS PARALLAX & FÍSICAS SUAVES)         -->
+    <!-- ============================================================== -->
+    <main id="canvas-container">
+      <canvas id="gameCanvas"></canvas>
+    </main>
+
+    <!-- Botón táctil gigante en pantalla para móviles/tablets -->
+    <div id="touch-controls" class="touch-zone hidden">
+      <button id="btn-touch-jump" class="giant-jump-pill">
+        <span class="jump-rocket">🚀</span>
+        <span class="jump-label">¡SALTAR!</span>
       </button>
-
-      <!-- Campanita de notificaciones -->
-      <div class="dropdown-wrapper">
-        <button id="btn-notifications" class="icon-nav-btn" title="Notificaciones">
-          🔔
-          <span class="notif-badge">4</span>
-        </button>
-        <div id="dropdown-notifications" class="dropdown-menu notif-dropdown hidden">
-          <div class="dropdown-header">Notificaciones recientes</div>
-          <div id="notif-list" class="notif-list">
-            <!-- Cargado dinámicamente -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Menú de perfil de usuario -->
-      <div class="dropdown-wrapper">
-        <button id="btn-profile" class="profile-nav-btn" title="Perfil de usuario">
-          <img id="current-profile-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80" alt="Avatar" class="nav-avatar">
-          <span class="caret-arrow">▼</span>
-        </button>
-        <div id="dropdown-profile" class="dropdown-menu profile-dropdown hidden">
-          <div id="profiles-list" class="profiles-list">
-            <!-- Cargado dinámicamente -->
-          </div>
-          <div class="dropdown-divider"></div>
-          <button class="profile-action-btn" id="btn-account">⚙️ Cuenta y Configuración</button>
-          <button class="profile-action-btn" id="btn-help">❓ Centro de ayuda</button>
-          <div class="dropdown-divider"></div>
-          <button class="profile-action-btn text-danger" id="btn-logout">Cerrar sesión en AzFlix</button>
-        </div>
-      </div>
     </div>
-  </header>
 
-  <!-- ============================================================== -->
-  <!-- 2. HERO BILLBOARD (TÍTULO DESTACADO GIGANTE)                   -->
-  <!-- ============================================================== -->
-  <section id="billboard" class="hero-billboard">
-    <!-- Fondo cinemático -->
-    <div id="billboard-backdrop" class="billboard-backdrop"></div>
-    <div class="billboard-gradient-bottom"></div>
-    <div class="billboard-gradient-left"></div>
+    <!-- ============================================================== -->
+    <!-- 4. MODAL: EL VESTIDOR MÁGICO DE DIEGO JR                       -->
+    <!-- ============================================================== -->
+    <div id="modal-closet" class="modal-overlay hidden">
+      <div class="modal-card closet-card">
+        <div class="modal-header-fun">
+          <h2>👕 ¡Elige el Traje de Diego Jr!</h2>
+          <button id="btn-close-closet" class="btn-close-circle">✖</button>
+        </div>
 
-    <div class="billboard-content">
-      <!-- Badge de Original de la plataforma -->
-      <div class="hero-badge-row">
-        <span class="netflix-original-pill">
-          <strong class="n-red">N</strong> ORIGINAL
-        </span>
-        <span class="top10-hero-badge">
-          🏆 #1 en Películas Hoy
-        </span>
-      </div>
+        <p class="closet-desc">Toca tu traje favorito para correr hoy:</p>
 
-      <h1 id="hero-title" class="hero-title">STRANGER CODES: LA BRECHA</h1>
-      
-      <p id="hero-synopsis" class="hero-synopsis">
-        Cuando un programador desaparece sin dejar rastro, sus amigos descubren un portal a una dimensión cuántica dominada por inteligencias hostiles.
-      </p>
+        <div class="suits-grid">
+          <!-- Traje 1: Super Diego -->
+          <div class="suit-card active" data-suit="super_diego">
+            <span class="suit-badge-icon">🦸‍♂️</span>
+            <span class="suit-card-title">Super Diego</span>
+            <span class="suit-card-sub">Capa roja que ondea y planea</span>
+          </div>
 
-      <div class="hero-meta-row">
-        <span class="match-score">99% de coincidencia</span>
-        <span class="rating-badge">16+</span>
-        <span class="duration-badge">3 Temporadas</span>
-        <span class="quality-badge">4K Ultra HD</span>
-        <span class="audio-badge">5.1 Audio</span>
-      </div>
+          <!-- Traje 2: Astronauta -->
+          <div class="suit-card" data-suit="astronaut">
+            <span class="suit-badge-icon">🚀</span>
+            <span class="suit-card-title">Diego Astronauta</span>
+            <span class="suit-card-sub">Traje espacial con propulsor</span>
+          </div>
 
-      <div class="hero-buttons-row">
-        <button id="hero-btn-play" class="btn-hero-primary">
-          ▶ Reproducir
-        </button>
-        <button id="hero-btn-info" class="btn-hero-secondary">
-          ℹ Más información
+          <!-- Traje 3: Dinosaurio -->
+          <div class="suit-card" data-suit="dino">
+            <span class="suit-badge-icon">🦖</span>
+            <span class="suit-card-title">Dino Diego</span>
+            <span class="suit-card-sub">Disfraz tierno de tiranosaurio verde</span>
+          </div>
+
+          <!-- Traje 4: Rey Dorado -->
+          <div class="suit-card" data-suit="king">
+            <span class="suit-badge-icon">👑</span>
+            <span class="suit-card-title">Rey Diego</span>
+            <span class="suit-card-sub">Corona brillante y capa real púrpura</span>
+          </div>
+        </div>
+
+        <button id="btn-confirm-closet" class="btn-giant btn-confirm-suit">
+          ¡ME ENCANTA ESTE TRAJE! ⭐
         </button>
       </div>
     </div>
 
-    <!-- Controles laterales del Hero (Audio Mute & Rating tag) -->
-    <div class="billboard-side-controls">
-      <button id="hero-btn-mute" class="btn-side-mute" title="Activar/Silenciar sonido">
-        🔊
-      </button>
-      <span class="billboard-age-tag">16+</span>
-    </div>
-  </section>
+    <!-- ============================================================== -->
+    <!-- 5. PANTALLA DE FIESTA / CELEBRACIÓN DE ESTRELLAS               -->
+    <!-- ============================================================== -->
+    <div id="celebration-screen" class="ui-screen hidden">
+      <div class="celebration-card">
+        <div class="celebration-sparkles">🎉 🏆 🌟 🎈 🥳</div>
+        
+        <h2 class="celeb-title">¡ERES UN CAMPEÓN, DIEGO JR!</h2>
+        <p class="celeb-subtitle">¡Hiciste una carrera maravillosa!</p>
 
-  <!-- ============================================================== -->
-  <!-- 3. CONTENEDOR PRINCIPAL DE CONTENIDO Y CAROUSELS               -->
-  <!-- ============================================================== -->
-  <main id="main-content" class="main-content">
-    <!-- Vista de Resultados de Búsqueda (Se activa al buscar) -->
-    <section id="search-view" class="search-view-container hidden">
-      <div class="search-view-header">
-        <h2 class="search-title">Resultados para: <span id="search-term-display">""</span></h2>
-        <span id="search-count-display" class="search-count">0 títulos encontrados</span>
-      </div>
-      <div id="search-results-grid" class="content-grid">
-        <!-- Render dinámico -->
-      </div>
-    </section>
-
-    <!-- Vista de Mi Lista (Se activa al hacer click en 'Mi lista') -->
-    <section id="mylist-view" class="mylist-view-container hidden">
-      <div class="search-view-header">
-        <h2 class="search-title">Mi lista</h2>
-        <span id="mylist-count-display" class="search-count">0 títulos guardados</span>
-      </div>
-      <div id="mylist-grid" class="content-grid">
-        <!-- Render dinámico -->
-      </div>
-    </section>
-
-    <!-- Contenedor de Filas Horizontales (Home / Series / Películas) -->
-    <div id="rows-container" class="rows-container">
-      <!-- Se inyecta dinámicamente desde app.js -->
-    </div>
-  </main>
-
-  <!-- ============================================================== -->
-  <!-- 4. MODAL DE DETALLE COMPLETO (INFO MODAL / QUICK-VIEW)         -->
-  <!-- ============================================================== -->
-  <div id="modal-detail" class="modal-detail-overlay hidden">
-    <div class="modal-detail-wrapper">
-      <!-- Botón cerrar modal -->
-      <button id="modal-btn-close" class="modal-close-pill" title="Cerrar">✖</button>
-
-      <!-- Banner del modal -->
-      <div class="modal-header-banner">
-        <img id="modal-backdrop-img" src="" alt="Backdrop" class="modal-backdrop">
-        <div class="modal-banner-gradient"></div>
-
-        <div class="modal-banner-controls">
-          <h2 id="modal-title" class="modal-title">Título</h2>
-          <div class="modal-actions-row">
-            <button id="modal-btn-play" class="btn-hero-primary">
-              ▶ Reproducir
-            </button>
-            <button id="modal-btn-mylist" class="btn-circle-action" title="Agregar a mi lista">
-              +
-            </button>
-            <button id="modal-btn-like" class="btn-circle-action" title="Me gusta">
-              👍
-            </button>
-            <button id="modal-btn-share" class="btn-circle-action" title="Copiar enlace">
-              🔗
-            </button>
-          </div>
+        <!-- Copa / Medalla de Oro Giratoria -->
+        <div class="trophy-display">
+          <span class="giant-trophy">🥇</span>
+          <span class="ribbon-text">GRAN CAMPEÓN FAMILIAR</span>
         </div>
-      </div>
 
-      <!-- Cuerpo del modal -->
-      <div class="modal-body-content">
-        <div class="modal-info-grid">
-          <!-- Columna izquierda: Metadata & Sinopsis -->
-          <div class="modal-left-col">
-            <div class="modal-meta-line">
-              <span id="modal-match-score" class="match-score">98% de coincidencia</span>
-              <span id="modal-year" class="meta-tag">2026</span>
-              <span id="modal-rating" class="rating-badge">16+</span>
-              <span id="modal-duration" class="meta-tag">3 Temporadas</span>
-              <span class="quality-badge">4K Ultra HD</span>
-              <span class="audio-badge">Dolby Atmos</span>
-            </div>
-
-            <p id="modal-synopsis" class="modal-synopsis-text">
-              Sinopsis del contenido aquí...
-            </p>
+        <!-- Estadísticas de la partida -->
+        <div class="stats-recap-row">
+          <div class="stat-bubble">
+            <span class="bubble-icon">⭐</span>
+            <span class="bubble-label">Estrellas</span>
+            <span id="recap-stars" class="bubble-val">0</span>
           </div>
-
-          <!-- Columna derecha: Elenco, Géneros y Tags -->
-          <div class="modal-right-col">
-            <div class="meta-field">
-              <span class="field-label">Elenco:</span>
-              <span id="modal-cast" class="field-value">Actor 1, Actor 2</span>
-            </div>
-            <div class="meta-field">
-              <span class="field-label">Géneros:</span>
-              <span id="modal-genres" class="field-value">Ciencia Ficción, Suspenso</span>
-            </div>
-            <div class="meta-field">
-              <span class="field-label">Este título es:</span>
-              <span id="modal-tags" class="field-value">Frenético, Inquietante</span>
-            </div>
+          <div class="stat-bubble">
+            <span class="bubble-icon">🏁</span>
+            <span class="bubble-label">Distancia</span>
+            <span id="recap-distance" class="bubble-val">0m</span>
+          </div>
+          <div class="stat-bubble">
+            <span class="bubble-icon">🍬</span>
+            <span class="bubble-label">Caramelos</span>
+            <span id="recap-candies" class="bubble-val">0</span>
           </div>
         </div>
 
-        <!-- Sección de Episodios (Solo para series) -->
-        <section id="modal-episodes-section" class="modal-section hidden">
-          <div class="section-header-split">
-            <h3 class="modal-section-title">Episodios</h3>
-            <select id="modal-season-select" class="season-selector">
-              <!-- Opciones de temporadas -->
-            </select>
-          </div>
-          <div id="modal-episodes-list" class="episodes-list">
-            <!-- Cargado dinámicamente -->
-          </div>
-        </section>
+        <!-- Botones de Acción -->
+        <div class="celeb-buttons-row">
+          <button id="btn-replay" class="btn-giant btn-play-bounce">
+            ▶ ¡OTRA CARRERA!
+          </button>
+          <button id="btn-home" class="btn-secondary-squishy">
+            🏠 Menú Principal
+          </button>
+        </div>
 
-        <!-- Sección de Títulos Similares -->
-        <section class="modal-section">
-          <h3 class="modal-section-title">Más títulos similares</h3>
-          <div id="modal-similar-grid" class="similar-grid">
-            <!-- Cargado dinámicamente -->
-          </div>
-        </section>
-
-        <!-- Sección Acerca de -->
-        <section class="modal-section about-section">
-          <h3 class="modal-section-title">Acerca de <span id="modal-about-title"></span></h3>
-          <div class="about-grid">
-            <div>
-              <span class="about-label">Director:</span>
-              <span id="modal-director" class="about-value">Director Name</span>
-            </div>
-            <div>
-              <span class="about-label">Clasificación:</span>
-              <span class="about-value">Recomendada para mayores de 16 años. Contiene violencia e intriga.</span>
-            </div>
-            <div>
-              <span class="about-label">Formatos disponibles:</span>
-              <span class="about-value">Audio espacial 5.1, Dolby Vision, Subtítulos en español e inglés.</span>
-            </div>
-          </div>
-        </section>
+        <!-- Interactivo: Tocar para lanzar confeti -->
+        <p class="tap-confetti-hint">✨ ¡Toca cualquier parte para hacer llover confeti! ✨</p>
       </div>
     </div>
+
   </div>
 
-  <!-- ============================================================== -->
-  <!-- 5. REPRODUCTOR DE VIDEO COMPLETO ESTILO NETFLIX (VIDEO OVERLAY)-->
-  <!-- ============================================================== -->
-  <div id="video-player-overlay" class="player-overlay hidden">
-    <!-- Barra superior del reproductor -->
-    <div id="player-top-bar" class="player-top-bar">
-      <button id="player-btn-back" class="btn-player-back" title="Volver al catálogo">
-        ← Volver
-      </button>
-      <div class="player-title-info">
-        <h3 id="player-title-display">Stranger Codes: La Brecha</h3>
-        <span id="player-subtitle-display">T1:E1 - El Algoritmo Perdido</span>
-      </div>
-      <div class="player-top-actions">
-        <span class="live-stream-badge">HD STREAM</span>
-      </div>
-    </div>
-
-    <!-- Elemento Video HTML5 con streaming real -->
-    <div class="video-container" id="video-container">
-      <video id="main-video" playsinline preload="metadata">
-        Tu navegador no soporta reproducción de video HTML5.
-      </video>
-
-      <!-- Indicador central de carga / pausa -->
-      <div id="player-center-play" class="player-center-play hidden">
-        <span>▶</span>
-      </div>
-    </div>
-
-    <!-- Barra de controles inferior del reproductor -->
-    <div id="player-bottom-controls" class="player-bottom-controls">
-      <!-- Línea de tiempo / Scrubber -->
-      <div class="timeline-container" id="timeline-container">
-        <div class="timeline-bar" id="timeline-bar">
-          <div class="timeline-progress" id="timeline-progress"></div>
-          <div class="timeline-thumb" id="timeline-thumb"></div>
-        </div>
-        <div id="timeline-tooltip" class="timeline-tooltip hidden">00:00</div>
-      </div>
-
-      <!-- Fila de botones de control -->
-      <div class="controls-row">
-        <div class="controls-left">
-          <button id="btn-player-play" class="player-btn" title="Reproducir/Pausar (Espacio)">
-            ⏸
-          </button>
-          <button id="btn-player-rewind" class="player-btn" title="Retroceder 10 segundos (←)">
-            ↺ 10
-          </button>
-          <button id="btn-player-forward" class="player-btn" title="Adelantar 10 segundos (→)">
-            ↻ 10
-          </button>
-
-          <!-- Control de volumen -->
-          <div class="volume-control-wrap">
-            <button id="btn-player-volume" class="player-btn" title="Silenciar (M)">
-              🔊
-            </button>
-            <input 
-              type="range" 
-              id="volume-slider" 
-              class="volume-slider" 
-              min="0" 
-              max="1" 
-              step="0.05" 
-              value="1"
-            >
-          </div>
-
-          <!-- Tiempo transcurrido / restante -->
-          <span id="player-time-text" class="player-time-display">00:00 / 00:00</span>
-        </div>
-
-        <div class="controls-right">
-          <button id="btn-player-next" class="player-btn" title="Siguiente episodio (N)">
-            ⏭ Siguiente
-          </button>
-
-          <!-- Selector de audio y subtítulos -->
-          <div class="dropdown-wrapper">
-            <button id="btn-player-subtitles" class="player-btn" title="Audio y subtítulos">
-              💬
-            </button>
-            <div id="dropdown-subtitles" class="player-popup-menu hidden">
-              <div class="popup-column">
-                <span class="popup-title">Audio</span>
-                <button class="popup-option active">Español Latinoamericano [Original]</button>
-                <button class="popup-option">Español de España</button>
-                <button class="popup-option">English (Dolby 5.1)</button>
-              </div>
-              <div class="popup-column">
-                <span class="popup-title">Subtítulos</span>
-                <button class="popup-option active">Desactivados</button>
-                <button class="popup-option">Español (CC)</button>
-                <button class="popup-option">English [CC]</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Velocidad de reproducción -->
-          <div class="dropdown-wrapper">
-            <button id="btn-player-speed" class="player-btn" title="Velocidad">
-              ⚡ 1.0x
-            </button>
-            <div id="dropdown-speed" class="player-popup-menu speed-menu hidden">
-              <button class="popup-option" data-speed="0.75">0.75x</button>
-              <button class="popup-option active" data-speed="1.0">1.0x (Normal)</button>
-              <button class="popup-option" data-speed="1.25">1.25x</button>
-              <button class="popup-option" data-speed="1.5">1.5x</button>
-            </div>
-          </div>
-
-          <!-- Pantalla completa -->
-          <button id="btn-player-fullscreen" class="player-btn" title="Pantalla completa (F)">
-            ⛶
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================== -->
-  <!-- 6. TOAST DE NOTIFICACIÓN RÁPIDA                                 -->
-  <!-- ============================================================== -->
-  <div id="toast" class="toast-bubble hidden">
-    <span id="toast-text">Acción completada</span>
-  </div>
-
-  <!-- Socket.io para interactividad en vivo -->
+  <!-- Socket.io para vitores en vivo -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Lógica y render de la plataforma AzFlix -->
-  <script src="app.js"></script>
+  <!-- Motor del Endless Runner para Diego Jr -->
+  <script src="game.js"></script>
 </body>
 </html>

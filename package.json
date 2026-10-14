@@ -1,7 +1,7 @@
 {
-  "name": "azflix-streaming",
+  "name": "super-diego-runner",
   "version": "1.0.0",
-  "description": "AzFlix - Prototipo de plataforma de streaming estilo Netflix con catálogo interactivo, reproductor y datos de prueba",
+  "description": "Super Diego Jr: Carrera Mágica - Juego Endless Runner fácil, divertido y didáctico para niños de 4 años",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

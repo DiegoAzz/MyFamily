@@ -1,1080 +1,1419 @@
-// =========================================================
-// FRUIT MERGE 2048: WORLD CHAMPIONSHIP - CLIENT ENGINE
-// Bilingual (Tier 1 English & LatAm Spanish), High eCPM Ads & Leaderboard
-// =========================================================
+// ==============================================================
+// SUPER DIEGO JR: CARRERA MÁGICA 🌟
+// Motor Endless Runner 60 FPS con Parallax, Físicas Suaves,
+// Animaciones de Superhéroe y Didáctica Infantil para 4 años.
+// ==============================================================
 
-const socket = io({
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: 30
-});
+(function() {
+  'use strict';
 
-// Canvas & Contexto
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+  // CONFIGURACIÓN Y ESTADO DEL JUEGO
+  const CONFIG = {
+    gravity: 0.42,            // Gravedad suave para niños
+    jumpForce: -10.5,         // Salto amplio y cómodo
+    glideGravity: 0.14,       // Flotar con capa o globos en el aire
+    baseSpeed: 4.5,           // Velocidad amigable
+    maxSpeed: 7.0,
+    speedIncrease: 0.0005,
+    groundHeightRatio: 0.22   // Altura del suelo respecto al canvas
+  };
 
-// =========================================================
-// I18N DICCIONARIO BILINGÜE (INGLÉS TIER 1 & ESPAÑOL)
-// =========================================================
-const I18N = {
-  en: {
-    flag: '🇺🇸',
-    langBtn: '🇺🇸 EN',
-    title: 'World Grand Championship',
-    prize: '🎁 $50 USD Cash Prize for Rank #1!',
-    timerLabel: '⏳ Ends in:',
-    btnRanking: 'Leaderboard',
-    rankStatus: 'Rank #{rank} in tournament',
-    unrankedStatus: 'Play a game to rank in the tournament!',
-    score: 'SCORE',
-    best: 'BEST',
-    next: 'NEXT:',
-    shake: 'Shake',
-    bomb: 'Bomb',
-    wildcard: 'Wildcard',
-    thPlayer: 'Player',
-    thScore: 'Score',
-    thGames: 'Games',
-    lbTitle: '🏆 World Championship Leaderboard',
-    lbDesc: 'Top global players competing in real-time for the cash prize!',
-    myRankLabel: 'YOUR CURRENT RANK',
-    myRankGapLead: '🥇 You are leading the tournament!',
-    myRankGapChase: 'Keep playing to take the #1 spot!',
-    goTitle: 'Game Over!',
-    finalScore: 'Final Score:',
-    adBold: 'Save your score for the Tournament?',
-    adSub: 'Watch a quick ad to drop a Bomb and clear 40% of the jar!',
-    btnWatchAd: 'Watch Ad to Save!',
-    btnPlayAgain: '▶ Play Again',
-    btnViewLeaderboard: 'View Global Leaderboard',
-    adSponsor: 'SPONSORED REWARDED AD',
-    adCountdown: 'Reward in {sec}s...',
-    adClaim: 'Claim Reward & Continue!',
-    adWatching: 'Watching Ad ({sec}s)...',
-    savedToast: '💣 Score Saved! Continue playing!',
-    watermelonToast: '🍉 GIANT WATERMELON MERGED! (+5,000 pts)',
-    nameUpdatedToast: '✏️ Tournament name updated!',
-    shakeToast: '🌀 Jar Shaken!',
-    bombToast: '💣 Next fruit is a Bomb!',
-    wildToast: '🌈 Next fruit is a Wildcard!'
-  },
-  es: {
-    flag: '🇪🇸',
-    langBtn: '🇪🇸 ES',
-    title: 'Gran Torneo Mundial',
-    prize: '🎁 ¡$50 USD en Efectivo para el Puesto #1!',
-    timerLabel: '⏳ Finaliza en:',
-    btnRanking: 'Ver Ranking',
-    rankStatus: 'Puesto #{rank} en el torneo',
-    unrankedStatus: '¡Juega una partida para clasificar!',
-    score: 'PUNTOS',
-    best: 'RÉCORD',
-    next: 'SIGUIENTE:',
-    shake: 'Agitar',
-    bomb: 'Bomba',
-    wildcard: 'Comodín',
-    thPlayer: 'Jugador',
-    thScore: 'Puntos',
-    thGames: 'Partidas',
-    lbTitle: '🏆 Tabla de Posiciones del Concurso',
-    lbDesc: '¡Los mejores jugadores en tiempo real compitiendo por el premio!',
-    myRankLabel: 'TU PUESTO ACTUAL',
-    myRankGapLead: '🥇 ¡Vas liderando el concurso!',
-    myRankGapChase: '¡Sigue sumando puntos para el puesto #1!',
-    goTitle: '¡Partida Terminada!',
-    finalScore: 'Puntos obtenidos:',
-    adBold: '¿Salvar tu récord para el Torneo?',
-    adSub: 'Mira un anuncio corto para usar una Bomba y despejar el 40% del frasco',
-    btnWatchAd: '¡Ver Anuncio para Salvar!',
-    btnPlayAgain: '▶ Jugar Otra Partida',
-    btnViewLeaderboard: 'Ver Tabla de Posiciones',
-    adSponsor: 'ANUNCIO RECOMPENSADO PATROCINADO',
-    adCountdown: 'Recompensa en {sec}s...',
-    adClaim: '¡Reclamar Recompensa y Seguir!',
-    adWatching: 'Viendo Anuncio ({sec}s)...',
-    savedToast: '💣 ¡Partida Salvada con Éxito!',
-    watermelonToast: '🍉 ¡SANDÍA GIGANTE FUSIONADA! (+5,000 pts)',
-    nameUpdatedToast: '✏️ Nombre actualizado para el torneo',
-    shakeToast: '🌀 ¡Frasco Agitado!',
-    bombToast: '💣 ¡La siguiente fruta es una Bomba!',
-    wildToast: '🌈 ¡La siguiente fruta es Comodín!'
-  }
-};
+  const state = {
+    running: false,
+    paused: false,
+    speed: CONFIG.baseSpeed,
+    distance: 0,
+    stars: 0,
+    candies: 0,
+    hearts: 3,
+    suit: localStorage.getItem('diego_suit') || 'super_diego',
+    soundEnabled: true,
+    voiceEnabled: true,
+    powerup: null,            // { type: 'rocket'|'magnet'|'shield'|'rainbow', duration: 300, maxDuration: 300 }
+    isGliding: false,
+    didacticNumber: 0,
+    lastVoiceTime: 0
+  };
 
-// Detección automática de idioma: Tier 1 (inglés) por defecto
-let currentLang = 'en';
-const userBrowserLang = (navigator.language || 'en').toLowerCase();
-if (userBrowserLang.startsWith('es')) {
-  currentLang = 'es';
-}
+  // Nombres y frases didácticas en español
+  const NUMBER_WORDS = [
+    '¡CERO!', '¡UNO! 🌟', '¡DOS! 🌟', '¡TRES! 🌟', '¡CUATRO! 🌟', 
+    '¡CINCO! 🌟', '¡SEIS! 🌟', '¡SIETE! 🌟', '¡OCHO! 🌟', '¡NUEVE! 🌟', '¡DIEZ! 🏆'
+  ];
 
-function t(key, params = {}) {
-  let str = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.en && I18N.en[key]) || key;
-  Object.keys(params).forEach(k => {
-    str = str.replace(`{${k}}`, params[k]);
-  });
-  return str;
-}
+  const PRAISES = [
+    '¡Qué bien, Diego!', '¡Súper campeón!', '¡Bravo Diego Jr!', 
+    '¡Increíble!', '¡Eres muy rápido!', '¡Genial!'
+  ];
 
-// Banderita según locale
-function getPlayerFlag() {
-  if (userBrowserLang.includes('us')) return '🇺🇸';
-  if (userBrowserLang.includes('gb') || userBrowserLang.includes('uk')) return '🇬🇧';
-  if (userBrowserLang.includes('ca')) return '🇨🇦';
-  if (userBrowserLang.includes('au')) return '🇦🇺';
-  if (userBrowserLang.includes('de')) return '🇩🇪';
-  if (userBrowserLang.includes('co')) return '🇨🇴';
-  if (userBrowserLang.includes('mx')) return '🇲🇽';
-  if (userBrowserLang.includes('es')) return '🇪🇸';
-  if (userBrowserLang.includes('ar')) return '🇦🇷';
-  return currentLang === 'en' ? '🇺🇸' : '🇨🇴';
-}
+  // REFERENCIAS DOM
+  const dom = {
+    canvas: document.getElementById('gameCanvas'),
+    ctx: null,
+    previewCanvas: document.getElementById('previewCanvas'),
+    previewCtx: null,
 
-// DOM Elements
-const tournamentTitle = document.getElementById('tournament-title');
-const tournamentPrize = document.getElementById('tournament-prize');
-const tournamentTimer = document.getElementById('tournament-timer');
-const btnOpenLeaderboard = document.getElementById('btn-open-leaderboard');
-const btnOpenAdmin = document.getElementById('btn-open-admin');
-const btnLangToggle = document.getElementById('btn-lang-toggle');
+    startScreen: document.getElementById('start-screen'),
+    gameHud: document.getElementById('game-hud'),
+    hudStars: document.getElementById('hud-star-count'),
+    hudDistance: document.getElementById('hud-distance-val'),
+    hudHearts: document.getElementById('hud-hearts-container'),
+    btnPause: document.getElementById('btn-pause'),
 
-const playerFlagIcon = document.getElementById('player-flag-icon');
-const playerAliasEl = document.getElementById('player-alias');
-const playerRankStatus = document.getElementById('player-rank-status');
-const btnEditAlias = document.getElementById('btn-edit-alias');
-const currentScoreVal = document.getElementById('current-score-val');
-const bestScoreVal = document.getElementById('best-score-val');
-const nextFruitEmoji = document.getElementById('next-fruit-emoji');
+    powerupBanner: document.getElementById('powerup-banner'),
+    powerupIcon: document.getElementById('powerup-icon'),
+    powerupTitle: document.getElementById('powerup-title'),
+    powerupFill: document.getElementById('powerup-fill'),
 
-const btnPowerupShake = document.getElementById('btn-powerup-shake');
-const btnPowerupBomb = document.getElementById('btn-powerup-bomb');
-const btnPowerupRainbow = document.getElementById('btn-powerup-rainbow');
+    didacticToast: document.getElementById('didactic-toast'),
+    didacticNumber: document.getElementById('didactic-number'),
+    didacticWord: document.getElementById('didactic-word'),
 
-// Modales
-const modalAlias = document.getElementById('modal-alias');
-const inputNewAlias = document.getElementById('input-new-alias');
-const btnSaveAlias = document.getElementById('btn-save-alias');
-const btnCancelAlias = document.getElementById('btn-cancel-alias');
+    touchControls: document.getElementById('touch-controls'),
+    btnTouchJump: document.getElementById('btn-touch-jump'),
 
-const modalLeaderboard = document.getElementById('modal-leaderboard');
-const btnCloseLeaderboard = document.getElementById('btn-close-leaderboard');
-const leaderboardTbody = document.getElementById('leaderboard-tbody');
-const myRankNumber = document.getElementById('my-rank-number');
-const myRankScore = document.getElementById('my-rank-score');
-const myRankGap = document.getElementById('my-rank-gap');
+    btnStart: document.getElementById('btn-start-game'),
+    btnCloset: document.getElementById('btn-open-closet'),
+    btnSound: document.getElementById('btn-toggle-sound'),
+    btnVoice: document.getElementById('btn-toggle-voice'),
 
-const modalGameOver = document.getElementById('modal-gameover');
-const goFinalScore = document.getElementById('go-final-score');
-const btnReviveGame = document.getElementById('btn-revive-game');
-const btnRestartGame = document.getElementById('btn-restart-game');
-const btnViewRankGo = document.getElementById('btn-view-rank-go');
+    modalCloset: document.getElementById('modal-closet'),
+    btnCloseCloset: document.getElementById('btn-close-closet'),
+    btnConfirmCloset: document.getElementById('btn-confirm-closet'),
+    suitCards: document.querySelectorAll('.suit-card'),
+    previewSuitName: document.getElementById('preview-suit-name'),
 
-const modalRewardedAd = document.getElementById('modal-rewarded-ad');
-const adCountdown = document.getElementById('ad-countdown');
-const btnClaimAdReward = document.getElementById('btn-claim-ad-reward');
+    celebrationScreen: document.getElementById('celebration-screen'),
+    recapStars: document.getElementById('recap-stars'),
+    recapDistance: document.getElementById('recap-distance'),
+    recapCandies: document.getElementById('recap-candies'),
+    btnReplay: document.getElementById('btn-replay'),
+    btnHome: document.getElementById('btn-home'),
 
-const modalAdmin = document.getElementById('modal-admin');
-const btnCloseAdmin = document.getElementById('btn-close-admin');
-const adminLoginView = document.getElementById('admin-login-view');
-const adminPanelView = document.getElementById('admin-panel-view');
-const inputAdminPin = document.getElementById('input-admin-pin');
-const btnSubmitPin = document.getElementById('btn-submit-pin');
-const admTitle = document.getElementById('adm-title');
-const admPrize = document.getElementById('adm-prize');
-const admDeadline = document.getElementById('adm-deadline');
-const btnSaveTournament = document.getElementById('btn-save-tournament');
-const btnResetTournament = document.getElementById('btn-reset-tournament');
+    familyCheerBanner: document.getElementById('family-cheer-banner'),
+    cheerSender: document.getElementById('cheer-sender'),
+    cheerMsg: document.getElementById('cheer-msg'),
+    cheerEmoji: document.getElementById('cheer-emoji')
+  };
 
-const toastBanner = document.getElementById('toast-banner');
-const toastMsg = document.getElementById('toast-msg');
+  dom.ctx = dom.canvas.getContext('2d');
+  dom.previewCtx = dom.previewCanvas.getContext('2d');
 
-// =========================================================
-// GESTOR DE MONETIZACIÓN & ANUNCIOS (AD NETWORK BRIDGE)
-// =========================================================
-const AdManager = {
-  // Banners rotativos cada 30 segundos para generar impresiones continuas
-  initBannerRotation() {
-    const sponsors = [
-      '🎯 Play Daily & Win $50 Cash Tournament Prize!',
-      '🔥 Top 1 Leaderboard Wins Real Cash Rewards!',
-      '💎 Double your Tournament Coins with Daily Plays!',
-      '🍉 Can you merge the Golden Watermelon? Try now!'
-    ];
-    let idx = 0;
-    setInterval(() => {
-      idx = (idx + 1) % sponsors.length;
-      const el = document.getElementById('ad-banner-display');
-      if (el) el.innerHTML = `<span class="ad-sponsor-text">${sponsors[idx]}</span>`;
-    }, 28000);
-  },
+  // ==============================================================
+  // 1. SINTETIZADOR DE AUDIO ALEGRE Y VOZ DIDÁCTICA (WEB SPEECH)
+  // ==============================================================
+  let audioCtx = null;
 
-  // Mostrar Anuncio Recompensado (Simulado o Google H5/Poki SDK)
-  showRewardedAd(onRewarded, onFailed) {
-    // Si existe Google H5 Game Ads en window.adBreak
-    if (typeof window.adBreak === 'function') {
-      window.adBreak({
-        type: 'reward',
-        name: 'revive_bomb',
-        beforeReward: () => {},
-        beforeAd: () => {},
-        afterAd: () => {},
-        adDismissed: () => { if (onFailed) onFailed(); },
-        adViewed: () => { if (onRewarded) onRewarded(); }
-      });
-      return;
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
     }
-
-    // Modal de Anuncio Recompensado con cuenta regresiva de 5 segundos
-    modalRewardedAd.classList.remove('hidden');
-    let timeLeft = 5;
-    btnClaimAdReward.disabled = true;
-    btnClaimAdReward.classList.add('disabled');
-    btnClaimAdReward.innerText = t('adWatching', { sec: timeLeft });
-    adCountdown.innerText = t('adCountdown', { sec: timeLeft });
-
-    const adTimer = setInterval(() => {
-      timeLeft--;
-      if (timeLeft > 0) {
-        btnClaimAdReward.innerText = t('adWatching', { sec: timeLeft });
-        adCountdown.innerText = t('adCountdown', { sec: timeLeft });
-      } else {
-        clearInterval(adTimer);
-        adCountdown.innerText = '✅ Reward Ready!';
-        btnClaimAdReward.disabled = false;
-        btnClaimAdReward.classList.remove('disabled');
-        btnClaimAdReward.innerText = t('adClaim');
-        btnClaimAdReward.onclick = () => {
-          modalRewardedAd.classList.add('hidden');
-          if (onRewarded) onRewarded();
-        };
-      }
-    }, 1000);
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
   }
-};
-AdManager.initBannerRotation();
 
-// =========================================================
-// APLICAR TRADUCCIONES DE IDIOMA
-// =========================================================
-function applyTranslations() {
-  btnLangToggle.innerText = I18N[currentLang].langBtn;
-  if (playerFlagIcon) playerFlagIcon.innerText = getPlayerFlag();
-
-  document.getElementById('lbl-timer').innerText = t('timerLabel');
-  document.getElementById('lbl-btn-ranking').innerText = t('btnRanking');
-  document.getElementById('lbl-score').innerText = t('score');
-  document.getElementById('lbl-best').innerText = t('best');
-  document.getElementById('lbl-next').innerText = t('next');
-  document.getElementById('lbl-shake').innerText = t('shake');
-  document.getElementById('lbl-bomb').innerText = t('bomb');
-  document.getElementById('lbl-wild').innerText = t('wildcard');
-
-  document.getElementById('th-player').innerText = t('thPlayer');
-  document.getElementById('th-score').innerText = t('thScore');
-  document.getElementById('th-games').innerText = t('thGames');
-  document.getElementById('lbl-lb-title').innerText = t('lbTitle');
-  document.getElementById('lbl-lb-desc').innerText = t('lbDesc');
-  document.getElementById('lbl-my-rank').innerText = t('myRankLabel');
-
-  document.getElementById('lbl-go-title').innerText = t('goTitle');
-  document.getElementById('lbl-final-score').innerText = t('finalScore');
-  document.getElementById('lbl-ad-bold').innerText = t('adBold');
-  document.getElementById('lbl-ad-sub').innerText = t('adSub');
-  btnReviveGame.innerText = t('btnWatchAd');
-  document.getElementById('btn-restart-txt') && (document.getElementById('btn-restart-txt').innerText = t('btnPlayAgain'));
-  document.getElementById('btn-rank-txt') && (document.getElementById('btn-rank-txt').innerText = t('btnViewLeaderboard'));
-}
-
-btnLangToggle.addEventListener('click', () => {
-  currentLang = currentLang === 'en' ? 'es' : 'en';
-  applyTranslations();
-  updateTournamentDisplay();
-  showToast(currentLang === 'en' ? '🇺🇸 Language: English' : '🇪🇸 Idioma: Español');
-});
-applyTranslations();
-
-// =========================================================
-// DEFINICIÓN DE LAS 11 FRUTAS Y EVOLUCIÓN (SUIKA MERGE)
-// =========================================================
-const FRUITS = [
-  { level: 0, emoji: '🍒', radius: 16, color: '#dc2626', points: 2 },
-  { level: 1, emoji: '🍓', radius: 23, color: '#f43f5e', points: 4 },
-  { level: 2, emoji: '🍇', radius: 31, color: '#a855f7', points: 8 },
-  { level: 3, emoji: '🍋', radius: 39, color: '#facc15', points: 16 },
-  { level: 4, emoji: '🍊', radius: 48, color: '#f97316', points: 32 },
-  { level: 5, emoji: '🍎', radius: 58, color: '#ef4444', points: 64 },
-  { level: 6, emoji: '🍐', radius: 68, color: '#84cc16', points: 128 },
-  { level: 7, emoji: '🍑', radius: 80, color: '#fb923c', points: 256 },
-  { level: 8, emoji: '🍍', radius: 93, color: '#eab308', points: 512 },
-  { level: 9, emoji: '🍈', radius: 106, color: '#10b981', points: 1024 },
-  { level: 10, emoji: '🍉', radius: 124, color: '#047857', points: 2048 }
-];
-
-// =========================================================
-// AUDIO SINTETIZADO CON WEB AUDIO API
-// =========================================================
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-
-function initAudio() {
-  if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-function playPopSfx(level = 0) {
-  try {
+  // Sonido de Salto Alegre
+  function playJumpSound() {
+    if (!state.soundEnabled) return;
     initAudio();
+    if (!audioCtx) return;
+
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
 
-    const baseFreq = 260 + level * 65;
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(baseFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.6, now + 0.08);
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(560, now + 0.18);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  // Escala musical para cada estrella (Do-Re-Mi-Fa-Sol-La-Si-Do)
+  const SCALE = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+  function playStarSound(noteIndex = 0) {
+    if (!state.soundEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    const freq = SCALE[noteIndex % SCALE.length];
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now);
 
     gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
-    osc.start(now); osc.stop(now + 0.12);
-  } catch (e) {}
-}
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.28);
+  }
 
-function playDropSfx() {
-  try {
+  // Sonido de Power-up Mágico
+  function playPowerupSound() {
+    if (!state.soundEnabled) return;
     initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    [392, 523.25, 659.25, 783.99].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.25);
+    });
+  }
+
+  // Sonido de rebote gracioso (no hay muerte trágica)
+  function playBoingSound() {
+    if (!state.soundEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(180, now);
-    osc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
-    osc.start(now); osc.stop(now + 0.09);
-  } catch (e) {}
-}
 
-function playFanfareSfx() {
-  try {
-    initAudio();
-    const now = audioCtx.currentTime;
-    [523, 659, 783, 1046, 1318].forEach((f, idx) => {
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
-      o.type = 'triangle';
-      o.frequency.setValueAtTime(f, now + idx * 0.07);
-      g.gain.setValueAtTime(0.2, now + idx * 0.07);
-      g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.07 + 0.25);
-      o.start(now + idx * 0.07); o.stop(now + idx * 0.07 + 0.25);
-    });
-  } catch (e) {}
-}
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.linearRampToValueAtTime(320, now + 0.12);
+    osc.frequency.linearRampToValueAtTime(140, now + 0.25);
 
-function triggerHaptic(ms = 25) {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    try { navigator.vibrate(ms); } catch (e) {}
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.25);
   }
-}
 
-// =========================================================
-// GESTIÓN DE JUGADOR Y IDENTIFICACIÓN (ZERO FRICTION)
-// =========================================================
-let playerUID = localStorage.getItem('fruit_merge_uid');
-if (!playerUID) {
-  playerUID = 'user_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
-  localStorage.setItem('fruit_merge_uid', playerUID);
-}
+  // Voz Didáctica amigable en Español (HTML5 SpeechSynthesis)
+  function speak(text) {
+    if (!state.voiceEnabled) return;
+    try {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel(); // Detener anterior
 
-let playerData = {
-  alias: 'Player...',
-  bestScore: 0,
-  tournamentScore: 0,
-  coins: 100
-};
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-LA'; // Español latino/amigable
+      utterance.rate = 1.05;    // Tono animado
+      utterance.pitch = 1.35;   // Tono alegre y juvenil
 
-let activeTournament = null;
-let currentScore = 0;
-let isGameOver = false;
+      // Buscar voz en español si está disponible
+      const voices = window.speechSynthesis.getVoices();
+      const esVoice = voices.find(v => v.lang.startsWith('es'));
+      if (esVoice) utterance.voice = esVoice;
 
-// Cargar o autenticar jugador en el servidor
-async function authPlayer() {
-  try {
-    const savedAlias = localStorage.getItem('fruit_merge_alias') || '';
-    const res = await fetch('/api/player/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: playerUID, alias: savedAlias })
-    });
-    const data = await res.json();
-    if (data.player) {
-      playerData = data.player;
-      playerAliasEl.innerText = playerData.alias;
-      bestScoreVal.innerText = playerData.best_score || 0;
-      localStorage.setItem('fruit_merge_alias', playerData.alias);
-
-      if (data.myRank) {
-        updateMyRankDisplay(data.myRank);
-      }
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.log('Síntesis de voz no disponible');
     }
-    if (data.tournament) {
-      activeTournament = data.tournament;
-      updateTournamentDisplay();
+  }
+
+  // Vibración háptica en celulares
+  function vibrate(ms = 35) {
+    if (navigator.vibrate) {
+      try { navigator.vibrate(ms); } catch (e) {}
     }
-  } catch (err) {
-    console.error('Error autenticando jugador:', err);
   }
-}
-authPlayer();
 
-function updateMyRankDisplay(rankInfo) {
-  if (rankInfo && rankInfo.rank > 0) {
-    playerRankStatus.innerText = t('rankStatus', { rank: rankInfo.rank });
-    myRankNumber.innerText = `#${rankInfo.rank}`;
-    myRankScore.innerText = `${rankInfo.score} pts`;
-    myRankGap.innerText = rankInfo.rank === 1 ? t('myRankGapLead') : t('myRankGapChase');
-  } else {
-    playerRankStatus.innerText = t('unrankedStatus');
-    myRankNumber.innerText = `#--`;
-    myRankScore.innerText = `0 pts`;
-    myRankGap.innerText = t('unrankedStatus');
-  }
-}
-
-function updateTournamentDisplay() {
-  if (!activeTournament) return;
-  tournamentTitle.innerText = activeTournament.title;
-  tournamentPrize.innerText = `🎁 ${activeTournament.prize_text}`;
-}
-
-// Reloj de cuenta regresiva del torneo
-setInterval(() => {
-  if (!activeTournament || !activeTournament.end_time) return;
-  const end = new Date(activeTournament.end_time).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, end - now);
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
-
-  tournamentTimer.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-}, 1000);
-
-// =========================================================
-// MOTOR FÍSICO 2D DE SUIKA MERGE
-// =========================================================
-const GRAVITY = 0.38;
-const DANGER_Y = 70;
-let dangerTimer = 0;
-
-let droppedFruits = [];
-let particles = [];
-
-let dropX = canvas.width / 2;
-let currentFruitLevel = Math.floor(Math.random() * 3);
-let nextFruitLevel = Math.floor(Math.random() * 3);
-let canDrop = true;
-let dropCooldown = 0;
-
-let nextIsBomb = false;
-let nextIsRainbow = false;
-
-function updateNextIndicator() {
-  nextFruitEmoji.innerText = FRUITS[nextFruitLevel].emoji;
-}
-updateNextIndicator();
-
-function createFruitBody(x, y, level, vx = 0, vy = 0) {
-  const fDef = FRUITS[level];
-  return {
-    id: Math.random().toString(36).substring(2),
-    x: x,
-    y: y,
-    vx: vx,
-    vy: vy,
-    radius: fDef.radius,
-    level: level,
-    emoji: fDef.emoji,
-    color: fDef.color,
-    points: fDef.points,
-    rot: Math.random() * Math.PI,
-    vrot: (Math.random() - 0.5) * 0.05,
-    isMerging: false,
-    scale: 0.2
+  // ==============================================================
+  // 2. PERSONAJE PROTAGONISTA: DIEGO JR (4 AÑOS)
+  // ==============================================================
+  const player = {
+    x: 100,
+    y: 0,
+    width: 60,
+    height: 75,
+    vy: 0,
+    isGrounded: false,
+    jumpCount: 0,
+    runFrame: 0,
+    invincibleTimer: 0,
+    rocketY: 0
   };
-}
 
-function dropCurrentFruit() {
-  if (!canDrop || isGameOver) return;
-  initAudio();
-  playDropSfx();
-
-  const fDef = FRUITS[currentFruitLevel];
-  const clampedX = Math.max(fDef.radius + 6, Math.min(canvas.width - fDef.radius - 6, dropX));
-
-  const fruit = createFruitBody(clampedX, 45, currentFruitLevel, 0, 1.5);
-  fruit.isBomb = nextIsBomb;
-  fruit.isRainbow = nextIsRainbow;
-  nextIsBomb = false;
-  nextIsRainbow = false;
-
-  droppedFruits.push(fruit);
-
-  canDrop = false;
-  dropCooldown = 32;
-
-  currentFruitLevel = nextFruitLevel;
-  nextFruitLevel = Math.floor(Math.random() * 3);
-  updateNextIndicator();
-}
-
-function handlePointerInput(clientX) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  dropX = (clientX - rect.left) * scaleX;
-
-  const currentRadius = FRUITS[currentFruitLevel].radius;
-  dropX = Math.max(currentRadius + 6, Math.min(canvas.width - currentRadius - 6, dropX));
-}
-
-canvas.addEventListener('mousemove', (e) => {
-  handlePointerInput(e.clientX);
-});
-
-canvas.addEventListener('touchmove', (e) => {
-  if (e.touches.length > 0) {
-    handlePointerInput(e.touches[0].clientX);
-  }
-}, { passive: true });
-
-canvas.addEventListener('mouseup', () => {
-  dropCurrentFruit();
-});
-
-canvas.addEventListener('touchend', () => {
-  dropCurrentFruit();
-});
-
-// =========================================================
-// BUCLES DE FÍSICA Y COLISIONES
-// =========================================================
-function updatePhysics() {
-  if (dropCooldown > 0) {
-    dropCooldown--;
-    if (dropCooldown <= 0) canDrop = true;
-  }
-
-  // 1. Integración de movimiento y gravedad
-  droppedFruits.forEach(f => {
-    f.vy += GRAVITY;
-    f.x += f.vx;
-    f.y += f.vy;
-    f.rot += f.vrot;
-
-    f.vx *= 0.99;
-    f.vy *= 0.995;
-
-    if (f.scale < 1) {
-      f.scale = Math.min(1, f.scale + 0.12);
-    }
-
-    if (f.x - f.radius < 6) {
-      f.x = 6 + f.radius;
-      f.vx = -f.vx * 0.35;
-    }
-    if (f.x + f.radius > canvas.width - 6) {
-      f.x = canvas.width - 6 - f.radius;
-      f.vx = -f.vx * 0.35;
-    }
-
-    if (f.y + f.radius > canvas.height - 8) {
-      f.y = canvas.height - 8 - f.radius;
-      f.vy = -f.vy * 0.22;
-      f.vx *= 0.92;
-    }
-  });
-
-  // 2. Colisión y Fusión entre frutas
-  const toRemove = new Set();
-  const toSpawn = [];
-
-  for (let i = 0; i < droppedFruits.length; i++) {
-    for (let j = i + 1; j < droppedFruits.length; j++) {
-      const a = droppedFruits[i];
-      const b = droppedFruits[j];
-
-      if (toRemove.has(a.id) || toRemove.has(b.id)) continue;
-
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dist = Math.hypot(dx, dy);
-      const minDist = a.radius + b.radius;
-
-      if (dist < minDist && dist > 0) {
-        const overlap = (minDist - dist) / 2;
-        const nx = dx / dist;
-        const ny = dy / dist;
-
-        a.x -= nx * overlap;
-        a.y -= ny * overlap;
-        b.x += nx * overlap;
-        b.y += ny * overlap;
-
-        const relVel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-        if (relVel < 0) {
-          const impulse = relVel * 0.45;
-          a.vx += nx * impulse;
-          a.vy += ny * impulse;
-          b.vx -= nx * impulse;
-          b.vy -= ny * impulse;
-        }
-
-        const canMerge = (a.level === b.level && a.level < FRUITS.length - 1) || a.isRainbow || b.isRainbow;
-
-        if (canMerge) {
-          toRemove.add(a.id);
-          toRemove.add(b.id);
-
-          const nextLvl = Math.min(FRUITS.length - 1, Math.max(a.level, b.level) + 1);
-          const midX = (a.x + b.x) / 2;
-          const midY = (a.y + b.y) / 2;
-
-          toSpawn.push({ x: midX, y: midY, level: nextLvl });
-
-          const pts = FRUITS[nextLvl].points;
-          addScore(pts);
-          playPopSfx(nextLvl);
-          triggerHaptic(30);
-          spawnMergeParticles(midX, midY, FRUITS[nextLvl].color);
-
-          if (nextLvl === 10) {
-            playFanfareSfx();
-            addScore(5000);
-            showToast(t('watermelonToast'));
-            socket.emit('huge_merge', { alias: playerData.alias, fruit: '🍉 Giant Watermelon', score: currentScore });
-          }
-        }
-      }
-    }
-  }
-
-  if (toRemove.size > 0) {
-    droppedFruits = droppedFruits.filter(f => !toRemove.has(f.id));
-    toSpawn.forEach(s => {
-      const newF = createFruitBody(s.x, s.y, s.level, (Math.random() - 0.5) * 1.5, -1.8);
-      droppedFruits.push(newF);
-    });
-  }
-
-  // 3. Comprobación de peligro de desbordamiento (Línea Roja)
-  let isDanger = false;
-  droppedFruits.forEach(f => {
-    if (f.y - f.radius < DANGER_Y && Math.hypot(f.vx, f.vy) < 1.2 && f.scale >= 1) {
-      isDanger = true;
-    }
-  });
-
-  if (isDanger) {
-    dangerTimer++;
-    if (dangerTimer > 150) {
-      triggerGameOver();
-    }
-  } else {
-    dangerTimer = Math.max(0, dangerTimer - 2);
-  }
-}
-
-function addScore(pts) {
-  currentScore += pts;
-  currentScoreVal.innerText = currentScore;
-  if (currentScore > (playerData.best_score || 0)) {
-    bestScoreVal.innerText = currentScore;
-  }
-}
-
-async function triggerGameOver() {
-  if (isGameOver) return;
-  isGameOver = true;
-
-  goFinalScore.innerText = currentScore;
-  modalGameOver.classList.remove('hidden');
-
-  try {
-    const res = await fetch('/api/game/submit-score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: playerUID, score: currentScore })
-    });
-    const data = await res.json();
-    if (data.myRank) {
-      updateMyRankDisplay(data.myRank);
-    }
-  } catch (e) {}
-}
-
-// Salvar partida con Anuncio Recompensado (High eCPM monetization)
-btnReviveGame.addEventListener('click', () => {
-  AdManager.showRewardedAd(() => {
-    // Recompensa otorgada al ver el anuncio
-    initAudio();
-    playPopSfx(5);
-
-    droppedFruits.sort((a, b) => a.y - b.y);
-    const countToKill = Math.ceil(droppedFruits.length * 0.4);
-    for (let i = 0; i < countToKill; i++) {
-      if (droppedFruits[i]) {
-        spawnMergeParticles(droppedFruits[i].x, droppedFruits[i].y, '#f59e0b');
-      }
-    }
-    droppedFruits.splice(0, countToKill);
-
-    dangerTimer = 0;
-    isGameOver = false;
-    modalGameOver.classList.add('hidden');
-    showToast(t('savedToast'));
-  }, () => {
-    showToast('Ad was not completed.');
-  });
-});
-
-btnRestartGame.addEventListener('click', () => {
-  modalGameOver.classList.add('hidden');
-  resetGame();
-});
-
-btnViewRankGo.addEventListener('click', () => {
-  modalGameOver.classList.add('hidden');
-  openLeaderboardModal();
-});
-
-function resetGame() {
-  droppedFruits = [];
-  currentScore = 0;
-  currentScoreVal.innerText = '0';
-  dangerTimer = 0;
-  isGameOver = false;
-  canDrop = true;
-}
-
-// ==========================================
-// POTENCIADORES / POWERUPS
-// ==========================================
-btnPowerupShake.addEventListener('click', () => {
-  initAudio();
-  playDropSfx();
-  triggerHaptic(40);
-  droppedFruits.forEach(f => {
-    f.vy -= Math.random() * 6 + 3;
-    f.vx += (Math.random() - 0.5) * 8;
-  });
-  showToast(t('shakeToast'));
-});
-
-btnPowerupBomb.addEventListener('click', () => {
-  initAudio();
-  nextIsBomb = true;
-  showToast(t('bombToast'));
-});
-
-btnPowerupRainbow.addEventListener('click', () => {
-  initAudio();
-  nextIsRainbow = true;
-  showToast(t('wildToast'));
-});
-
-// ==========================================
-// PARTÍCULAS
-// ==========================================
-function spawnMergeParticles(x, y, color) {
-  for (let i = 0; i < 14; i++) {
-    particles.push({
-      x: x,
-      y: y,
-      vx: (Math.random() - 0.5) * 7,
-      vy: (Math.random() - 0.5) * 7,
-      size: Math.random() * 5 + 3,
-      color: color,
-      alpha: 1
-    });
-  }
-}
-
-function updateAndDrawParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.alpha -= 0.035;
-
-    if (p.alpha <= 0) {
-      particles.splice(i, 1);
-      continue;
-    }
-
+  // Dibujar a Diego Jr de forma vectorial y estilizada en Canvas
+  function drawDiegoJr(ctx, x, y, suit, frame = 0, isJumping = false, isGliding = false, hasRocket = false) {
     ctx.save();
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.color;
+    ctx.translate(x, y);
+
+    const legOffset = isJumping ? 0 : Math.sin(frame * 0.25) * 12;
+    const armOffset = isJumping ? 0 : Math.cos(frame * 0.25) * 10;
+    const headBob = isJumping ? -4 : Math.abs(Math.sin(frame * 0.25)) * 3;
+
+    // 0. Si tiene el Power-up del Cohete Mágico
+    if (hasRocket) {
+      // Dibujar Cohete Espacial de Juguete
+      ctx.save();
+      ctx.translate(-8, 30);
+
+      // Fuego de propulsión
+      const flameSize = 14 + Math.random() * 8;
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.moveTo(-16, 12);
+      ctx.lineTo(-16 - flameSize, 18);
+      ctx.lineTo(-16, 24);
+      ctx.fill();
+
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.moveTo(-14, 15);
+      ctx.lineTo(-14 - flameSize * 0.6, 18);
+      ctx.lineTo(-14, 21);
+      ctx.fill();
+
+      // Cuerpo del cohete
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.ellipse(30, 18, 42, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ventanilla del cohete
+      ctx.fillStyle = '#bae6fd';
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(36, 18, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Aleta trasera
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-10, -12);
+      ctx.lineTo(8, 0);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // 1. Capa de Superhéroe u orejitas (Detrás de Diego)
+    if (suit === 'super_diego' || suit === 'king') {
+      ctx.fillStyle = suit === 'king' ? '#9333ea' : '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(18, 28);
+      // Capa ondeando por el viento
+      const capeWave = isGliding ? Math.sin(frame * 0.15) * 8 : Math.sin(frame * 0.3) * 14;
+      const capeX = isGliding ? -38 : -24;
+      ctx.quadraticCurveTo(capeX, 36 + capeWave, capeX - 10, 58 + capeWave);
+      ctx.lineTo(12, 45);
+      ctx.closePath();
+      ctx.fill();
+
+      if (suit === 'king') {
+        // Borde dorado de la capa
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    } else if (suit === 'astronaut') {
+      // Mochilita espacial con propulsor
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.fillRect(8, 25, 14, 24);
+      ctx.strokeRect(8, 25, 14, 24);
+    } else if (suit === 'dino') {
+      // Cola de dinosaurio
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(14, 45);
+      ctx.quadraticCurveTo(-14, 52 + Math.sin(frame * 0.2) * 6, -22, 42);
+      ctx.lineTo(16, 55);
+      ctx.fill();
+    }
+
+    // 2. Piernas y zapatillas deportivas
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+
+    // Pierna izquierda
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// ==========================================
-// RENDERIZADO
-// ==========================================
-function render() {
-  requestAnimationFrame(render);
-  updatePhysics();
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Línea guía de caída
-  if (canDrop && !isGameOver) {
-    const fDef = FRUITS[currentFruitLevel];
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(dropX, 55);
-    ctx.lineTo(dropX, canvas.height - 10);
+    ctx.moveTo(25, 48);
+    ctx.lineTo(20 - legOffset, 66);
     ctx.stroke();
+
+    // Zapatilla izquierda
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.ellipse(20 - legOffset, 68, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pierna derecha
+    ctx.beginPath();
+    ctx.moveTo(35, 48);
+    ctx.lineTo(40 + legOffset, 66);
+    ctx.stroke();
+
+    // Zapatilla derecha
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.ellipse(40 + legOffset, 68, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Tronco / Camiseta
+    if (suit === 'dino') ctx.fillStyle = '#22c55e';
+    else if (suit === 'astronaut') ctx.fillStyle = '#f8fafc';
+    else if (suit === 'king') ctx.fillStyle = '#fbbf24';
+    else ctx.fillStyle = '#ef4444'; // Rojo Super Diego
+
+    ctx.beginPath();
+    ctx.roundRect(18, 24, 26, 26, 8);
+    ctx.fill();
+
+    // Emblema en la camiseta (Letra "D" de Diego)
+    ctx.fillStyle = suit === 'dino' ? '#ffffff' : '#fbbf24';
+    ctx.font = 'bold 13px Fredoka, sans-serif';
+    ctx.fillText('D', 27, 42);
+
+    // 4. Brazos
+    ctx.strokeStyle = '#fed7aa';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    if (isJumping) {
+      // Brazos arriba festejando
+      ctx.moveTo(18, 28);
+      ctx.lineTo(10, 14);
+      ctx.moveTo(42, 28);
+      ctx.lineTo(50, 14);
+    } else {
+      ctx.moveTo(18, 28);
+      ctx.lineTo(12 - armOffset, 42);
+      ctx.moveTo(42, 28);
+      ctx.lineTo(48 + armOffset, 42);
+    }
+    ctx.stroke();
+
+    // 5. Cabeza de Diego Jr (Carita redonda sonriente de 4 años)
+    ctx.save();
+    ctx.translate(0, headBob);
+
+    // Cara
+    ctx.fillStyle = '#fed7aa';
+    ctx.beginPath();
+    ctx.arc(31, 16, 17, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mejillas rosaditas
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
+    ctx.beginPath();
+    ctx.arc(22, 20, 4, 0, Math.PI * 2);
+    ctx.arc(40, 20, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ojos brillantes animados
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(26, 15, 3.2, 0, Math.PI * 2);
+    ctx.arc(36, 15, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Brillo blanco en los ojos (efecto Pixar)
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(27, 14, 1.3, 0, Math.PI * 2);
+    ctx.arc(37, 14, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sonrisa feliz grande
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(31, 18, 6, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+
+    // Cabello castaño despeinado con mechón simpático
+    if (suit === 'astronaut') {
+      // Casco espacial de cristal
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.45)';
+      ctx.beginPath();
+      ctx.arc(31, 16, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(31, 13, 17, Math.PI, Math.PI * 2);
+      ctx.lineTo(48, 16);
+      ctx.lineTo(46, 8);
+      ctx.lineTo(38, 2);
+      ctx.lineTo(28, 0); // Mechón alto
+      ctx.lineTo(22, 3);
+      ctx.lineTo(14, 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Accesorios de traje en la cabeza
+    if (suit === 'king') {
+      // Corona de oro brillante
+      ctx.fillStyle = '#fbbf24';
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(18, 0);
+      ctx.lineTo(22, -10);
+      ctx.lineTo(31, -4);
+      ctx.lineTo(40, -10);
+      ctx.lineTo(44, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Rubí central
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(31, -2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (suit === 'dino') {
+      // Cresta de dinosaurio
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.moveTo(26, -4);
+      ctx.lineTo(31, -12);
+      ctx.lineTo(36, -4);
+      ctx.fill();
+    }
+
     ctx.restore();
 
+    // 6. Efecto de Burbuja Protectora (si tiene el escudo activo)
+    if (state.powerup && state.powerup.type === 'shield') {
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.25)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(31, 35, 45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // Previsualización de traje en el menú
+  function renderAvatarPreview() {
+    const ctx = dom.previewCtx;
+    ctx.clearRect(0, 0, dom.previewCanvas.width, dom.previewCanvas.height);
+    drawDiegoJr(ctx, 50, 48, state.suit, Date.now() * 0.02, false, false, false);
+    requestAnimationFrame(renderAvatarPreview);
+  }
+
+  // ==============================================================
+  // 3. MUNDO, PARALLAX Y ESCENARIO
+  // ==============================================================
+  let worldWidth = 800;
+  let worldHeight = 500;
+  let groundY = 0;
+
+  // Ajustar tamaño del canvas responsivo a pantalla completa
+  function resizeCanvas() {
+    const rect = dom.canvas.parentElement.getBoundingClientRect();
+    worldWidth = rect.width;
+    worldHeight = rect.height;
+
+    dom.canvas.width = worldWidth * (window.devicePixelRatio || 1);
+    dom.canvas.height = worldHeight * (window.devicePixelRatio || 1);
+    dom.ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+    groundY = worldHeight * (1 - CONFIG.groundHeightRatio);
+    if (player.y === 0) player.y = groundY - player.height;
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // Nubes y colinas procedimentales
+  let skyOffset = 0;
+  let hillOffset1 = 0;
+  let hillOffset2 = 0;
+  let groundOffset = 0;
+
+  function drawParallaxBackground(ctx) {
+    // 1. Cielo con degradado radiante
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+    skyGrad.addColorStop(0, '#38bdf8');
+    skyGrad.addColorStop(1, '#bae6fd');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, worldWidth, worldHeight);
+
+    // 2. Sol sonriente con gafas de sol
     ctx.save();
-    ctx.translate(dropX, 42);
-    ctx.fillStyle = fDef.color;
+    ctx.translate(worldWidth - 110, 75);
+    // Rayos del sol
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.6)';
+    ctx.lineWidth = 5;
+    for (let i = 0; i < 8; i++) {
+      ctx.rotate(Math.PI / 4);
+      ctx.beginPath();
+      ctx.moveTo(38, 0);
+      ctx.lineTo(52, 0);
+      ctx.stroke();
+    }
+    // Cuerpo del sol
+    ctx.fillStyle = '#fde047';
     ctx.beginPath();
-    ctx.arc(0, 0, fDef.radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, 34, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
+    // Gafas de sol simpáticas
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-18, -6, 14, 9);
+    ctx.fillRect(4, -6, 14, 9);
+    ctx.strokeStyle = '#1e293b';
     ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-4, -2);
+    ctx.lineTo(4, -2);
+    ctx.stroke();
+    // Sonrisa
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 8, 8, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. Nubes del fondo suave (Parallax lento)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    for (let i = 0; i < 5; i++) {
+      const cx = ((i * 320) - skyOffset) % (worldWidth + 300) - 100;
+      const cy = 40 + (i % 3) * 35;
+      drawFluffyCloud(ctx, cx, cy, 55);
+    }
+
+    // 4. Colinas lejanas de caramelo (Violeta pastel)
+    ctx.fillStyle = '#c084fc';
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    for (let x = 0; x <= worldWidth + 50; x += 50) {
+      const hillY = groundY - 60 + Math.sin((x + hillOffset1) * 0.005) * 45;
+      ctx.lineTo(x, hillY);
+    }
+    ctx.lineTo(worldWidth, groundY);
+    ctx.fill();
+
+    // 5. Colinas medias de hierba y piruletas (Verde brillante)
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    for (let x = 0; x <= worldWidth + 40; x += 40) {
+      const hillY = groundY - 30 + Math.sin((x + hillOffset2) * 0.009) * 28;
+      ctx.lineTo(x, hillY);
+    }
+    ctx.lineTo(worldWidth, groundY);
+    ctx.fill();
+
+    // 6. Suelo Principal (Tierra de chocolate + Césped verde lima)
+    // Camino de arcoíris si el power-up está activo
+    if (state.powerup && state.powerup.type === 'rainbow') {
+      const rainbowColors = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a855f7'];
+      const sliceH = (worldHeight - groundY) / rainbowColors.length;
+      rainbowColors.forEach((color, idx) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(0, groundY + idx * sliceH, worldWidth, sliceH);
+      });
+    } else {
+      // Tierra
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(0, groundY, worldWidth, worldHeight - groundY);
+
+      // Pasto
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, groundY, worldWidth, 18);
+
+      // Borde de hierba brillante con ondas
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      for (let x = 0; x <= worldWidth; x += 24) {
+        ctx.arc(x - (groundOffset % 24), groundY + 18, 12, 0, Math.PI);
+      }
+      ctx.fill();
+    }
+
+    // Flores coloridas en el césped que se desplazan
+    for (let i = 0; i < 8; i++) {
+      const fx = ((i * 180) - groundOffset) % (worldWidth + 180);
+      drawFlower(ctx, fx, groundY + 8, i % 3);
+    }
+  }
+
+  function drawFluffyCloud(ctx, x, y, r) {
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.6, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.5, y - r * 0.2, r * 0.7, 0, Math.PI * 2);
+    ctx.arc(x + r, y, r * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawFlower(ctx, x, y, type) {
+    const colors = ['#f43f5e', '#fbbf24', '#38bdf8'];
+    ctx.fillStyle = colors[type];
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ==============================================================
+  // 4. ENTIDADES: ESTRELLAS, CARAMELOS, ANIMALITOS Y POWER-UPS
+  // ==============================================================
+  let items = [];
+  let particles = [];
+  let nextSpawnDistance = 150;
+
+  function spawnWorldItems() {
+    if (state.distance < nextSpawnDistance) return;
+    nextSpawnDistance = state.distance + 140 + Math.random() * 120;
+
+    const pattern = Math.floor(Math.random() * 4);
+
+    if (pattern === 0) {
+      // Arco de 5 estrellas brillantes para saltar
+      for (let i = 0; i < 5; i++) {
+        const archY = groundY - 70 - Math.sin((i / 4) * Math.PI) * 75;
+        items.push({
+          type: 'star',
+          x: worldWidth + i * 42,
+          y: archY,
+          width: 32,
+          height: 32,
+          color: '#fbbf24'
+        });
+      }
+    } else if (pattern === 1) {
+      // Animalito saltarín adorable (No hay muerte trágica, solo rebote alegre)
+      const animals = ['turtle', 'frog', 'bunny'];
+      const chosen = animals[Math.floor(Math.random() * animals.length)];
+      items.push({
+        type: 'creature',
+        animal: chosen,
+        x: worldWidth,
+        y: groundY - 45,
+        width: 45,
+        height: 45
+      });
+
+      // Caramelos encima del animalito para motivar a saltar
+      items.push({
+        type: 'candy',
+        x: worldWidth + 8,
+        y: groundY - 110,
+        width: 30,
+        height: 30
+      });
+    } else if (pattern === 2) {
+      // Power-up sorpresa (Cohete, Imán o Escudo de Burbuja)
+      const ptypes = ['rocket', 'magnet', 'shield', 'rainbow'];
+      const selected = ptypes[Math.floor(Math.random() * ptypes.length)];
+      items.push({
+        type: 'powerup',
+        pType: selected,
+        x: worldWidth,
+        y: groundY - 80,
+        width: 44,
+        height: 44
+      });
+    } else {
+      // Fruta grande deliciosa (Fresa / Plátano)
+      items.push({
+        type: 'fruit',
+        x: worldWidth,
+        y: groundY - 60,
+        width: 36,
+        height: 36
+      });
+    }
+  }
+
+  // Dibujar y animar items
+  function updateAndDrawItems(ctx) {
+    const time = Date.now() * 0.005;
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+
+      // Mover con el scroll del mundo
+      it.x -= state.speed;
+
+      // Imán Mágico: atrae estrellas y frutas hacia Diego Jr
+      if (state.powerup && state.powerup.type === 'magnet' && (it.type === 'star' || it.type === 'candy' || it.type === 'fruit')) {
+        const dx = player.x + 20 - it.x;
+        const dy = player.y + 20 - it.y;
+        it.x += dx * 0.12;
+        it.y += dy * 0.12;
+      }
+
+      // Dibujar según el tipo
+      if (it.type === 'star') {
+        drawStarIcon(ctx, it.x + 16, it.y + 16, 15, Math.sin(time + it.x * 0.01) * 0.3);
+      } else if (it.type === 'candy') {
+        drawCandyIcon(ctx, it.x + 15, it.y + 15);
+      } else if (it.type === 'fruit') {
+        drawFruitIcon(ctx, it.x + 18, it.y + 18);
+      } else if (it.type === 'powerup') {
+        drawPowerupIcon(ctx, it.x + 22, it.y + 22, it.pType);
+      } else if (it.type === 'creature') {
+        drawCreature(ctx, it.x + 22, it.y + 22, it.animal);
+      }
+
+      // Detección de colisión con Diego Jr
+      const playerBox = {
+        x: player.x + 10,
+        y: player.y + 8,
+        w: player.width - 20,
+        h: player.height - 16
+      };
+
+      if (
+        it.x < playerBox.x + playerBox.w &&
+        it.x + it.width > playerBox.x &&
+        it.y < playerBox.y + playerBox.h &&
+        it.y + it.height > playerBox.y
+      ) {
+        // Colisión resuelta
+        handleItemCollection(it);
+        items.splice(i, 1);
+        continue;
+      }
+
+      // Eliminar si sale por la izquierda de la pantalla
+      if (it.x + it.width < -50) {
+        items.splice(i, 1);
+      }
+    }
+  }
+
+  function handleItemCollection(it) {
+    if (it.type === 'star') {
+      state.stars++;
+      playStarSound(state.stars);
+      vibrate(25);
+      spawnStarParticles(it.x + 16, it.y + 16, '#fbbf24');
+      dom.hudStars.textContent = state.stars;
+
+      // Didáctica de números en voz alta cada 1 estrella hasta 10, luego de 5 en 5
+      if (state.stars <= 10) {
+        showDidacticNumber(state.stars, NUMBER_WORDS[state.stars]);
+        speak(NUMBER_WORDS[state.stars]);
+      } else if (state.stars % 5 === 0) {
+        const phrase = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+        speak(phrase);
+      }
+    } else if (it.type === 'candy' || it.type === 'fruit') {
+      state.candies++;
+      playStarSound(6);
+      vibrate(30);
+      spawnStarParticles(it.x + 16, it.y + 16, '#f43f5e');
+      speak(it.type === 'candy' ? '¡Caramelo delicioso!' : '¡Fresa fresca!');
+    } else if (it.type === 'powerup') {
+      activatePowerup(it.pType);
+    } else if (it.type === 'creature') {
+      // Choque amigable con animalito: ¡Rebota alegremente, no muere!
+      if (state.powerup && (state.powerup.type === 'shield' || state.powerup.type === 'rainbow' || state.powerup.type === 'rocket')) {
+        // Con escudo o cohete atraviesa con fiesta
+        playPowerupSound();
+        spawnStarParticles(it.x + 22, it.y + 22, '#38bdf8');
+      } else {
+        // Rebote suave
+        playBoingSound();
+        vibrate(50);
+        player.vy = -8.5; // Pequeño salto automático de rebote
+        spawnStarParticles(it.x + 22, it.y + 22, '#4ade80');
+        speak('¡Boing! ¡Saltaste al conejito!');
+      }
+    }
+  }
+
+  function activatePowerup(type) {
+    playPowerupSound();
+    vibrate(60);
+
+    const names = {
+      rocket: '¡COHETE MÁGICO!',
+      magnet: '¡IMÁN DE ESTRELLAS!',
+      shield: '¡BURBUJA PROTECTORA!',
+      rainbow: '¡MODO ARCOÍRIS VELOZ!'
+    };
+
+    const emojis = {
+      rocket: '🚀',
+      magnet: '🧲',
+      shield: '🫧',
+      rainbow: '🌈'
+    };
+
+    state.powerup = {
+      type: type,
+      duration: 380,
+      maxDuration: 380
+    };
+
+    dom.powerupIcon.textContent = emojis[type];
+    dom.powerupTitle.textContent = names[type];
+    dom.powerupBanner.classList.remove('hidden');
+
+    speak(names[type]);
+  }
+
+  // Dibujos de iconos vectoriales para Canvas
+  function drawStarIcon(ctx, x, y, r, rot = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.fillStyle = '#fbbf24';
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * r, -Math.sin((18 + i * 72) * Math.PI / 180) * r);
+      ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (r * 0.5), -Math.sin((54 + i * 72) * Math.PI / 180) * (r * 0.5));
+    }
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
 
-    ctx.font = `${fDef.radius * 1.3}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(fDef.emoji, 0, 2);
+    // Carita sonriente en la estrella
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.arc(-4, -2, 1.5, 0, Math.PI * 2);
+    ctx.arc(4, -2, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 1, 3.5, 0.1 * Math.PI, 0.9 * Math.PI);
+    ctx.stroke();
+
     ctx.restore();
   }
 
-  // Dibujar frutas
-  droppedFruits.forEach(f => {
+  function drawCandyIcon(ctx, x, y) {
     ctx.save();
-    ctx.translate(f.x, f.y);
-    ctx.rotate(f.rot);
-    ctx.scale(f.scale, f.scale);
-
-    ctx.fillStyle = f.color;
+    ctx.translate(x, y);
+    ctx.fillStyle = '#f43f5e';
     ctx.beginPath();
-    ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = Math.max(2, f.radius * 0.08);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 1.3);
     ctx.stroke();
 
-    ctx.font = `${f.radius * 1.25}px sans-serif`;
+    // Envoltura
+    ctx.fillStyle = '#ec4899';
+    ctx.beginPath();
+    ctx.moveTo(-12, 0);
+    ctx.lineTo(-20, -8);
+    ctx.lineTo(-20, 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(12, 0);
+    ctx.lineTo(20, -8);
+    ctx.lineTo(20, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFruitIcon(ctx, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    // Fresa
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(0, 14);
+    ctx.quadraticCurveTo(-14, 0, -10, -8);
+    ctx.quadraticCurveTo(0, -12, 10, -8);
+    ctx.quadraticCurveTo(14, 0, 0, 14);
+    ctx.fill();
+
+    // Hojitas verdes
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(0, -10, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPowerupIcon(ctx, x, y, pType) {
+    ctx.save();
+    ctx.translate(x, y);
+    // Globo brillante de fondo
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = '22px Fredoka, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(f.emoji, 0, 2);
-
+    const icons = { rocket: '🚀', magnet: '🧲', shield: '🫧', rainbow: '🌈' };
+    ctx.fillText(icons[pType] || '⭐', 0, 2);
     ctx.restore();
-  });
+  }
 
-  updateAndDrawParticles();
-}
-requestAnimationFrame(render);
+  function drawCreature(ctx, x, y, animal) {
+    ctx.save();
+    ctx.translate(x, y);
 
-// ==========================================
-// MODAL DE APODO / ALIAS
-// ==========================================
-btnEditAlias.addEventListener('click', () => {
-  inputNewAlias.value = playerData.alias || '';
-  modalAlias.classList.remove('hidden');
-});
+    if (animal === 'turtle') {
+      // Tortuguita con caparazón verde
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, Math.PI, 0);
+      ctx.fill();
 
-btnCancelAlias.addEventListener('click', () => {
-  modalAlias.classList.add('hidden');
-});
+      // Cabeza
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(16, -4, 8, 0, Math.PI * 2);
+      ctx.fill();
 
-btnSaveAlias.addEventListener('click', async () => {
-  const newName = inputNewAlias.value.trim();
-  if (!newName) return;
+      // Gafitas de sol
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(14, -7, 6, 5);
+    } else if (animal === 'frog') {
+      // Ranita saltarina
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-  try {
-    const res = await fetch('/api/player/set-alias', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: playerUID, alias: newName })
-    });
-    const data = await res.json();
-    if (data.player) {
-      playerData = data.player;
-      playerAliasEl.innerText = playerData.alias;
-      localStorage.setItem('fruit_merge_alias', playerData.alias);
-      modalAlias.classList.add('hidden');
-      showToast(t('nameUpdatedToast'));
+      // Ojos grandes
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-6, -12, 6, 0, Math.PI * 2);
+      ctx.arc(6, -12, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(-5, -12, 3, 0, Math.PI * 2);
+      ctx.arc(5, -12, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Conejito blanco
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 15, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Orejas
+      ctx.beginPath();
+      ctx.ellipse(-5, -14, 4, 10, -0.1, 0, Math.PI * 2);
+      ctx.ellipse(5, -14, 4, 10, 0.1, 0, Math.PI * 2);
+      ctx.fill();
     }
-  } catch (e) {}
-});
-
-// ==========================================
-// MODAL DE TABLA DE POSICIONES (LEADERBOARD)
-// ==========================================
-async function openLeaderboardModal() {
-  modalLeaderboard.classList.remove('hidden');
-  try {
-    const res = await fetch('/api/leaderboard');
-    const data = await res.json();
-    renderLeaderboardRows(data.leaderboard || []);
-
-    const rankRes = await fetch(`/api/player/auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: playerUID })
-    });
-    const rData = await rankRes.json();
-    if (rData.myRank) updateMyRankDisplay(rData.myRank);
-  } catch (e) {}
-}
-
-btnOpenLeaderboard.addEventListener('click', openLeaderboardModal);
-btnCloseLeaderboard.addEventListener('click', () => {
-  modalLeaderboard.classList.add('hidden');
-});
-
-function renderLeaderboardRows(list) {
-  leaderboardTbody.innerHTML = '';
-  if (list.length === 0) {
-    leaderboardTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px;">Be the first to play and lead the championship!</td></tr>';
-    return;
+    ctx.restore();
   }
 
-  list.forEach((p, idx) => {
-    const tr = document.createElement('tr');
-    let medal = `${idx + 1}`;
-    if (idx === 0) medal = '🥇 1';
-    else if (idx === 1) medal = '🥈 2';
-    else if (idx === 2) medal = '🥉 3';
-
-    const pFlag = idx === 0 ? '🇺🇸' : (idx === 1 ? '🇬🇧' : (idx === 2 ? '🇨🇦' : '🌐'));
-
-    tr.innerHTML = `
-      <td>${medal}</td>
-      <td><span>${pFlag}</span> <b>${p.alias}</b></td>
-      <td><span style="color:#facc15;">${p.score}</span></td>
-      <td>${p.games_played || 1}</td>
-    `;
-    leaderboardTbody.appendChild(tr);
-  });
-}
-
-socket.on('leaderboard_updated', (newList) => {
-  if (!modalLeaderboard.classList.contains('hidden')) {
-    renderLeaderboardRows(newList);
+  // ==============================================================
+  // 5. PARTÍCULAS DE CONFETI Y ESTRELLAS
+  // ==============================================================
+  function spawnStarParticles(x, y, color = '#fbbf24') {
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.7) * 7,
+        size: 5 + Math.random() * 6,
+        color: color,
+        life: 1.0
+      });
+    }
   }
-});
 
-socket.on('announcement', (data) => {
-  showToast(`🍉 ${data.alias} merged a ${data.fruit}!`);
-});
+  function updateAndDrawParticles(ctx) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.2; // Gravedad suave
+      p.life -= 0.035;
 
-// ==========================================
-// MODAL DE ADMINISTRACIÓN
-// ==========================================
-btnOpenAdmin.addEventListener('click', () => {
-  adminLoginView.classList.remove('hidden');
-  adminPanelView.classList.add('hidden');
-  inputAdminPin.value = '';
-  modalAdmin.classList.remove('hidden');
-});
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
 
-btnCloseAdmin.addEventListener('click', () => {
-  modalAdmin.classList.add('hidden');
-});
+      ctx.save();
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
 
-btnSubmitPin.addEventListener('click', async () => {
-  const pin = inputAdminPin.value.trim();
-  if (!pin) return;
+  // Didáctica Toast flotante
+  function showDidacticNumber(num, word) {
+    dom.didacticNumber.textContent = num;
+    dom.didacticWord.textContent = word;
+    dom.didacticToast.classList.remove('hidden');
 
-  try {
-    const res = await fetch('/api/admin/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: pin })
-    });
-    const data = await res.json();
-    if (data.success) {
-      adminLoginView.classList.add('hidden');
-      adminPanelView.classList.remove('hidden');
+    clearTimeout(dom.didacticToast._timer);
+    dom.didacticToast._timer = setTimeout(() => {
+      dom.didacticToast.classList.add('hidden');
+    }, 1500);
+  }
 
-      if (data.tournament) {
-        admTitle.value = data.tournament.title;
-        admPrize.value = data.tournament.prize_text;
-        const dt = new Date(data.tournament.end_time);
-        admDeadline.value = dt.toISOString().slice(0, 16);
+  // ==============================================================
+  // 6. BUCLE PRINCIPAL DE JUEGO (60 FPS LOOP)
+  // ==============================================================
+  let lastTime = 0;
+
+  function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
+
+    if (state.running && !state.paused) {
+      updateGame();
+    }
+
+    renderGame();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function updateGame() {
+    // 1. Acelerar ligeramente con la distancia
+    state.speed = Math.min(CONFIG.maxSpeed, state.speed + CONFIG.speedIncrease);
+    state.distance += state.speed * 0.1;
+    dom.hudDistance.textContent = `${Math.floor(state.distance)}m`;
+
+    // 2. Desplazar capas de Parallax
+    skyOffset += state.speed * 0.2;
+    hillOffset1 += state.speed * 0.5;
+    hillOffset2 += state.speed * 0.8;
+    groundOffset += state.speed;
+
+    // 3. Físicas de Diego Jr
+    player.runFrame++;
+
+    // Si tiene el Cohete Mágico activo: vuela en el aire suavemente
+    if (state.powerup && state.powerup.type === 'rocket') {
+      player.rocketY = Math.sin(Date.now() * 0.004) * 50;
+      player.y = (groundY - 140) + player.rocketY;
+      player.vy = 0;
+      player.isGrounded = false;
+      // Estela de humo del cohete
+      if (Math.random() < 0.6) {
+        spawnStarParticles(player.x, player.y + 40, '#f97316');
       }
     } else {
-      showToast('❌ Invalid Admin PIN');
+      // Gravedad normal o gravedad reducida al planear con capa
+      const currentGravity = state.isGliding ? CONFIG.glideGravity : CONFIG.gravity;
+      player.vy += currentGravity;
+      player.y += player.vy;
+
+      // Colisión con el suelo
+      if (player.y >= groundY - player.height) {
+        player.y = groundY - player.height;
+        player.vy = 0;
+        player.isGrounded = true;
+        player.jumpCount = 0;
+        state.isGliding = false;
+      } else {
+        player.isGrounded = false;
+      }
     }
-  } catch (e) {
-    showToast('❌ Connection error');
+
+    // 4. Temporizador de Power-up
+    if (state.powerup) {
+      state.powerup.duration--;
+      const pct = (state.powerup.duration / state.powerup.maxDuration) * 100;
+      dom.powerupFill.style.width = `${pct}%`;
+
+      if (state.powerup.duration <= 0) {
+        state.powerup = null;
+        dom.powerupBanner.classList.add('hidden');
+        speak('¡Sigue corriendo, Diego!');
+      }
+    }
+
+    // 5. Generar nuevos items
+    spawnWorldItems();
   }
-});
 
-btnSaveTournament.addEventListener('click', async () => {
-  const pin = inputAdminPin.value.trim();
-  const title = admTitle.value.trim();
-  const prize = admPrize.value.trim();
-  const deadline = admDeadline.value ? new Date(admDeadline.value).toISOString() : new Date().toISOString();
+  function renderGame() {
+    const ctx = dom.ctx;
+    ctx.clearRect(0, 0, worldWidth, worldHeight);
 
-  try {
-    const res = await fetch('/api/admin/update-tournament', {
+    // 1. Fondo Parallax
+    drawParallaxBackground(ctx);
+
+    // 2. Items coleccionables y animalitos
+    updateAndDrawItems(ctx);
+
+    // 3. Diego Jr
+    const isRocket = state.powerup && state.powerup.type === 'rocket';
+    drawDiegoJr(
+      ctx,
+      player.x,
+      player.y,
+      state.suit,
+      player.runFrame,
+      !player.isGrounded,
+      state.isGliding,
+      isRocket
+    );
+
+    // 4. Partículas
+    updateAndDrawParticles(ctx);
+  }
+
+  // ==============================================================
+  // 7. CONTROLES: SALTO Y FLOTAR CON CAPA (100% AMIGABLE)
+  // ==============================================================
+  function handleJump() {
+    if (!state.running) return;
+
+    if (player.isGrounded) {
+      // Salto inicial alegre
+      player.vy = CONFIG.jumpForce;
+      player.isGrounded = false;
+      player.jumpCount = 1;
+      playJumpSound();
+      vibrate(30);
+      spawnStarParticles(player.x + 30, groundY, '#4ade80');
+    } else if (player.jumpCount === 1) {
+      // Doble salto / Desplegar Capa para planear
+      player.vy = CONFIG.jumpForce * 0.85;
+      player.jumpCount = 2;
+      state.isGliding = true;
+      playJumpSound();
+      vibrate(40);
+      spawnStarParticles(player.x + 30, player.y + 40, '#f43f5e');
+      speak('¡A volar!');
+    }
+  }
+
+  // ==============================================================
+  // 8. FLUJO Y GESTIÓN DE PANTALLAS
+  // ==============================================================
+  function startGame() {
+    state.running = true;
+    state.paused = false;
+    state.speed = CONFIG.baseSpeed;
+    state.distance = 0;
+    state.stars = 0;
+    state.candies = 0;
+    state.hearts = 3;
+    state.powerup = null;
+    items = [];
+    particles = [];
+
+    player.y = groundY - player.height;
+    player.vy = 0;
+
+    dom.hudStars.textContent = '0';
+    dom.hudDistance.textContent = '0m';
+
+    dom.startScreen.classList.add('hidden');
+    dom.celebrationScreen.classList.add('hidden');
+    dom.gameHud.classList.remove('hidden');
+    dom.touchControls.classList.remove('hidden');
+
+    initAudio();
+    speak('¡Preparados, listos, ya! ¡Corre Diego!');
+  }
+
+  function pauseGame() {
+    state.paused = !state.paused;
+    dom.btnPause.textContent = state.paused ? '▶' : '⏸';
+    if (state.paused) {
+      speak('Pausa');
+    }
+  }
+
+  function finishRunCelebration() {
+    state.running = false;
+
+    dom.gameHud.classList.add('hidden');
+    dom.touchControls.classList.add('hidden');
+    dom.powerupBanner.classList.add('hidden');
+
+    dom.recapStars.textContent = state.stars;
+    dom.recapDistance.textContent = `${Math.floor(state.distance)}m`;
+    dom.recapCandies.textContent = state.candies;
+
+    dom.celebrationScreen.classList.remove('hidden');
+
+    // Confeti de fiesta
+    for (let i = 0; i < 40; i++) {
+      spawnStarParticles(worldWidth * Math.random(), worldHeight * 0.4, '#fbbf24');
+    }
+
+    playPowerupSound();
+    speak('¡Eres un gran campeón, Diego Junior! ¡Felicidades!');
+
+    // Guardar en el servidor
+    fetch('/api/stats', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin, title, prizeText: prize, endTime: deadline, active: true })
-    });
-    const data = await res.json();
-    if (data.success) {
-      activeTournament = data.tournament;
-      updateTournamentDisplay();
-      modalAdmin.classList.add('hidden');
-      showToast('✅ Tournament updated for all players!');
-    }
-  } catch (e) {}
-});
+      body: JSON.stringify({
+        stars: state.stars,
+        distance: Math.floor(state.distance),
+        suit: state.suit
+      })
+    }).catch(() => {});
+  }
 
-btnResetTournament.addEventListener('click', async () => {
-  if (!confirm('Are you sure you want to reset all scores and start a new championship?')) return;
-  const pin = inputAdminPin.value.trim();
-  try {
-    const res = await fetch('/api/admin/reset-tournament', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin })
-    });
-    const data = await res.json();
-    if (data.success) {
-      modalAdmin.classList.add('hidden');
-      showToast('⚠️ Tournament reset successfully!');
-      authPlayer();
-    }
-  } catch (e) {}
-});
+  // ==============================================================
+  // 9. EVENTOS Y CONFIGURACIÓN DE INTERFAZ
+  // ==============================================================
+  function setupEvents() {
+    // 1. Botón Iniciar
+    dom.btnStart.onclick = startGame;
 
-function showToast(msg) {
-  toastMsg.innerText = msg;
-  toastBanner.classList.remove('hidden');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => {
-    toastBanner.classList.add('hidden');
-  }, 3200);
-}
+    // 2. Botón Pausa
+    dom.btnPause.onclick = pauseGame;
+
+    // 3. Saltar con toque en pantalla o botón gigante
+    dom.btnTouchJump.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleJump();
+    });
+    dom.btnTouchJump.onclick = handleJump;
+
+    // Tocar el canvas directamente también salta (para niños de 4 años es lo más intuitivo)
+    dom.canvas.addEventListener('pointerdown', (e) => {
+      if (state.running && !state.paused) {
+        handleJump();
+      }
+    });
+
+    // Teclado (Barra espaciadora o Flecha arriba)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        handleJump();
+      } else if (e.code === 'KeyP') {
+        pauseGame();
+      }
+    });
+
+    // 4. Modal de Vestuario de Trajes
+    dom.btnCloset.onclick = () => {
+      dom.modalCloset.classList.remove('hidden');
+    };
+    dom.btnCloseCloset.onclick = () => {
+      dom.modalCloset.classList.add('hidden');
+    };
+    dom.btnConfirmCloset.onclick = () => {
+      dom.modalCloset.classList.add('hidden');
+      speak('¡Excelente traje, Diego!');
+    };
+
+    dom.suitCards.forEach(card => {
+      card.onclick = () => {
+        dom.suitCards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        state.suit = card.dataset.suit;
+        localStorage.setItem('diego_suit', state.suit);
+
+        const names = {
+          super_diego: 'Super Diego (Capa Roja)',
+          astronaut: 'Diego Astronauta 🚀',
+          dino: 'Dino Diego 🦖',
+          king: 'Rey Diego 👑'
+        };
+        dom.previewSuitName.textContent = names[state.suit];
+        playStarSound(4);
+      };
+    });
+
+    // 5. Botones de Sonido y Voz Didáctica
+    dom.btnSound.onclick = () => {
+      state.soundEnabled = !state.soundEnabled;
+      dom.btnSound.textContent = state.soundEnabled ? '🔊 Sonido: ON' : '🔈 Sonido: OFF';
+      dom.btnSound.classList.toggle('active', state.soundEnabled);
+    };
+
+    dom.btnVoice.onclick = () => {
+      state.voiceEnabled = !state.voiceEnabled;
+      dom.btnVoice.textContent = state.voiceEnabled ? '🗣️ Voz Didáctica: ON' : '🔇 Voz Didáctica: OFF';
+      dom.btnVoice.classList.toggle('active', state.voiceEnabled);
+      if (state.voiceEnabled) speak('¡Voz activada!');
+    };
+
+    // 6. Pantalla de Celebración
+    dom.btnReplay.onclick = startGame;
+    dom.btnHome.onclick = () => {
+      dom.celebrationScreen.classList.add('hidden');
+      dom.startScreen.classList.remove('hidden');
+    };
+
+    // Tocar la pantalla de celebración lanza confeti interactivo
+    dom.celebrationScreen.addEventListener('pointerdown', (e) => {
+      spawnStarParticles(e.clientX, e.clientY, '#f43f5e');
+      playStarSound(Math.floor(Math.random() * 8));
+    });
+
+    // 7. Conectar Socket.io para vitores familiares
+    try {
+      if (typeof io !== 'undefined') {
+        const socket = io();
+        socket.on('family_cheer', (data) => {
+          dom.cheerEmoji.textContent = data.emoji || '❤️';
+          dom.cheerSender.textContent = `${data.from} te envió amor:`;
+          dom.cheerMsg.textContent = data.message || '¡Bravo Diego Jr!';
+          dom.familyCheerBanner.classList.remove('hidden');
+
+          speak(data.message || '¡Bravo Diego!');
+
+          setTimeout(() => {
+            dom.familyCheerBanner.classList.add('hidden');
+          }, 3500);
+        });
+      }
+    } catch (e) {}
+  }
+
+  // Inicializar al cargar el DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    resizeCanvas();
+    setupEvents();
+    renderAvatarPreview();
+    requestAnimationFrame(gameLoop);
+  });
+
+})();
