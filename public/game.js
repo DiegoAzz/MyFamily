@@ -1,106 +1,93 @@
 // ==============================================================
-// SUPER DIEGO JR: CARRERA MÁGICA 🌟
-// Motor Endless Runner 60 FPS con Parallax, Físicas Suaves,
-// Animaciones de Superhéroe y Didáctica Infantil para 4 años.
+// DIEGO JR: TEMPLE RUNNER 3D 🏺
+// Motor 3D WebGL con Three.js estilo Temple Run:
+// Perspectiva en 3ra persona sobre el puente del templo,
+// diamantes dorados giratorios, enredaderas selváticas,
+// controles de 3 carriles y cero frustración para niños de 4 años.
 // ==============================================================
 
 (function() {
   'use strict';
 
-  // CONFIGURACIÓN Y ESTADO DEL JUEGO
+  // CONFIGURACIÓN DEL JUEGO
   const CONFIG = {
-    gravity: 0.42,            // Gravedad suave para niños
-    jumpForce: -10.5,         // Salto amplio y cómodo
-    glideGravity: 0.14,       // Flotar con capa o globos en el aire
-    baseSpeed: 4.5,           // Velocidad amigable
-    maxSpeed: 7.0,
-    speedIncrease: 0.0005,
-    groundHeightRatio: 0.22   // Altura del suelo respecto al canvas
+    laneWidth: 2.1,          // Distancia entre los 3 carriles (-2.1, 0, +2.1)
+    baseSpeed: 18.0,          // Velocidad del corredor
+    maxSpeed: 28.0,
+    speedIncrement: 0.003,
+    gravity: 34.0,           // Gravedad del salto
+    jumpVelocity: 14.0,      // Altura del salto
+    chunkLength: 40,         // Longitud de cada segmento de puente 3D
+    numChunks: 7             // Chunks activos simultáneamente
   };
 
   const state = {
     running: false,
     paused: false,
-    speed: CONFIG.baseSpeed,
+    coins: 0,
     distance: 0,
-    stars: 0,
-    candies: 0,
+    speed: CONFIG.baseSpeed,
+    currentLane: 0,          // -1: Izquierda, 0: Centro, 1: Derecha
+    targetX: 0,
     hearts: 3,
-    suit: localStorage.getItem('diego_suit') || 'super_diego',
     soundEnabled: true,
     voiceEnabled: true,
-    powerup: null,            // { type: 'rocket'|'magnet'|'shield'|'rainbow', duration: 300, maxDuration: 300 }
-    isGliding: false,
-    didacticNumber: 0,
-    lastVoiceTime: 0
+    speedMode: 'gentle',     // 'gentle' | 'fast'
+    powerup: null,           // { type: 'magnet'|'wings'|'shield', duration: 400, maxDuration: 400 }
+    isSliding: false,
+    slideTimer: 0,
+    invincibleTimer: 0
   };
 
-  // Nombres y frases didácticas en español
+  // Frases didácticas en español
   const NUMBER_WORDS = [
-    '¡CERO!', '¡UNO! 🌟', '¡DOS! 🌟', '¡TRES! 🌟', '¡CUATRO! 🌟', 
-    '¡CINCO! 🌟', '¡SEIS! 🌟', '¡SIETE! 🌟', '¡OCHO! 🌟', '¡NUEVE! 🌟', '¡DIEZ! 🏆'
+    '¡CERO!', '¡UNO! 💎', '¡DOS! 💎', '¡TRES! 💎', '¡CUATRO! 💎',
+    '¡CINCO! 💎', '¡SEIS! 💎', '¡SIETE! 💎', '¡OCHO! 💎', '¡NUEVE! 💎', '¡DIEZ! 🏆'
   ];
 
   const PRAISES = [
-    '¡Qué bien, Diego!', '¡Súper campeón!', '¡Bravo Diego Jr!', 
-    '¡Increíble!', '¡Eres muy rápido!', '¡Genial!'
+    '¡Increíble, Diego!', '¡Súper explorador!', '¡Qué rápido eres!',
+    '¡Eres un campeón!', '¡Bravo Diego Jr!', '¡Excelente!'
   ];
 
   // REFERENCIAS DOM
   const dom = {
-    canvas: document.getElementById('gameCanvas'),
-    ctx: null,
-    previewCanvas: document.getElementById('previewCanvas'),
-    previewCtx: null,
-
-    startScreen: document.getElementById('start-screen'),
+    canvas: document.getElementById('webglCanvas'),
     gameHud: document.getElementById('game-hud'),
-    hudStars: document.getElementById('hud-star-count'),
+    hudCoins: document.getElementById('hud-coins-val'),
     hudDistance: document.getElementById('hud-distance-val'),
-    hudHearts: document.getElementById('hud-hearts-container'),
+    hudHearts: document.getElementById('hud-hearts'),
     btnPause: document.getElementById('btn-pause'),
 
     powerupBanner: document.getElementById('powerup-banner'),
-    powerupIcon: document.getElementById('powerup-icon'),
-    powerupTitle: document.getElementById('powerup-title'),
-    powerupFill: document.getElementById('powerup-fill'),
+    powerupEmoji: document.getElementById('powerup-emoji'),
+    powerupName: document.getElementById('powerup-name'),
+    powerupBarFill: document.getElementById('powerup-bar-fill'),
 
-    didacticToast: document.getElementById('didactic-toast'),
-    didacticNumber: document.getElementById('didactic-number'),
+    didacticFloat: document.getElementById('didactic-float'),
+    didacticBigNum: document.getElementById('didactic-big-num'),
     didacticWord: document.getElementById('didactic-word'),
 
     touchControls: document.getElementById('touch-controls'),
+    btnTouchLeft: document.getElementById('btn-touch-left'),
     btnTouchJump: document.getElementById('btn-touch-jump'),
+    btnTouchRight: document.getElementById('btn-touch-right'),
 
-    btnStart: document.getElementById('btn-start-game'),
-    btnCloset: document.getElementById('btn-open-closet'),
-    btnSound: document.getElementById('btn-toggle-sound'),
-    btnVoice: document.getElementById('btn-toggle-voice'),
-
-    modalCloset: document.getElementById('modal-closet'),
-    btnCloseCloset: document.getElementById('btn-close-closet'),
-    btnConfirmCloset: document.getElementById('btn-confirm-closet'),
-    suitCards: document.querySelectorAll('.suit-card'),
-    previewSuitName: document.getElementById('preview-suit-name'),
+    menuScreen: document.getElementById('menu-screen'),
+    btnStart: document.getElementById('btn-start'),
+    btnToggleSound: document.getElementById('btn-toggle-sound'),
+    btnToggleVoice: document.getElementById('btn-toggle-voice'),
+    btnToggleSpeed: document.getElementById('btn-toggle-speed'),
 
     celebrationScreen: document.getElementById('celebration-screen'),
-    recapStars: document.getElementById('recap-stars'),
+    recapCoins: document.getElementById('recap-coins'),
     recapDistance: document.getElementById('recap-distance'),
-    recapCandies: document.getElementById('recap-candies'),
-    btnReplay: document.getElementById('btn-replay'),
-    btnHome: document.getElementById('btn-home'),
-
-    familyCheerBanner: document.getElementById('family-cheer-banner'),
-    cheerSender: document.getElementById('cheer-sender'),
-    cheerMsg: document.getElementById('cheer-msg'),
-    cheerEmoji: document.getElementById('cheer-emoji')
+    btnPlayAgain: document.getElementById('btn-play-again'),
+    btnMenuBack: document.getElementById('btn-menu-back')
   };
 
-  dom.ctx = dom.canvas.getContext('2d');
-  dom.previewCtx = dom.previewCanvas.getContext('2d');
-
   // ==============================================================
-  // 1. SINTETIZADOR DE AUDIO ALEGRE Y VOZ DIDÁCTICA (WEB SPEECH)
+  // 1. SINTETIZADOR DE AUDIO Y VOZ DIDÁCTICA
   // ==============================================================
   let audioCtx = null;
 
@@ -114,7 +101,32 @@
     }
   }
 
-  // Sonido de Salto Alegre
+  // Sonido de Diamante Dorado (Idéntico brillo de Temple Run)
+  const COIN_CHORD = [587.33, 659.25, 783.99, 880.00, 1046.50];
+  function playCoinSound(index = 0) {
+    if (!state.soundEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    const freq = COIN_CHORD[index % COIN_CHORD.length];
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.25, now + 0.12);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  // Salto de Explorador
   function playJumpSound() {
     if (!state.soundEnabled) return;
     initAudio();
@@ -124,11 +136,11 @@
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(260, now);
-    osc.frequency.exponentialRampToValueAtTime(560, now + 0.18);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.18);
 
-    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.setValueAtTime(0.25, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
     osc.connect(gain);
@@ -137,55 +149,8 @@
     osc.stop(now + 0.2);
   }
 
-  // Escala musical para cada estrella (Do-Re-Mi-Fa-Sol-La-Si-Do)
-  const SCALE = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
-  function playStarSound(noteIndex = 0) {
-    if (!state.soundEnabled) return;
-    initAudio();
-    if (!audioCtx) return;
-
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    const freq = SCALE[noteIndex % SCALE.length];
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.28);
-  }
-
-  // Sonido de Power-up Mágico
-  function playPowerupSound() {
-    if (!state.soundEnabled) return;
-    initAudio();
-    if (!audioCtx) return;
-
-    const now = audioCtx.currentTime;
-    [392, 523.25, 659.25, 783.99].forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-
-      gain.gain.setValueAtTime(0.2, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 0.25);
-    });
-  }
-
-  // Sonido de rebote gracioso (no hay muerte trágica)
-  function playBoingSound() {
+  // Sonido de Tambor del Templo al deslizarse
+  function playSlideSound() {
     if (!state.soundEnabled) return;
     initAudio();
     if (!audioCtx) return;
@@ -195,11 +160,34 @@
     const gain = audioCtx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(160, now);
-    osc.frequency.linearRampToValueAtTime(320, now + 0.12);
-    osc.frequency.linearRampToValueAtTime(140, now + 0.25);
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.linearRampToValueAtTime(80, now + 0.2);
 
     gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  // Rebote divertido al chocar (Sin muerte)
+  function playBoingSound() {
+    if (!state.soundEnabled) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.linearRampToValueAtTime(360, now + 0.12);
+    osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+
+    gain.gain.setValueAtTime(0.3, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
 
     osc.connect(gain);
@@ -208,959 +196,686 @@
     osc.stop(now + 0.25);
   }
 
-  // Voz Didáctica amigable en Español (HTML5 SpeechSynthesis)
+  // Voz didáctica en español
   function speak(text) {
     if (!state.voiceEnabled) return;
     try {
       if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel(); // Detener anterior
+      window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-LA'; // Español latino/amigable
-      utterance.rate = 1.05;    // Tono animado
-      utterance.pitch = 1.35;   // Tono alegre y juvenil
+      utterance.lang = 'es-LA';
+      utterance.rate = 1.05;
+      utterance.pitch = 1.35;
 
-      // Buscar voz en español si está disponible
       const voices = window.speechSynthesis.getVoices();
       const esVoice = voices.find(v => v.lang.startsWith('es'));
       if (esVoice) utterance.voice = esVoice;
 
       window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.log('Síntesis de voz no disponible');
-    }
+    } catch (e) {}
   }
 
-  // Vibración háptica en celulares
-  function vibrate(ms = 35) {
+  function vibrate(ms = 30) {
     if (navigator.vibrate) {
       try { navigator.vibrate(ms); } catch (e) {}
     }
   }
 
   // ==============================================================
-  // 2. PERSONAJE PROTAGONISTA: DIEGO JR (4 AÑOS)
+  // 2. TEXTURAS PROCEDURALES EN CANVAS (100% LIBRE DE 404)
   // ==============================================================
-  const player = {
-    x: 100,
-    y: 0,
-    width: 60,
-    height: 75,
-    vy: 0,
-    isGrounded: false,
-    jumpCount: 0,
-    runFrame: 0,
-    invincibleTimer: 0,
-    rocketY: 0
-  };
+  function createStoneBridgeTexture() {
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 512;
+    const ctx = c.getContext('2d');
 
-  // Dibujar a Diego Jr de forma vectorial y estilizada en Canvas
-  function drawDiegoJr(ctx, x, y, suit, frame = 0, isJumping = false, isGliding = false, hasRocket = false) {
-    ctx.save();
-    ctx.translate(x, y);
+    // Fondo piedra arenisca dorada de templo
+    ctx.fillStyle = '#b48a52';
+    ctx.fillRect(0, 0, 512, 512);
 
-    const legOffset = isJumping ? 0 : Math.sin(frame * 0.25) * 12;
-    const armOffset = isJumping ? 0 : Math.cos(frame * 0.25) * 10;
-    const headBob = isJumping ? -4 : Math.abs(Math.sin(frame * 0.25)) * 3;
+    // Baldosas de piedra tallada
+    const rows = 8;
+    const cols = 4;
+    const rh = 512 / rows;
+    const cw = 512 / cols;
 
-    // 0. Si tiene el Power-up del Cohete Mágico
-    if (hasRocket) {
-      // Dibujar Cohete Espacial de Juguete
-      ctx.save();
-      ctx.translate(-8, 30);
+    for (let r = 0; r < rows; r++) {
+      const offset = (r % 2) * (cw / 2);
+      for (let col = -1; col <= cols; col++) {
+        const x = col * cw + offset;
+        const y = r * rh;
 
-      // Fuego de propulsión
-      const flameSize = 14 + Math.random() * 8;
-      ctx.fillStyle = '#f97316';
-      ctx.beginPath();
-      ctx.moveTo(-16, 12);
-      ctx.lineTo(-16 - flameSize, 18);
-      ctx.lineTo(-16, 24);
-      ctx.fill();
+        // Tonalidad de piedra
+        const shade = Math.floor(180 + Math.random() * 40);
+        ctx.fillStyle = `rgb(${shade}, ${shade * 0.78}, ${shade * 0.45})`;
+        ctx.fillRect(x + 3, y + 3, cw - 6, rh - 6);
 
-      ctx.fillStyle = '#fde047';
-      ctx.beginPath();
-      ctx.moveTo(-14, 15);
-      ctx.lineTo(-14 - flameSize * 0.6, 18);
-      ctx.lineTo(-14, 21);
-      ctx.fill();
-
-      // Cuerpo del cohete
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.ellipse(30, 18, 42, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ventanilla del cohete
-      ctx.fillStyle = '#bae6fd';
-      ctx.strokeStyle = '#0284c7';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(36, 18, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Aleta trasera
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-10, -12);
-      ctx.lineTo(8, 0);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // 1. Capa de Superhéroe u orejitas (Detrás de Diego)
-    if (suit === 'super_diego' || suit === 'king') {
-      ctx.fillStyle = suit === 'king' ? '#9333ea' : '#ef4444';
-      ctx.beginPath();
-      ctx.moveTo(18, 28);
-      // Capa ondeando por el viento
-      const capeWave = isGliding ? Math.sin(frame * 0.15) * 8 : Math.sin(frame * 0.3) * 14;
-      const capeX = isGliding ? -38 : -24;
-      ctx.quadraticCurveTo(capeX, 36 + capeWave, capeX - 10, 58 + capeWave);
-      ctx.lineTo(12, 45);
-      ctx.closePath();
-      ctx.fill();
-
-      if (suit === 'king') {
-        // Borde dorado de la capa
-        ctx.strokeStyle = '#fbbf24';
+        // Borde biselado
+        ctx.strokeStyle = '#6d4c20';
         ctx.lineWidth = 3;
-        ctx.stroke();
+        ctx.strokeRect(x + 2, y + 2, cw - 4, rh - 4);
+
+        // Manchas de musgo verde selvático
+        if (Math.random() < 0.3) {
+          ctx.fillStyle = 'rgba(45, 106, 63, 0.45)';
+          ctx.beginPath();
+          ctx.arc(x + cw * 0.4, y + rh * 0.5, 12 + Math.random() * 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-    } else if (suit === 'astronaut') {
-      // Mochilita espacial con propulsor
-      ctx.fillStyle = '#e2e8f0';
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
-      ctx.fillRect(8, 25, 14, 24);
-      ctx.strokeRect(8, 25, 14, 24);
-    } else if (suit === 'dino') {
-      // Cola de dinosaurio
-      ctx.fillStyle = '#22c55e';
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
+  function createWoodPlankTexture() {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const ctx = c.getContext('2d');
+
+    ctx.fillStyle = '#5c3a21';
+    ctx.fillRect(0, 0, 256, 256);
+
+    for (let i = 0; i < 8; i++) {
+      const y = i * 32;
+      ctx.fillStyle = i % 2 === 0 ? '#724728' : '#54341d';
+      ctx.fillRect(0, y + 2, 256, 28);
+
+      // Remaches de cuerda / metal
+      ctx.fillStyle = '#22150c';
       ctx.beginPath();
-      ctx.moveTo(14, 45);
-      ctx.quadraticCurveTo(-14, 52 + Math.sin(frame * 0.2) * 6, -22, 42);
-      ctx.lineTo(16, 55);
+      ctx.arc(14, y + 16, 3, 0, Math.PI * 2);
+      ctx.arc(242, y + 16, 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 2. Piernas y zapatillas deportivas
-    ctx.strokeStyle = '#0284c7';
-    ctx.lineWidth = 8;
-    ctx.lineCap = 'round';
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
 
-    // Pierna izquierda
-    ctx.beginPath();
-    ctx.moveTo(25, 48);
-    ctx.lineTo(20 - legOffset, 66);
-    ctx.stroke();
+  // ==============================================================
+  // 3. MOTOR THREE.JS Y ESCENA 3D
+  // ==============================================================
+  let scene, camera, renderer;
+  let playerGroup, playerAnim = { legL: null, legR: null, armL: null, armR: null, hat: null };
+  let chunks = [];
+  let coins = [];
+  let obstacles = [];
+  let particles3D = [];
 
-    // Zapatilla izquierda
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.ellipse(20 - legOffset, 68, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+  let stoneTex, woodTex;
+  let stoneMat, woodMat, goldMat, obstacleMat;
 
-    // Pierna derecha
-    ctx.beginPath();
-    ctx.moveTo(35, 48);
-    ctx.lineTo(40 + legOffset, 66);
-    ctx.stroke();
+  function initThree() {
+    // 1. Escena con niebla tropical profunda
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x225566);
+    scene.fog = new THREE.FogExp2(0x225566, 0.016);
 
-    // Zapatilla derecha
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.ellipse(40 + legOffset, 68, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // 2. Cámara (Perspectiva idéntica a Temple Run: detrás del personaje)
+    const aspect = window.innerWidth / window.innerHeight;
+    camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 400);
+    camera.position.set(0, 3.8, 6.2);
+    camera.lookAt(0, 1.8, -12);
 
-    // 3. Tronco / Camiseta
-    if (suit === 'dino') ctx.fillStyle = '#22c55e';
-    else if (suit === 'astronaut') ctx.fillStyle = '#f8fafc';
-    else if (suit === 'king') ctx.fillStyle = '#fbbf24';
-    else ctx.fillStyle = '#ef4444'; // Rojo Super Diego
+    // 3. Renderizador WebGL
+    renderer = new THREE.WebGLRenderer({
+      canvas: dom.canvas,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
 
-    ctx.beginPath();
-    ctx.roundRect(18, 24, 26, 26, 8);
-    ctx.fill();
+    // 4. Iluminación ambiental y solar
+    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.7);
+    scene.add(ambientLight);
 
-    // Emblema en la camiseta (Letra "D" de Diego)
-    ctx.fillStyle = suit === 'dino' ? '#ffffff' : '#fbbf24';
-    ctx.font = 'bold 13px Fredoka, sans-serif';
-    ctx.fillText('D', 27, 42);
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
+    sunLight.position.set(15, 30, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    scene.add(sunLight);
+
+    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x1b4d2e, 0.5);
+    scene.add(hemiLight);
+
+    // 5. Materiales compartidos
+    stoneTex = createStoneBridgeTexture();
+    woodTex = createWoodPlankTexture();
+
+    stoneMat = new THREE.MeshStandardMaterial({
+      map: stoneTex,
+      roughness: 0.75,
+      metalness: 0.15
+    });
+
+    woodMat = new THREE.MeshStandardMaterial({
+      map: woodTex,
+      roughness: 0.85
+    });
+
+    // Diamante Dorado de Temple Run (Brillo oro radiante)
+    goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffcc00,
+      emissive: 0x996600,
+      metalness: 0.9,
+      roughness: 0.15
+    });
+
+    obstacleMat = new THREE.MeshStandardMaterial({
+      color: 0x78350f,
+      roughness: 0.8
+    });
+
+    // 6. Construir al personaje Diego Jr Explorador
+    buildDiegoJr();
+
+    // 7. Generar segmentos iniciales del puente
+    initTrackChunks();
+
+    window.addEventListener('resize', onWindowResize);
+  }
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  // ==============================================================
+  // 4. MODELO 3D PROCEDURAL: DIEGO JR EXPLORADOR (4 AÑOS)
+  // ==============================================================
+  function buildDiegoJr() {
+    playerGroup = new THREE.Group();
+
+    // 1. Torso con camisa de explorador safari y correaje
+    const bodyGeo = new THREE.BoxGeometry(0.75, 0.85, 0.5);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe5d0ba }); // Camisa beige safari
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    bodyMesh.position.y = 1.05;
+    playerGroup.add(bodyMesh);
+
+    // Bandolera / Mochila cruzada de explorador
+    const strapGeo = new THREE.BoxGeometry(0.8, 0.12, 0.54);
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0x5c3317 });
+    const strapMesh = new THREE.Mesh(strapGeo, strapMat);
+    strapMesh.position.y = 1.05;
+    strapMesh.rotation.z = 0.55;
+    playerGroup.add(strapMesh);
+
+    // Bolso de explorador en la cadera
+    const bagGeo = new THREE.BoxGeometry(0.32, 0.35, 0.22);
+    const bagMesh = new THREE.Mesh(bagGeo, strapMat);
+    bagMesh.position.set(-0.42, 0.85, 0.05);
+    playerGroup.add(bagMesh);
+
+    // 2. Cabeza redonda sonriente de Diego Jr
+    const headGeo = new THREE.SphereGeometry(0.36, 16, 16);
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd2a5, roughness: 0.6 });
+    const headMesh = new THREE.Mesh(headGeo, skinMat);
+    headMesh.position.y = 1.72;
+    playerGroup.add(headMesh);
+
+    // Ojos brillantes
+    const eyeGeo = new THREE.SphereGeometry(0.06, 8, 8);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.12, 1.74, -0.32);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeR.position.set(0.12, 1.74, -0.32);
+    playerGroup.add(eyeL);
+    playerGroup.add(eyeR);
+
+    // 3. Sombrero Fedora de Explorador (Igual a Temple Run / Indiana Jones)
+    const hatGroup = new THREE.Group();
+    // Ala ancha del sombrero
+    const brimGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.04, 20);
+    const hatMat = new THREE.MeshStandardMaterial({ color: 0x6e4726, roughness: 0.8 });
+    const brimMesh = new THREE.Mesh(brimGeo, hatMat);
+    brimMesh.position.y = 1.95;
+    hatGroup.add(brimMesh);
+
+    // Copa del sombrero
+    const crownGeo = new THREE.CylinderGeometry(0.38, 0.44, 0.32, 16);
+    const crownMesh = new THREE.Mesh(crownGeo, hatMat);
+    crownMesh.position.y = 2.1;
+    hatGroup.add(crownMesh);
+
+    // Cinta de cuero del sombrero
+    const bandGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.08, 16);
+    const bandMat = new THREE.MeshStandardMaterial({ color: 0x2b1708 });
+    const bandMesh = new THREE.Mesh(bandGeo, bandMat);
+    bandMesh.position.y = 1.99;
+    hatGroup.add(bandMesh);
+
+    playerGroup.add(hatGroup);
+    playerAnim.hat = hatGroup;
 
     // 4. Brazos
-    ctx.strokeStyle = '#fed7aa';
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    if (isJumping) {
-      // Brazos arriba festejando
-      ctx.moveTo(18, 28);
-      ctx.lineTo(10, 14);
-      ctx.moveTo(42, 28);
-      ctx.lineTo(50, 14);
-    } else {
-      ctx.moveTo(18, 28);
-      ctx.lineTo(12 - armOffset, 42);
-      ctx.moveTo(42, 28);
-      ctx.lineTo(48 + armOffset, 42);
-    }
-    ctx.stroke();
+    const armGeo = new THREE.BoxGeometry(0.2, 0.65, 0.2);
+    armGeo.translate(0, -0.3, 0);
 
-    // 5. Cabeza de Diego Jr (Carita redonda sonriente de 4 años)
-    ctx.save();
-    ctx.translate(0, headBob);
+    const armL = new THREE.Mesh(armGeo, bodyMat);
+    armL.position.set(-0.48, 1.4, 0);
+    playerGroup.add(armL);
+    playerAnim.armL = armL;
 
-    // Cara
-    ctx.fillStyle = '#fed7aa';
-    ctx.beginPath();
-    ctx.arc(31, 16, 17, 0, Math.PI * 2);
-    ctx.fill();
+    const armR = new THREE.Mesh(armGeo, bodyMat);
+    armR.position.set(0.48, 1.4, 0);
+    playerGroup.add(armR);
+    playerAnim.armR = armR;
 
-    // Mejillas rosaditas
-    ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
-    ctx.beginPath();
-    ctx.arc(22, 20, 4, 0, Math.PI * 2);
-    ctx.arc(40, 20, 4, 0, Math.PI * 2);
-    ctx.fill();
+    // 5. Piernas con pantalones cortos y botas de explorador
+    const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+    legGeo.translate(0, -0.35, 0);
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x4a2e19 });
 
-    // Ojos brillantes animados
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(26, 15, 3.2, 0, Math.PI * 2);
-    ctx.arc(36, 15, 3.2, 0, Math.PI * 2);
-    ctx.fill();
+    const legL = new THREE.Mesh(legGeo, pantsMat);
+    legL.position.set(-0.22, 0.7, 0);
+    playerGroup.add(legL);
+    playerAnim.legL = legL;
 
-    // Brillo blanco en los ojos (efecto Pixar)
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(27, 14, 1.3, 0, Math.PI * 2);
-    ctx.arc(37, 14, 1.3, 0, Math.PI * 2);
-    ctx.fill();
+    const legR = new THREE.Mesh(legGeo, pantsMat);
+    legR.position.set(0.22, 0.7, 0);
+    playerGroup.add(legR);
+    playerAnim.legR = legR;
 
-    // Sonrisa feliz grande
-    ctx.strokeStyle = '#991b1b';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(31, 18, 6, 0.15 * Math.PI, 0.85 * Math.PI);
-    ctx.stroke();
+    // Botas
+    const bootGeo = new THREE.BoxGeometry(0.28, 0.22, 0.38);
+    const bootMat = new THREE.MeshStandardMaterial({ color: 0x221307 });
+    const bootL = new THREE.Mesh(bootGeo, bootMat);
+    bootL.position.set(0, -0.68, -0.06);
+    legL.add(bootL);
 
-    // Cabello castaño despeinado con mechón simpático
-    if (suit === 'astronaut') {
-      // Casco espacial de cristal
-      ctx.strokeStyle = '#bae6fd';
-      ctx.lineWidth = 3;
-      ctx.fillStyle = 'rgba(224, 242, 254, 0.45)';
-      ctx.beginPath();
-      ctx.arc(31, 16, 20, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#78350f';
-      ctx.beginPath();
-      ctx.arc(31, 13, 17, Math.PI, Math.PI * 2);
-      ctx.lineTo(48, 16);
-      ctx.lineTo(46, 8);
-      ctx.lineTo(38, 2);
-      ctx.lineTo(28, 0); // Mechón alto
-      ctx.lineTo(22, 3);
-      ctx.lineTo(14, 16);
-      ctx.closePath();
-      ctx.fill();
-    }
+    const bootR = new THREE.Mesh(bootGeo, bootMat);
+    bootR.position.set(0, -0.68, -0.06);
+    legR.add(bootR);
 
-    // Accesorios de traje en la cabeza
-    if (suit === 'king') {
-      // Corona de oro brillante
-      ctx.fillStyle = '#fbbf24';
-      ctx.strokeStyle = '#d97706';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(18, 0);
-      ctx.lineTo(22, -10);
-      ctx.lineTo(31, -4);
-      ctx.lineTo(40, -10);
-      ctx.lineTo(44, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Rubí central
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(31, -2, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (suit === 'dino') {
-      // Cresta de dinosaurio
-      ctx.fillStyle = '#16a34a';
-      ctx.beginPath();
-      ctx.moveTo(26, -4);
-      ctx.lineTo(31, -12);
-      ctx.lineTo(36, -4);
-      ctx.fill();
-    }
-
-    ctx.restore();
-
-    // 6. Efecto de Burbuja Protectora (si tiene el escudo activo)
-    if (state.powerup && state.powerup.type === 'shield') {
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
-      ctx.fillStyle = 'rgba(186, 230, 253, 0.25)';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(31, 35, 45, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  // Previsualización de traje en el menú
-  function renderAvatarPreview() {
-    const ctx = dom.previewCtx;
-    ctx.clearRect(0, 0, dom.previewCanvas.width, dom.previewCanvas.height);
-    drawDiegoJr(ctx, 50, 48, state.suit, Date.now() * 0.02, false, false, false);
-    requestAnimationFrame(renderAvatarPreview);
+    // Posición inicial de Diego Jr
+    playerGroup.position.set(0, 0, 0);
+    scene.add(playerGroup);
   }
 
   // ==============================================================
-  // 3. MUNDO, PARALLAX Y ESCENARIO
+  // 5. GENERADOR DE PUENTES DEL TEMPLO (CHUNKS 3D ENDLESS)
   // ==============================================================
-  let worldWidth = 800;
-  let worldHeight = 500;
-  let groundY = 0;
+  function createBridgeChunk(zPos, isWoodBridge = false) {
+    const chunk = new THREE.Group();
+    chunk.position.z = zPos;
 
-  // Ajustar tamaño del canvas responsivo a pantalla completa
-  function resizeCanvas() {
-    const rect = dom.canvas.parentElement.getBoundingClientRect();
-    worldWidth = rect.width;
-    worldHeight = rect.height;
+    const len = CONFIG.chunkLength;
+    const width = 6.4;
 
-    dom.canvas.width = worldWidth * (window.devicePixelRatio || 1);
-    dom.canvas.height = worldHeight * (window.devicePixelRatio || 1);
-    dom.ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+    // 1. Suelo del puente
+    const floorGeo = new THREE.BoxGeometry(width, 1.2, len);
+    const floorMesh = new THREE.Mesh(floorGeo, isWoodBridge ? woodMat : stoneMat);
+    floorMesh.position.y = -0.6;
+    floorMesh.receiveShadow = true;
+    chunk.add(floorMesh);
 
-    groundY = worldHeight * (1 - CONFIG.groundHeightRatio);
-    if (player.y === 0) player.y = groundY - player.height;
+    // 2. Muros y almenas de piedra a los lados (Idénticos al screenshot)
+    const wallGeo = new THREE.BoxGeometry(0.55, 1.1, len);
+    const wallL = new THREE.Mesh(wallGeo, stoneMat);
+    wallL.position.set(-width / 2 + 0.25, 0.45, 0);
+    wallL.castShadow = true;
+    chunk.add(wallL);
+
+    const wallR = new THREE.Mesh(wallGeo, stoneMat);
+    wallR.position.set(width / 2 - 0.25, 0.45, 0);
+    wallR.castShadow = true;
+    chunk.add(wallR);
+
+    // Bloques almenados decorativos a lo largo de las paredes
+    const blockGeo = new THREE.BoxGeometry(0.65, 0.45, 1.2);
+    for (let bz = -len / 2 + 2; bz < len / 2; bz += 3.5) {
+      const blkL = new THREE.Mesh(blockGeo, stoneMat);
+      blkL.position.set(-width / 2 + 0.25, 1.1, bz);
+      chunk.add(blkL);
+
+      const blkR = new THREE.Mesh(blockGeo, stoneMat);
+      blkR.position.set(width / 2 - 0.25, 1.1, bz);
+      chunk.add(blkR);
+    }
+
+    // 3. Pilares del templo y árboles selváticos en el abismo
+    const pillarGeo = new THREE.CylinderGeometry(1.4, 1.8, 45, 12);
+    const p1 = new THREE.Mesh(pillarGeo, stoneMat);
+    p1.position.set(-width / 2 - 0.5, -22, -len * 0.3);
+    chunk.add(p1);
+
+    const p2 = new THREE.Mesh(pillarGeo, stoneMat);
+    p2.position.set(width / 2 + 0.5, -22, len * 0.3);
+    chunk.add(p2);
+
+    // Árboles y palmeras a los costados
+    createJungleTree(chunk, -width - 4, -8, -len * 0.25);
+    createJungleTree(chunk, width + 4, -8, len * 0.25);
+
+    scene.add(chunk);
+    return chunk;
   }
-  window.addEventListener('resize', resizeCanvas);
 
-  // Nubes y colinas procedimentales
-  let skyOffset = 0;
-  let hillOffset1 = 0;
-  let hillOffset2 = 0;
-  let groundOffset = 0;
+  function createJungleTree(parent, x, y, z) {
+    const trunkGeo = new THREE.CylinderGeometry(0.6, 1.0, 16, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2c14, roughness: 0.9 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.set(x, y + 8, z);
+    parent.add(trunk);
 
-  function drawParallaxBackground(ctx) {
-    // 1. Cielo con degradado radiante
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
-    skyGrad.addColorStop(0, '#38bdf8');
-    skyGrad.addColorStop(1, '#bae6fd');
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, worldWidth, worldHeight);
+    // Copa de hojas verdes tropicales
+    const leavesGeo = new THREE.SphereGeometry(3.5, 8, 8);
+    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x1b4d2e, roughness: 0.7 });
+    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+    leaves.position.set(x, y + 17, z);
+    parent.add(leaves);
+  }
 
-    // 2. Sol sonriente con gafas de sol
-    ctx.save();
-    ctx.translate(worldWidth - 110, 75);
-    // Rayos del sol
-    ctx.strokeStyle = 'rgba(253, 224, 71, 0.6)';
-    ctx.lineWidth = 5;
-    for (let i = 0; i < 8; i++) {
-      ctx.rotate(Math.PI / 4);
-      ctx.beginPath();
-      ctx.moveTo(38, 0);
-      ctx.lineTo(52, 0);
-      ctx.stroke();
-    }
-    // Cuerpo del sol
-    ctx.fillStyle = '#fde047';
-    ctx.beginPath();
-    ctx.arc(0, 0, 34, 0, Math.PI * 2);
-    ctx.fill();
-    // Gafas de sol simpáticas
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-18, -6, 14, 9);
-    ctx.fillRect(4, -6, 14, 9);
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-4, -2);
-    ctx.lineTo(4, -2);
-    ctx.stroke();
-    // Sonrisa
-    ctx.strokeStyle = '#d97706';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 8, 8, 0.2 * Math.PI, 0.8 * Math.PI);
-    ctx.stroke();
-    ctx.restore();
+  function initTrackChunks() {
+    for (let i = 0; i < CONFIG.numChunks; i++) {
+      const z = -i * CONFIG.chunkLength;
+      const isWood = (i % 3 === 2);
+      const chk = createBridgeChunk(z, isWood);
+      chunks.push({ group: chk, z: z });
 
-    // 3. Nubes del fondo suave (Parallax lento)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    for (let i = 0; i < 5; i++) {
-      const cx = ((i * 320) - skyOffset) % (worldWidth + 300) - 100;
-      const cy = 40 + (i % 3) * 35;
-      drawFluffyCloud(ctx, cx, cy, 55);
-    }
-
-    // 4. Colinas lejanas de caramelo (Violeta pastel)
-    ctx.fillStyle = '#c084fc';
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    for (let x = 0; x <= worldWidth + 50; x += 50) {
-      const hillY = groundY - 60 + Math.sin((x + hillOffset1) * 0.005) * 45;
-      ctx.lineTo(x, hillY);
-    }
-    ctx.lineTo(worldWidth, groundY);
-    ctx.fill();
-
-    // 5. Colinas medias de hierba y piruletas (Verde brillante)
-    ctx.fillStyle = '#4ade80';
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    for (let x = 0; x <= worldWidth + 40; x += 40) {
-      const hillY = groundY - 30 + Math.sin((x + hillOffset2) * 0.009) * 28;
-      ctx.lineTo(x, hillY);
-    }
-    ctx.lineTo(worldWidth, groundY);
-    ctx.fill();
-
-    // 6. Suelo Principal (Tierra de chocolate + Césped verde lima)
-    // Camino de arcoíris si el power-up está activo
-    if (state.powerup && state.powerup.type === 'rainbow') {
-      const rainbowColors = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a855f7'];
-      const sliceH = (worldHeight - groundY) / rainbowColors.length;
-      rainbowColors.forEach((color, idx) => {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, groundY + idx * sliceH, worldWidth, sliceH);
-      });
-    } else {
-      // Tierra
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(0, groundY, worldWidth, worldHeight - groundY);
-
-      // Pasto
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, groundY, worldWidth, 18);
-
-      // Borde de hierba brillante con ondas
-      ctx.fillStyle = '#16a34a';
-      ctx.beginPath();
-      for (let x = 0; x <= worldWidth; x += 24) {
-        ctx.arc(x - (groundOffset % 24), groundY + 18, 12, 0, Math.PI);
+      // Generar diamantes dorados y obstáculos a lo largo del camino
+      if (i > 0) {
+        spawnCoinsOnChunk(z);
+        spawnObstacleOnChunk(z);
       }
-      ctx.fill();
     }
-
-    // Flores coloridas en el césped que se desplazan
-    for (let i = 0; i < 8; i++) {
-      const fx = ((i * 180) - groundOffset) % (worldWidth + 180);
-      drawFlower(ctx, fx, groundY + 8, i % 3);
-    }
-  }
-
-  function drawFluffyCloud(ctx, x, y, r) {
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.6, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.5, y - r * 0.2, r * 0.7, 0, Math.PI * 2);
-    ctx.arc(x + r, y, r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawFlower(ctx, x, y, type) {
-    const colors = ['#f43f5e', '#fbbf24', '#38bdf8'];
-    ctx.fillStyle = colors[type];
-    ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   // ==============================================================
-  // 4. ENTIDADES: ESTRELLAS, CARAMELOS, ANIMALITOS Y POWER-UPS
+  // 6. DIAMANTES DORADOS GIRATORIOS Y OBSTÁCULOS AMIGABLES
   // ==============================================================
-  let items = [];
-  let particles = [];
-  let nextSpawnDistance = 150;
 
-  function spawnWorldItems() {
-    if (state.distance < nextSpawnDistance) return;
-    nextSpawnDistance = state.distance + 140 + Math.random() * 120;
+  // Crear la moneda con forma de DIAMANTE ROMBO (idéntica a Temple Run)
+  function createDiamondCoin(x, y, z) {
+    // Octaedro escalado para darle la forma perfecta de diamante romboidal
+    const geo = new THREE.OctahedronGeometry(0.42, 0);
+    geo.scale(1.0, 1.45, 0.45); // Forma alargada de rombo
 
-    const pattern = Math.floor(Math.random() * 4);
+    const mesh = new THREE.Mesh(geo, goldMat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
 
-    if (pattern === 0) {
-      // Arco de 5 estrellas brillantes para saltar
-      for (let i = 0; i < 5; i++) {
-        const archY = groundY - 70 - Math.sin((i / 4) * Math.PI) * 75;
-        items.push({
-          type: 'star',
-          x: worldWidth + i * 42,
-          y: archY,
-          width: 32,
-          height: 32,
-          color: '#fbbf24'
-        });
-      }
-    } else if (pattern === 1) {
-      // Animalito saltarín adorable (No hay muerte trágica, solo rebote alegre)
-      const animals = ['turtle', 'frog', 'bunny'];
-      const chosen = animals[Math.floor(Math.random() * animals.length)];
-      items.push({
-        type: 'creature',
-        animal: chosen,
-        x: worldWidth,
-        y: groundY - 45,
-        width: 45,
-        height: 45
-      });
-
-      // Caramelos encima del animalito para motivar a saltar
-      items.push({
-        type: 'candy',
-        x: worldWidth + 8,
-        y: groundY - 110,
-        width: 30,
-        height: 30
-      });
-    } else if (pattern === 2) {
-      // Power-up sorpresa (Cohete, Imán o Escudo de Burbuja)
-      const ptypes = ['rocket', 'magnet', 'shield', 'rainbow'];
-      const selected = ptypes[Math.floor(Math.random() * ptypes.length)];
-      items.push({
-        type: 'powerup',
-        pType: selected,
-        x: worldWidth,
-        y: groundY - 80,
-        width: 44,
-        height: 44
-      });
-    } else {
-      // Fruta grande deliciosa (Fresa / Plátano)
-      items.push({
-        type: 'fruit',
-        x: worldWidth,
-        y: groundY - 60,
-        width: 36,
-        height: 36
-      });
-    }
-  }
-
-  // Dibujar y animar items
-  function updateAndDrawItems(ctx) {
-    const time = Date.now() * 0.005;
-
-    for (let i = items.length - 1; i >= 0; i--) {
-      const it = items[i];
-
-      // Mover con el scroll del mundo
-      it.x -= state.speed;
-
-      // Imán Mágico: atrae estrellas y frutas hacia Diego Jr
-      if (state.powerup && state.powerup.type === 'magnet' && (it.type === 'star' || it.type === 'candy' || it.type === 'fruit')) {
-        const dx = player.x + 20 - it.x;
-        const dy = player.y + 20 - it.y;
-        it.x += dx * 0.12;
-        it.y += dy * 0.12;
-      }
-
-      // Dibujar según el tipo
-      if (it.type === 'star') {
-        drawStarIcon(ctx, it.x + 16, it.y + 16, 15, Math.sin(time + it.x * 0.01) * 0.3);
-      } else if (it.type === 'candy') {
-        drawCandyIcon(ctx, it.x + 15, it.y + 15);
-      } else if (it.type === 'fruit') {
-        drawFruitIcon(ctx, it.x + 18, it.y + 18);
-      } else if (it.type === 'powerup') {
-        drawPowerupIcon(ctx, it.x + 22, it.y + 22, it.pType);
-      } else if (it.type === 'creature') {
-        drawCreature(ctx, it.x + 22, it.y + 22, it.animal);
-      }
-
-      // Detección de colisión con Diego Jr
-      const playerBox = {
-        x: player.x + 10,
-        y: player.y + 8,
-        w: player.width - 20,
-        h: player.height - 16
-      };
-
-      if (
-        it.x < playerBox.x + playerBox.w &&
-        it.x + it.width > playerBox.x &&
-        it.y < playerBox.y + playerBox.h &&
-        it.y + it.height > playerBox.y
-      ) {
-        // Colisión resuelta
-        handleItemCollection(it);
-        items.splice(i, 1);
-        continue;
-      }
-
-      // Eliminar si sale por la izquierda de la pantalla
-      if (it.x + it.width < -50) {
-        items.splice(i, 1);
-      }
-    }
-  }
-
-  function handleItemCollection(it) {
-    if (it.type === 'star') {
-      state.stars++;
-      playStarSound(state.stars);
-      vibrate(25);
-      spawnStarParticles(it.x + 16, it.y + 16, '#fbbf24');
-      dom.hudStars.textContent = state.stars;
-
-      // Didáctica de números en voz alta cada 1 estrella hasta 10, luego de 5 en 5
-      if (state.stars <= 10) {
-        showDidacticNumber(state.stars, NUMBER_WORDS[state.stars]);
-        speak(NUMBER_WORDS[state.stars]);
-      } else if (state.stars % 5 === 0) {
-        const phrase = PRAISES[Math.floor(Math.random() * PRAISES.length)];
-        speak(phrase);
-      }
-    } else if (it.type === 'candy' || it.type === 'fruit') {
-      state.candies++;
-      playStarSound(6);
-      vibrate(30);
-      spawnStarParticles(it.x + 16, it.y + 16, '#f43f5e');
-      speak(it.type === 'candy' ? '¡Caramelo delicioso!' : '¡Fresa fresca!');
-    } else if (it.type === 'powerup') {
-      activatePowerup(it.pType);
-    } else if (it.type === 'creature') {
-      // Choque amigable con animalito: ¡Rebota alegremente, no muere!
-      if (state.powerup && (state.powerup.type === 'shield' || state.powerup.type === 'rainbow' || state.powerup.type === 'rocket')) {
-        // Con escudo o cohete atraviesa con fiesta
-        playPowerupSound();
-        spawnStarParticles(it.x + 22, it.y + 22, '#38bdf8');
-      } else {
-        // Rebote suave
-        playBoingSound();
-        vibrate(50);
-        player.vy = -8.5; // Pequeño salto automático de rebote
-        spawnStarParticles(it.x + 22, it.y + 22, '#4ade80');
-        speak('¡Boing! ¡Saltaste al conejito!');
-      }
-    }
-  }
-
-  function activatePowerup(type) {
-    playPowerupSound();
-    vibrate(60);
-
-    const names = {
-      rocket: '¡COHETE MÁGICO!',
-      magnet: '¡IMÁN DE ESTRELLAS!',
-      shield: '¡BURBUJA PROTECTORA!',
-      rainbow: '¡MODO ARCOÍRIS VELOZ!'
+    return {
+      mesh: mesh,
+      collected: false,
+      initialY: y
     };
-
-    const emojis = {
-      rocket: '🚀',
-      magnet: '🧲',
-      shield: '🫧',
-      rainbow: '🌈'
-    };
-
-    state.powerup = {
-      type: type,
-      duration: 380,
-      maxDuration: 380
-    };
-
-    dom.powerupIcon.textContent = emojis[type];
-    dom.powerupTitle.textContent = names[type];
-    dom.powerupBanner.classList.remove('hidden');
-
-    speak(names[type]);
   }
 
-  // Dibujos de iconos vectoriales para Canvas
-  function drawStarIcon(ctx, x, y, r, rot = 0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-    ctx.fillStyle = '#fbbf24';
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 3;
+  function spawnCoinsOnChunk(chunkZ) {
+    // Escoger un carril al azar (-1, 0, 1) para la línea de diamantes
+    const lane = Math.floor(Math.random() * 3) - 1;
+    const laneX = lane * CONFIG.laneWidth;
 
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * r, -Math.sin((18 + i * 72) * Math.PI / 180) * r);
-      ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (r * 0.5), -Math.sin((54 + i * 72) * Math.PI / 180) * (r * 0.5));
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    // Fila de 5 diamantes seguidos (como en la foto de Temple Run)
+    const count = 5;
+    const spacing = 2.4;
+    const startZ = chunkZ + (CONFIG.chunkLength / 2) - 8;
 
-    // Carita sonriente en la estrella
-    ctx.fillStyle = '#78350f';
-    ctx.beginPath();
-    ctx.arc(-4, -2, 1.5, 0, Math.PI * 2);
-    ctx.arc(4, -2, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#78350f';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(0, 1, 3.5, 0.1 * Math.PI, 0.9 * Math.PI);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawCandyIcon(ctx, x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = '#f43f5e';
-    ctx.beginPath();
-    ctx.arc(0, 0, 12, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, Math.PI * 1.3);
-    ctx.stroke();
-
-    // Envoltura
-    ctx.fillStyle = '#ec4899';
-    ctx.beginPath();
-    ctx.moveTo(-12, 0);
-    ctx.lineTo(-20, -8);
-    ctx.lineTo(-20, 8);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(12, 0);
-    ctx.lineTo(20, -8);
-    ctx.lineTo(20, 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawFruitIcon(ctx, x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    // Fresa
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.moveTo(0, 14);
-    ctx.quadraticCurveTo(-14, 0, -10, -8);
-    ctx.quadraticCurveTo(0, -12, 10, -8);
-    ctx.quadraticCurveTo(14, 0, 0, 14);
-    ctx.fill();
-
-    // Hojitas verdes
-    ctx.fillStyle = '#22c55e';
-    ctx.beginPath();
-    ctx.arc(0, -10, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawPowerupIcon(ctx, x, y, pType) {
-    ctx.save();
-    ctx.translate(x, y);
-    // Globo brillante de fondo
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.font = '22px Fredoka, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const icons = { rocket: '🚀', magnet: '🧲', shield: '🫧', rainbow: '🌈' };
-    ctx.fillText(icons[pType] || '⭐', 0, 2);
-    ctx.restore();
-  }
-
-  function drawCreature(ctx, x, y, animal) {
-    ctx.save();
-    ctx.translate(x, y);
-
-    if (animal === 'turtle') {
-      // Tortuguita con caparazón verde
-      ctx.fillStyle = '#15803d';
-      ctx.beginPath();
-      ctx.arc(0, 0, 16, Math.PI, 0);
-      ctx.fill();
-
-      // Cabeza
-      ctx.fillStyle = '#4ade80';
-      ctx.beginPath();
-      ctx.arc(16, -4, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Gafitas de sol
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(14, -7, 6, 5);
-    } else if (animal === 'frog') {
-      // Ranita saltarina
-      ctx.fillStyle = '#22c55e';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ojos grandes
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(-6, -12, 6, 0, Math.PI * 2);
-      ctx.arc(6, -12, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000000';
-      ctx.beginPath();
-      ctx.arc(-5, -12, 3, 0, Math.PI * 2);
-      ctx.arc(5, -12, 3, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      // Conejito blanco
-      ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.ellipse(0, 4, 15, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Orejas
-      ctx.beginPath();
-      ctx.ellipse(-5, -14, 4, 10, -0.1, 0, Math.PI * 2);
-      ctx.ellipse(5, -14, 4, 10, 0.1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  // ==============================================================
-  // 5. PARTÍCULAS DE CONFETI Y ESTRELLAS
-  // ==============================================================
-  function spawnStarParticles(x, y, color = '#fbbf24') {
-    for (let i = 0; i < 8; i++) {
-      particles.push({
-        x: x,
-        y: y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: (Math.random() - 0.7) * 7,
-        size: 5 + Math.random() * 6,
-        color: color,
-        life: 1.0
-      });
+    for (let i = 0; i < count; i++) {
+      const z = startZ - (i * spacing);
+      const coin = createDiamondCoin(laneX, 1.1, z);
+      coins.push(coin);
     }
   }
 
-  function updateAndDrawParticles(ctx) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.2; // Gravedad suave
-      p.life -= 0.035;
+  function spawnObstacleOnChunk(chunkZ) {
+    if (Math.random() < 0.35) return; // No saturar para niños de 4 años
 
-      if (p.life <= 0) {
-        particles.splice(i, 1);
-        continue;
-      }
+    const lane = Math.floor(Math.random() * 3) - 1;
+    const laneX = lane * CONFIG.laneWidth;
+    const z = chunkZ - (CONFIG.chunkLength * 0.25);
 
-      ctx.save();
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    // Obstáculo: Tronco antiguo de piedra o pequeña barrera
+    const obsGeo = new THREE.BoxGeometry(1.6, 0.65, 0.8);
+    const obsMesh = new THREE.Mesh(obsGeo, obstacleMat);
+    obsMesh.position.set(laneX, 0.35, z);
+    obsMesh.castShadow = true;
+    scene.add(obsMesh);
+
+    obstacles.push({
+      mesh: obsMesh,
+      x: laneX,
+      z: z,
+      cleared: false
+    });
+  }
+
+  // ==============================================================
+  // 7. FÍSICAS DE MOVIMIENTO Y CONTROL (DIEGO JR)
+  // ==============================================================
+  let playerY = 0;
+  let playerVy = 0;
+  let isGrounded = true;
+
+  function handleLaneChange(dir) {
+    if (!state.running || state.paused) return;
+
+    state.currentLane = Math.max(-1, Math.min(1, state.currentLane + dir));
+    state.targetX = state.currentLane * CONFIG.laneWidth;
+
+    playJumpSound();
+    vibrate(25);
+  }
+
+  function handleJump() {
+    if (!state.running || state.paused) return;
+
+    if (isGrounded) {
+      playerVy = CONFIG.jumpVelocity;
+      isGrounded = false;
+      playJumpSound();
+      vibrate(40);
     }
   }
 
-  // Didáctica Toast flotante
-  function showDidacticNumber(num, word) {
-    dom.didacticNumber.textContent = num;
-    dom.didacticWord.textContent = word;
-    dom.didacticToast.classList.remove('hidden');
+  function handleSlide() {
+    if (!state.running || state.paused) return;
 
-    clearTimeout(dom.didacticToast._timer);
-    dom.didacticToast._timer = setTimeout(() => {
-      dom.didacticToast.classList.add('hidden');
-    }, 1500);
+    state.isSliding = true;
+    state.slideTimer = 28; // ~0.5 segundos de deslizamiento
+    playSlideSound();
+    vibrate(30);
   }
 
   // ==============================================================
-  // 6. BUCLE PRINCIPAL DE JUEGO (60 FPS LOOP)
+  // 8. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA (60 FPS)
   // ==============================================================
-  let lastTime = 0;
+  let clock = new THREE.Clock();
 
-  function gameLoop(timestamp) {
-    if (!lastTime) lastTime = timestamp;
-    const dt = timestamp - lastTime;
-    lastTime = timestamp;
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
 
     if (state.running && !state.paused) {
-      updateGame();
+      updateGame(delta);
     }
 
-    renderGame();
-    requestAnimationFrame(gameLoop);
+    // Rotar diamantes dorados continuamente (efecto radiante)
+    const time = Date.now() * 0.003;
+    for (let i = 0; i < coins.length; i++) {
+      const c = coins[i];
+      if (!c.collected) {
+        c.mesh.rotation.y += 0.045;
+        c.mesh.position.y = c.initialY + Math.sin(time + c.mesh.position.z * 0.2) * 0.12;
+      }
+    }
+
+    renderer.render(scene, camera);
   }
 
-  function updateGame() {
-    // 1. Acelerar ligeramente con la distancia
-    state.speed = Math.min(CONFIG.maxSpeed, state.speed + CONFIG.speedIncrease);
-    state.distance += state.speed * 0.1;
+  function updateGame(delta) {
+    // 1. Avanzar la velocidad y distancia
+    state.distance += state.speed * delta;
     dom.hudDistance.textContent = `${Math.floor(state.distance)}m`;
 
-    // 2. Desplazar capas de Parallax
-    skyOffset += state.speed * 0.2;
-    hillOffset1 += state.speed * 0.5;
-    hillOffset2 += state.speed * 0.8;
-    groundOffset += state.speed;
+    if (state.speedMode === 'fast') {
+      state.speed = Math.min(CONFIG.maxSpeed, state.speed + CONFIG.speedIncrement);
+    }
 
-    // 3. Físicas de Diego Jr
-    player.runFrame++;
+    // 2. Movimiento suave entre carriles (Interpolación LERP)
+    playerGroup.position.x += (state.targetX - playerGroup.position.x) * 14 * delta;
 
-    // Si tiene el Cohete Mágico activo: vuela en el aire suavemente
-    if (state.powerup && state.powerup.type === 'rocket') {
-      player.rocketY = Math.sin(Date.now() * 0.004) * 50;
-      player.y = (groundY - 140) + player.rocketY;
-      player.vy = 0;
-      player.isGrounded = false;
-      // Estela de humo del cohete
-      if (Math.random() < 0.6) {
-        spawnStarParticles(player.x, player.y + 40, '#f97316');
+    // Inclinación de la cámara al cambiar de carril (Sensación Temple Run)
+    const rollAngle = (state.targetX - playerGroup.position.x) * 0.06;
+    camera.rotation.z = -rollAngle;
+
+    // 3. Físicas de Salto y Gravedad
+    if (!isGrounded) {
+      playerVy -= CONFIG.gravity * delta;
+      playerY += playerVy * delta;
+
+      if (playerY <= 0) {
+        playerY = 0;
+        playerVy = 0;
+        isGrounded = true;
+      }
+    }
+    playerGroup.position.y = playerY;
+
+    // 4. Animación de Carrera de Diego Jr
+    const runCycle = Date.now() * 0.014 * (state.speed / 18);
+    if (isGrounded) {
+      if (state.isSliding) {
+        // Postura agachada
+        playerAnim.legL.rotation.x = -1.2;
+        playerAnim.legR.rotation.x = -1.2;
+        playerAnim.armL.rotation.x = 0.8;
+        playerAnim.armR.rotation.x = 0.8;
+        playerGroup.scale.set(1, 0.55, 1);
+        state.slideTimer--;
+        if (state.slideTimer <= 0) {
+          state.isSliding = false;
+          playerGroup.scale.set(1, 1, 1);
+        }
+      } else {
+        // Carrera normal alegre
+        playerAnim.legL.rotation.x = Math.sin(runCycle) * 0.75;
+        playerAnim.legR.rotation.x = -Math.sin(runCycle) * 0.75;
+        playerAnim.armL.rotation.x = -Math.sin(runCycle) * 0.75;
+        playerAnim.armR.rotation.x = Math.sin(runCycle) * 0.75;
+        playerAnim.hat.rotation.z = Math.sin(runCycle * 0.5) * 0.08;
       }
     } else {
-      // Gravedad normal o gravedad reducida al planear con capa
-      const currentGravity = state.isGliding ? CONFIG.glideGravity : CONFIG.gravity;
-      player.vy += currentGravity;
-      player.y += player.vy;
+      // Salto triunfal con brazos arriba
+      playerAnim.legL.rotation.x = 0.4;
+      playerAnim.legR.rotation.x = -0.3;
+      playerAnim.armL.rotation.x = -2.2;
+      playerAnim.armR.rotation.x = -2.2;
+    }
 
-      // Colisión con el suelo
-      if (player.y >= groundY - player.height) {
-        player.y = groundY - player.height;
-        player.vy = 0;
-        player.isGrounded = true;
-        player.jumpCount = 0;
-        state.isGliding = false;
-      } else {
-        player.isGrounded = false;
+    // 5. Mover los Chunks del puente hacia la cámara
+    const moveZ = state.speed * delta;
+    playerGroup.position.z -= moveZ;
+    camera.position.z = playerGroup.position.z + 6.2;
+    camera.position.x = playerGroup.position.x * 0.35;
+
+    // Reciclar chunks que quedan detrás
+    for (let i = 0; i < chunks.length; i++) {
+      const chk = chunks[i];
+      if (chk.group.position.z > camera.position.z + 10) {
+        // Mover el chunk hacia el frente del camino infinito
+        const farthestZ = Math.min(...chunks.map(c => c.group.position.z));
+        chk.group.position.z = farthestZ - CONFIG.chunkLength;
+
+        // Nuevos diamantes y obstáculos en el segmento reciclado
+        spawnCoinsOnChunk(chk.group.position.z);
+        spawnObstacleOnChunk(chk.group.position.z);
       }
     }
 
-    // 4. Temporizador de Power-up
+    // 6. Recoger Diamantes Dorados
+    for (let i = coins.length - 1; i >= 0; i--) {
+      const coin = coins[i];
+      if (coin.collected) continue;
+
+      const pPos = playerGroup.position;
+      const cPos = coin.mesh.position;
+
+      // Efecto Imán: atrae diamantes hacia Diego Jr
+      if (state.powerup && state.powerup.type === 'magnet') {
+        const dx = pPos.x - cPos.x;
+        const dz = pPos.z - cPos.z;
+        cPos.x += dx * 8 * delta;
+        cPos.z += dz * 8 * delta;
+      }
+
+      const dist = Math.hypot(pPos.x - cPos.x, pPos.z - cPos.z);
+      if (dist < 1.3 && Math.abs(pPos.y + 0.9 - cPos.y) < 1.5) {
+        // ¡Diamante recogido!
+        coin.collected = true;
+        scene.remove(coin.mesh);
+        coins.splice(i, 1);
+
+        state.coins++;
+        dom.hudCoins.textContent = state.coins;
+        playCoinSound(state.coins);
+        vibrate(20);
+
+        // Didáctica de números en voz alta cada número hasta 10, luego cada 10
+        if (state.coins <= 10) {
+          showDidacticFloat(state.coins, NUMBER_WORDS[state.coins]);
+          speak(NUMBER_WORDS[state.coins]);
+        } else if (state.coins % 10 === 0) {
+          const p = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+          speak(p);
+        }
+      } else if (cPos.z > camera.position.z + 10) {
+        scene.remove(coin.mesh);
+        coins.splice(i, 1);
+      }
+    }
+
+    // 7. Colisión con Obstáculos (Amigable: Sin muerte súbita)
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      if (obs.cleared) continue;
+
+      const pPos = playerGroup.position;
+      const dist = Math.hypot(pPos.x - obs.x, pPos.z - obs.z);
+
+      if (dist < 1.1 && playerY < 0.6) {
+        obs.cleared = true;
+
+        if (state.powerup && state.powerup.type === 'shield') {
+          // Escudo rompe el obstáculo
+          playCoinSound(4);
+          speak('¡Escudo protector!');
+        } else {
+          // Choque suave: ¡Rebota, no muere!
+          playBoingSound();
+          vibrate(60);
+          playerVy = 10.0;
+          isGrounded = false;
+          speak('¡Cuidado con la piedra, Diego!');
+        }
+      } else if (obs.z > camera.position.z + 10) {
+        scene.remove(obs.mesh);
+        obstacles.splice(i, 1);
+      }
+    }
+
+    // 8. Temporizador de Power-up
     if (state.powerup) {
       state.powerup.duration--;
       const pct = (state.powerup.duration / state.powerup.maxDuration) * 100;
-      dom.powerupFill.style.width = `${pct}%`;
+      dom.powerupBarFill.style.width = `${pct}%`;
 
       if (state.powerup.duration <= 0) {
         state.powerup = null;
@@ -1168,252 +883,163 @@
         speak('¡Sigue corriendo, Diego!');
       }
     }
-
-    // 5. Generar nuevos items
-    spawnWorldItems();
   }
 
-  function renderGame() {
-    const ctx = dom.ctx;
-    ctx.clearRect(0, 0, worldWidth, worldHeight);
+  // Didáctica flotante
+  function showDidacticFloat(num, word) {
+    dom.didacticBigNum.textContent = num;
+    dom.didacticWord.textContent = word;
+    dom.didacticFloat.classList.remove('hidden');
 
-    // 1. Fondo Parallax
-    drawParallaxBackground(ctx);
-
-    // 2. Items coleccionables y animalitos
-    updateAndDrawItems(ctx);
-
-    // 3. Diego Jr
-    const isRocket = state.powerup && state.powerup.type === 'rocket';
-    drawDiegoJr(
-      ctx,
-      player.x,
-      player.y,
-      state.suit,
-      player.runFrame,
-      !player.isGrounded,
-      state.isGliding,
-      isRocket
-    );
-
-    // 4. Partículas
-    updateAndDrawParticles(ctx);
+    clearTimeout(dom.didacticFloat._timer);
+    dom.didacticFloat._timer = setTimeout(() => {
+      dom.didacticFloat.classList.add('hidden');
+    }, 1400);
   }
 
   // ==============================================================
-  // 7. CONTROLES: SALTO Y FLOTAR CON CAPA (100% AMIGABLE)
-  // ==============================================================
-  function handleJump() {
-    if (!state.running) return;
-
-    if (player.isGrounded) {
-      // Salto inicial alegre
-      player.vy = CONFIG.jumpForce;
-      player.isGrounded = false;
-      player.jumpCount = 1;
-      playJumpSound();
-      vibrate(30);
-      spawnStarParticles(player.x + 30, groundY, '#4ade80');
-    } else if (player.jumpCount === 1) {
-      // Doble salto / Desplegar Capa para planear
-      player.vy = CONFIG.jumpForce * 0.85;
-      player.jumpCount = 2;
-      state.isGliding = true;
-      playJumpSound();
-      vibrate(40);
-      spawnStarParticles(player.x + 30, player.y + 40, '#f43f5e');
-      speak('¡A volar!');
-    }
-  }
-
-  // ==============================================================
-  // 8. FLUJO Y GESTIÓN DE PANTALLAS
+  // 9. FLUJO DEL JUEGO Y GESTIÓN DE EVENTOS
   // ==============================================================
   function startGame() {
     state.running = true;
     state.paused = false;
-    state.speed = CONFIG.baseSpeed;
+    state.coins = 0;
     state.distance = 0;
-    state.stars = 0;
-    state.candies = 0;
-    state.hearts = 3;
-    state.powerup = null;
-    items = [];
-    particles = [];
+    state.currentLane = 0;
+    state.targetX = 0;
+    state.speed = state.speedMode === 'gentle' ? CONFIG.baseSpeed : CONFIG.baseSpeed * 1.25;
 
-    player.y = groundY - player.height;
-    player.vy = 0;
+    playerGroup.position.set(0, 0, 0);
+    playerY = 0;
+    playerVy = 0;
+    isGrounded = true;
 
-    dom.hudStars.textContent = '0';
+    dom.hudCoins.textContent = '0';
     dom.hudDistance.textContent = '0m';
 
-    dom.startScreen.classList.add('hidden');
+    dom.menuScreen.classList.add('hidden');
     dom.celebrationScreen.classList.add('hidden');
     dom.gameHud.classList.remove('hidden');
     dom.touchControls.classList.remove('hidden');
 
     initAudio();
-    speak('¡Preparados, listos, ya! ¡Corre Diego!');
+    speak('¡A correr por el templo! ¡Recoge los diamantes!');
   }
 
   function pauseGame() {
     state.paused = !state.paused;
     dom.btnPause.textContent = state.paused ? '▶' : '⏸';
-    if (state.paused) {
-      speak('Pausa');
-    }
+    if (state.paused) speak('Pausa');
   }
 
-  function finishRunCelebration() {
+  function finishCelebration() {
     state.running = false;
-
     dom.gameHud.classList.add('hidden');
     dom.touchControls.classList.add('hidden');
     dom.powerupBanner.classList.add('hidden');
 
-    dom.recapStars.textContent = state.stars;
+    dom.recapCoins.textContent = state.coins;
     dom.recapDistance.textContent = `${Math.floor(state.distance)}m`;
-    dom.recapCandies.textContent = state.candies;
-
     dom.celebrationScreen.classList.remove('hidden');
 
-    // Confeti de fiesta
-    for (let i = 0; i < 40; i++) {
-      spawnStarParticles(worldWidth * Math.random(), worldHeight * 0.4, '#fbbf24');
-    }
-
-    playPowerupSound();
-    speak('¡Eres un gran campeón, Diego Junior! ¡Felicidades!');
-
-    // Guardar en el servidor
-    fetch('/api/stats', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        stars: state.stars,
-        distance: Math.floor(state.distance),
-        suit: state.suit
-      })
-    }).catch(() => {});
+    speak('¡Eres un gran explorador del templo, Diego Junior!');
   }
 
-  // ==============================================================
-  // 9. EVENTOS Y CONFIGURACIÓN DE INTERFAZ
-  // ==============================================================
-  function setupEvents() {
-    // 1. Botón Iniciar
+  // Configuración de controles táctiles, gestos y teclado
+  function setupControls() {
+    // 1. Botones del Menú
     dom.btnStart.onclick = startGame;
-
-    // 2. Botón Pausa
+    dom.btnPlayAgain.onclick = startGame;
+    dom.btnMenuBack.onclick = () => {
+      dom.celebrationScreen.classList.add('hidden');
+      dom.menuScreen.classList.remove('hidden');
+    };
     dom.btnPause.onclick = pauseGame;
 
-    // 3. Saltar con toque en pantalla o botón gigante
-    dom.btnTouchJump.addEventListener('touchstart', (e) => {
+    // 2. Botones de opciones
+    dom.btnToggleSound.onclick = () => {
+      state.soundEnabled = !state.soundEnabled;
+      dom.btnToggleSound.textContent = state.soundEnabled ? '🔊 Sonido: ON' : '🔈 Sonido: OFF';
+      dom.btnToggleSound.classList.toggle('active', state.soundEnabled);
+    };
+
+    dom.btnToggleVoice.onclick = () => {
+      state.voiceEnabled = !state.voiceEnabled;
+      dom.btnToggleVoice.textContent = state.voiceEnabled ? '🗣️ Voz: ON' : '🔇 Voz: OFF';
+      dom.btnToggleVoice.classList.toggle('active', state.voiceEnabled);
+      if (state.voiceEnabled) speak('¡Voz activada!');
+    };
+
+    dom.btnToggleSpeed.onclick = () => {
+      state.speedMode = state.speedMode === 'gentle' ? 'fast' : 'gentle';
+      dom.btnToggleSpeed.textContent = state.speedMode === 'gentle' ? '🐢 Velocidad: Suave' : '🚀 Velocidad: Rápida';
+    };
+
+    // 3. Botones táctiles gigantes en pantalla
+    dom.btnTouchLeft.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handleLaneChange(-1);
+    });
+
+    dom.btnTouchRight.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handleLaneChange(1);
+    });
+
+    dom.btnTouchJump.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       handleJump();
     });
-    dom.btnTouchJump.onclick = handleJump;
 
-    // Tocar el canvas directamente también salta (para niños de 4 años es lo más intuitivo)
-    dom.canvas.addEventListener('pointerdown', (e) => {
-      if (state.running && !state.paused) {
-        handleJump();
+    // 4. Gestos de Swipe en la pantalla (como el auténtico Temple Run)
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35) {
+        // Deslizar izquierda / derecha
+        if (dx > 0) handleLaneChange(1);
+        else handleLaneChange(-1);
+      } else if (Math.abs(dy) > 35) {
+        // Deslizar arriba (saltar) / abajo (deslizar)
+        if (dy < 0) handleJump();
+        else handleSlide();
       }
-    });
+    }, { passive: true });
 
-    // Teclado (Barra espaciadora o Flecha arriba)
+    // 5. Teclado de computadora
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        handleLaneChange(-1);
+      } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+        handleLaneChange(1);
+      } else if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
         e.preventDefault();
         handleJump();
+      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        e.preventDefault();
+        handleSlide();
       } else if (e.code === 'KeyP') {
         pauseGame();
       }
     });
-
-    // 4. Modal de Vestuario de Trajes
-    dom.btnCloset.onclick = () => {
-      dom.modalCloset.classList.remove('hidden');
-    };
-    dom.btnCloseCloset.onclick = () => {
-      dom.modalCloset.classList.add('hidden');
-    };
-    dom.btnConfirmCloset.onclick = () => {
-      dom.modalCloset.classList.add('hidden');
-      speak('¡Excelente traje, Diego!');
-    };
-
-    dom.suitCards.forEach(card => {
-      card.onclick = () => {
-        dom.suitCards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        state.suit = card.dataset.suit;
-        localStorage.setItem('diego_suit', state.suit);
-
-        const names = {
-          super_diego: 'Super Diego (Capa Roja)',
-          astronaut: 'Diego Astronauta 🚀',
-          dino: 'Dino Diego 🦖',
-          king: 'Rey Diego 👑'
-        };
-        dom.previewSuitName.textContent = names[state.suit];
-        playStarSound(4);
-      };
-    });
-
-    // 5. Botones de Sonido y Voz Didáctica
-    dom.btnSound.onclick = () => {
-      state.soundEnabled = !state.soundEnabled;
-      dom.btnSound.textContent = state.soundEnabled ? '🔊 Sonido: ON' : '🔈 Sonido: OFF';
-      dom.btnSound.classList.toggle('active', state.soundEnabled);
-    };
-
-    dom.btnVoice.onclick = () => {
-      state.voiceEnabled = !state.voiceEnabled;
-      dom.btnVoice.textContent = state.voiceEnabled ? '🗣️ Voz Didáctica: ON' : '🔇 Voz Didáctica: OFF';
-      dom.btnVoice.classList.toggle('active', state.voiceEnabled);
-      if (state.voiceEnabled) speak('¡Voz activada!');
-    };
-
-    // 6. Pantalla de Celebración
-    dom.btnReplay.onclick = startGame;
-    dom.btnHome.onclick = () => {
-      dom.celebrationScreen.classList.add('hidden');
-      dom.startScreen.classList.remove('hidden');
-    };
-
-    // Tocar la pantalla de celebración lanza confeti interactivo
-    dom.celebrationScreen.addEventListener('pointerdown', (e) => {
-      spawnStarParticles(e.clientX, e.clientY, '#f43f5e');
-      playStarSound(Math.floor(Math.random() * 8));
-    });
-
-    // 7. Conectar Socket.io para vitores familiares
-    try {
-      if (typeof io !== 'undefined') {
-        const socket = io();
-        socket.on('family_cheer', (data) => {
-          dom.cheerEmoji.textContent = data.emoji || '❤️';
-          dom.cheerSender.textContent = `${data.from} te envió amor:`;
-          dom.cheerMsg.textContent = data.message || '¡Bravo Diego Jr!';
-          dom.familyCheerBanner.classList.remove('hidden');
-
-          speak(data.message || '¡Bravo Diego!');
-
-          setTimeout(() => {
-            dom.familyCheerBanner.classList.add('hidden');
-          }, 3500);
-        });
-      }
-    } catch (e) {}
   }
 
-  // Inicializar al cargar el DOM
+  // Iniciar al cargar
   document.addEventListener('DOMContentLoaded', () => {
-    resizeCanvas();
-    setupEvents();
-    renderAvatarPreview();
-    requestAnimationFrame(gameLoop);
+    initThree();
+    setupControls();
+    animate();
   });
 
 })();

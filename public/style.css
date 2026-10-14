@@ -1,16 +1,15 @@
 /* ============================================================== */
-/* ESTILOS DE SUPER DIEGO JR: ENDLESS RUNNER                      */
-/* Interfaz de usuario esponjosa, colorida y optimizada para 4 años*/
+/* ESTILOS DE DIEGO JR: TEMPLE RUNNER 3D                          */
+/* Fiel a Temple Run: Lianas selváticas, oro, piedra y botones 3D */
 /* ============================================================== */
 
 :root {
-  --sky-top: #38bdf8;
-  --sky-bottom: #bae6fd;
-  --sun-gold: #fbbf24;
-  --grass-green: #22c55e;
-  --candy-pink: #f43f5e;
-  --purple-magic: #a855f7;
-  --card-bg: rgba(255, 255, 255, 0.95);
+  --jungle-dark: #0f2417;
+  --jungle-green: #1b4d2e;
+  --temple-gold: #f59e0b;
+  --gold-glow: #fef08a;
+  --stone-brown: #78350f;
+  --sky-blue: #38bdf8;
   --font-kids: 'Fredoka', cursive, sans-serif;
   --font-display: 'Grandstander', cursive, sans-serif;
 }
@@ -28,18 +27,26 @@ html, body {
   height: 100%;
   height: 100dvh;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  background-color: var(--jungle-dark);
   font-family: var(--font-kids);
   touch-action: manipulation;
 }
 
-#game-wrapper {
+#game-container {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+}
+
+#webglCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
 }
 
 .hidden {
@@ -47,7 +54,247 @@ html, body {
 }
 
 /* ============================================================== */
-/* 1. PANTALLA PRINCIPAL DE INICIO (MENU AMIGABLE)                */
+/* ENREDADERAS SELVÁTICAS EN LA PARTE SUPERIOR (IDÉNTICO A TEMPLE RUN) */
+/* ============================================================== */
+.jungle-vines-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 75px;
+  z-index: 15;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.jungle-vines-top svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ============================================================== */
+/* 1. HUD SUPERIOR (ESTILO TEMPLE RUN CON DIAMANTES DORADOS)      */
+/* ============================================================== */
+#game-hud {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  width: 100%;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hud-capsule {
+  pointer-events: auto;
+  background: rgba(15, 36, 23, 0.88);
+  border: 3px solid #f59e0b;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(245, 158, 11, 0.4);
+  border-radius: 28px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+}
+
+.hud-coins {
+  border-color: #facc15;
+}
+
+.diamond-coin-icon {
+  font-size: 1.4rem;
+  display: inline-block;
+  animation: spinCoinIcon 2s infinite ease-in-out;
+}
+
+.hud-num {
+  color: #fef08a;
+  text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.hud-hearts {
+  gap: 4px;
+}
+
+.heart-pulse {
+  font-size: 1.25rem;
+  animation: pulseHeart 1.3s infinite ease-in-out;
+}
+
+.btn-hud-round {
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1b4d2e;
+  border: 3px solid #f59e0b;
+  color: #ffffff;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #78350f;
+}
+
+.btn-hud-round:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #78350f;
+}
+
+/* Banner de Power-up */
+.powerup-banner-box {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1b4d2e 0%, #0f2417 100%);
+  border: 3px solid #facc15;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border-radius: 24px;
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 25;
+  animation: popDown 0.3s ease;
+}
+
+.powerup-emoji-icon {
+  font-size: 1.8rem;
+}
+
+.powerup-name-txt {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #fef08a;
+  display: block;
+}
+
+.powerup-bar-track {
+  width: 120px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.powerup-bar-fill {
+  width: 100%;
+  height: 100%;
+  background: #facc15;
+  border-radius: 3px;
+}
+
+/* Toast didáctico con números grandes para 4 años */
+.didactic-float {
+  position: absolute;
+  top: 26%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.96);
+  border: 6px solid #f59e0b;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+  border-radius: 30px;
+  padding: 14px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 30;
+  animation: bounceNumber 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.didactic-big-num {
+  font-family: var(--font-display);
+  font-size: 3.8rem;
+  font-weight: 900;
+  color: #e11d48;
+  line-height: 1;
+}
+
+.didactic-word {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #0284c7;
+}
+
+/* ============================================================== */
+/* CONTROLES TÁCTILES GIGANTES (PARA MANOS DE 4 AÑOS)            */
+/* ============================================================== */
+.touch-controls-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  z-index: 20;
+}
+
+.btn-touch {
+  border: none;
+  border-radius: 35px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 900;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-touch-dir {
+  flex: 1;
+  max-width: 95px;
+  height: 70px;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  color: #ffffff;
+  font-size: 2.2rem;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 0 #0369a1, 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+
+.btn-touch-dir:active {
+  transform: translateY(5px);
+  box-shadow: 0 3px 0 #0369a1;
+}
+
+.btn-touch-jump {
+  flex: 2;
+  height: 75px;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  font-size: 1.7rem;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 0 #78350f, 0 12px 24px rgba(245, 158, 11, 0.4);
+  gap: 10px;
+}
+
+.btn-touch-jump:active {
+  transform: translateY(5px);
+  box-shadow: 0 3px 0 #78350f;
+}
+
+.jump-ico {
+  font-size: 1.8rem;
+}
+
+/* ============================================================== */
+/* 2. PANTALLA DE INICIO (MENU ADVENTURE)                         */
 /* ============================================================== */
 .ui-screen {
   position: absolute;
@@ -60,694 +307,278 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.4) 0%, rgba(14, 116, 144, 0.7) 100%);
-  backdrop-filter: blur(8px);
+  background: radial-gradient(circle at center, rgba(15, 36, 23, 0.75) 0%, rgba(5, 15, 10, 0.95) 100%);
+  backdrop-filter: blur(6px);
 }
 
-.menu-decorations {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.cloud-dec {
-  position: absolute;
-  font-size: 3.5rem;
-  opacity: 0.85;
-  animation: floatCloud 8s infinite alternate ease-in-out;
-}
-
-.cloud-1 { top: 8%; left: 6%; animation-duration: 9s; }
-.cloud-2 { top: 12%; right: 8%; animation-duration: 11s; font-size: 4rem; }
-.cloud-3 { top: 4%; left: 45%; animation-duration: 7s; }
-.cloud-4 { bottom: 12%; left: 8%; animation-duration: 6s; }
-
-.start-card {
-  position: relative;
-  background: var(--card-bg);
-  border: 6px solid #ffffff;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), 0 0 0 6px #38bdf8;
+.menu-box, .celeb-box {
+  background: rgba(255, 255, 255, 0.97);
+  border: 6px solid #f59e0b;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 0 5px #1b4d2e;
   border-radius: 36px;
-  padding: 28px 24px;
+  padding: 26px 20px;
   width: 100%;
-  max-width: 500px;
+  max-width: 480px;
   text-align: center;
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: popUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.badge-kids {
-  background: var(--candy-pink);
-  color: #ffffff;
-  font-size: 0.8rem;
+.badge-explorer {
+  background: #1b4d2e;
+  color: #fef08a;
+  font-size: 0.76rem;
   font-weight: 900;
   letter-spacing: 1px;
   padding: 4px 14px;
-  border-radius: 20px;
+  border-radius: 16px;
   display: inline-block;
-  box-shadow: 0 4px 0 #be123c;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-.game-title {
+.main-title {
   font-family: var(--font-display);
-  font-size: 2.5rem;
-  line-height: 1.05;
-  color: #0369a1;
-  text-shadow: 2px 3px 0 #bae6fd, 4px 6px 0 rgba(0, 0, 0, 0.1);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: #78350f;
+  text-shadow: 2px 2px 0 #fde68a;
 }
 
-.subtitle-fun {
-  color: var(--candy-pink);
-  font-size: 2rem;
-  text-shadow: 2px 3px 0 #fecdd3;
+.temple-sub {
+  color: #d97706;
+  font-size: 1.8rem;
 }
 
-/* Avatar de previsualización */
-.avatar-preview-box {
-  margin: 14px auto;
-  position: relative;
-  width: 160px;
-  height: 180px;
-  background: radial-gradient(circle, #fef08a 0%, #fde047 70%);
+.menu-tagline {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #4b5563;
+  margin: 10px 0 14px 0;
+}
+
+.character-preview-card {
+  background: #fef3c7;
+  border: 3px solid #f59e0b;
+  border-radius: 20px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.preview-avatar-circle {
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
-  border: 5px solid #ffffff;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15), inset 0 0 12px rgba(251, 191, 36, 0.6);
+  background: #ffffff;
+  border: 3px solid #d97706;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.suit-name-tag {
-  position: absolute;
-  bottom: -10px;
-  background: #0284c7;
-  color: white;
-  font-size: 0.82rem;
-  font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 16px;
-  white-space: nowrap;
-  box-shadow: 0 3px 0 #0369a1;
+.avatar-emoji {
+  font-size: 2.2rem;
 }
 
-/* Botones con efecto rebote 3D */
-.btn-giant {
+.preview-info {
+  text-align: left;
+}
+
+.preview-name {
+  display: block;
   font-family: var(--font-display);
-  border: none;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #78350f;
+}
+
+.preview-role {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.btn-giant-play {
+  font-family: var(--font-display);
+  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+  color: #ffffff;
+  font-size: 1.55rem;
+  font-weight: 900;
+  padding: 14px 28px;
+  border: 4px solid #ffffff;
   border-radius: 30px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.btn-play-bounce {
-  background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
-  color: #ffffff;
-  font-size: 1.8rem;
-  font-weight: 900;
-  padding: 16px 36px;
-  box-shadow: 0 10px 0 #15803d, 0 14px 25px rgba(34, 197, 94, 0.4);
   width: 100%;
+  box-shadow: 0 8px 0 #14532d, 0 12px 24px rgba(34, 197, 94, 0.4);
+  transition: transform 0.1s ease;
+  margin-bottom: 14px;
 }
 
-.btn-play-bounce:active {
-  transform: translateY(6px);
-  box-shadow: 0 4px 0 #15803d, 0 6px 12px rgba(34, 197, 94, 0.4);
+.btn-giant-play:active {
+  transform: translateY(5px);
+  box-shadow: 0 3px 0 #14532d;
 }
 
-.menu-buttons-col {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.menu-sub-row {
+.menu-options-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
-.btn-secondary-squishy {
+.btn-pill-opt {
   background: #ffffff;
-  color: #0369a1;
-  border: 3px solid #38bdf8;
-  border-radius: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 18px;
+  padding: 6px 14px;
   font-family: var(--font-kids);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 8px 16px;
+  color: #374151;
   cursor: pointer;
-  box-shadow: 0 4px 0 #0284c7;
-  transition: all 0.1s ease;
+  box-shadow: 0 3px 0 #9ca3af;
 }
 
-.btn-secondary-squishy:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 #0284c7;
+.btn-pill-opt.active {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 3px 0 #059669;
 }
 
-.btn-secondary-squishy.active {
-  background: #f0fdf4;
-  border-color: #22c55e;
-  color: #15803d;
-  box-shadow: 0 4px 0 #16a34a;
-}
-
-.welcome-badge {
-  margin-top: 14px;
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: #475569;
-}
-
-/* ============================================================== */
-/* 2. HUD SUPERIOR Y CONTADORES                                   */
-/* ============================================================== */
-#game-hud {
-  position: absolute;
-  top: 12px;
-  left: 0;
+.btn-pill-opt.full-w {
   width: 100%;
-  padding: 0 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 50;
-  pointer-events: none;
 }
 
-.hud-pill {
-  pointer-events: auto;
-  background: rgba(255, 255, 255, 0.92);
-  border: 4px solid #ffffff;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
-  border-radius: 25px;
-  padding: 6px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.3rem;
-  font-weight: 900;
+.controls-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
 }
 
-.hud-stars {
-  color: #d97706;
-}
-
-.star-spin {
-  display: inline-block;
-  animation: pulseStar 1.5s infinite alternate;
-}
-
-.hud-distance {
-  color: #0284c7;
-}
-
-.hud-hearts {
-  gap: 4px;
-}
-
-.heart-icon {
-  font-size: 1.4rem;
-  animation: heartbeat 1.2s infinite ease-in-out;
-}
-
-.hud-btn-circle {
-  pointer-events: auto;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 4px solid #38bdf8;
-  color: #0284c7;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 6px 0 #0284c7;
-}
-
-.hud-btn-circle:active {
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 #0284c7;
-}
-
-/* Banner de Power-up */
-.powerup-alert {
-  position: absolute;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  border: 4px solid #ffffff;
-  border-radius: 30px;
-  padding: 8px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
-  z-index: 60;
-  animation: bouncePowerup 0.5s ease;
-}
-
-.powerup-big-icon {
+/* ============================================================== */
+/* 3. PANTALLA DE CELEBRACIÓN / FIESTA                           */
+/* ============================================================== */
+.celeb-sparkles {
   font-size: 2.2rem;
-}
-
-.powerup-title-text {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: #ffffff;
-  text-shadow: 1px 2px 0 rgba(0, 0, 0, 0.2);
-}
-
-.powerup-timer-bar {
-  width: 140px;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-
-.powerup-fill-inner {
-  height: 100%;
-  width: 100%;
-  background: #ffffff;
-  border-radius: 4px;
-}
-
-/* Toast de Aprendizaje Didáctico (Números y Colores en Grande) */
-.didactic-float {
-  position: absolute;
-  top: 25%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  border: 6px solid #fbbf24;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  border-radius: 30px;
-  padding: 12px 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 70;
-  animation: zoomNumber 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.didactic-num {
-  font-family: var(--font-display);
-  font-size: 3.5rem;
-  font-weight: 900;
-  color: var(--candy-pink);
-  line-height: 1;
-}
-
-.didactic-text {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: #0284c7;
-}
-
-/* Vitores de la Familia (Socket.io) */
-.family-cheer {
-  position: absolute;
-  top: 90px;
-  right: 20px;
-  background: #ffffff;
-  border: 4px solid var(--candy-pink);
-  border-radius: 24px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
-  z-index: 80;
-  animation: slideInRight 0.4s ease;
-}
-
-.cheer-emoji {
-  font-size: 2rem;
-}
-
-.cheer-sender {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: #64748b;
-}
-
-.cheer-msg {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: var(--candy-pink);
-}
-
-/* ============================================================== */
-/* 3. CANVAS DEL JUEGO                                            */
-/* ============================================================== */
-#canvas-container {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-#gameCanvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* Botón gigante táctil de saltar para celulares/tablets */
-.touch-zone {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  z-index: 40;
-}
-
-.giant-jump-pill {
-  background: linear-gradient(180deg, #f43f5e 0%, #e11d48 100%);
-  color: #ffffff;
-  border: 5px solid #ffffff;
-  box-shadow: 0 10px 0 #9f1239, 0 12px 25px rgba(244, 63, 94, 0.4);
-  border-radius: 45px;
-  padding: 16px 36px;
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform 0.1s ease;
-}
-
-.giant-jump-pill:active {
-  transform: translateY(6px);
-  box-shadow: 0 4px 0 #9f1239;
-}
-
-.jump-rocket {
-  font-size: 2rem;
-  animation: shakeRocket 1s infinite alternate;
-}
-
-/* ============================================================== */
-/* 4. MODALES (VESTIDOR DE DIEGO Y CELEBRACIÓN)                  */
-/* ============================================================== */
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(8px);
-  z-index: 150;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.modal-card {
-  background: #ffffff;
-  border: 6px solid #38bdf8;
-  border-radius: 36px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-  padding: 28px 24px;
-  width: 100%;
-  max-width: 520px;
-  animation: popIn 0.3s ease;
-}
-
-.modal-header-fun {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.modal-header-fun h2 {
-  font-size: 1.45rem;
-  color: #0369a1;
-}
-
-.btn-close-circle {
-  background: #fee2e2;
-  border: 2px solid #ef4444;
-  color: #b91c1c;
-  font-size: 1.1rem;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.closet-desc {
-  font-size: 0.95rem;
-  color: #64748b;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-.suits-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.suit-card {
-  background: #f8fafc;
-  border: 3px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 14px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.suit-card:hover, .suit-card.active {
-  border-color: #22c55e;
-  background: #f0fdf4;
-  transform: scale(1.03);
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.25);
-}
-
-.suit-badge-icon {
-  font-size: 2.4rem;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.suit-card-title {
-  display: block;
-  font-size: 1.05rem;
-  font-weight: 900;
-  color: #0f172a;
-}
-
-.suit-card-sub {
-  display: block;
-  font-size: 0.76rem;
-  color: #64748b;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.btn-confirm-suit {
-  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-  color: #ffffff;
-  font-size: 1.25rem;
-  padding: 14px 24px;
-  box-shadow: 0 8px 0 #0369a1;
-  width: 100%;
-}
-
-.btn-confirm-suit:active {
-  transform: translateY(4px);
-  box-shadow: 0 4px 0 #0369a1;
-}
-
-/* Pantalla de Celebración */
-.celebration-card {
-  background: #ffffff;
-  border: 8px solid #facc15;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 8px #f59e0b;
-  border-radius: 40px;
-  padding: 32px 24px;
-  width: 100%;
-  max-width: 520px;
-  text-align: center;
-  animation: popIn 0.4s ease;
-}
-
-.celebration-sparkles {
-  font-size: 2.2rem;
-  margin-bottom: 6px;
 }
 
 .celeb-title {
   font-family: var(--font-display);
-  font-size: 2.2rem;
-  color: #0284c7;
-  line-height: 1.1;
-  margin-bottom: 4px;
+  font-size: 2.1rem;
+  color: #78350f;
+  margin-top: 4px;
 }
 
-.celeb-subtitle {
-  font-size: 1.1rem;
-  color: #64748b;
-  font-weight: 800;
-  margin-bottom: 16px;
+.celeb-sub {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 12px;
 }
 
-.trophy-display {
-  margin: 12px auto;
+.trophy-wrap {
+  margin: 10px auto;
 }
 
 .giant-trophy {
-  font-size: 5rem;
+  font-size: 4.5rem;
   display: block;
-  animation: rotateTrophy 3s infinite alternate ease-in-out;
+  animation: bounceTrophy 1.8s infinite alternate ease-in-out;
 }
 
-.ribbon-text {
-  background: #e11d48;
+.trophy-badge {
+  background: #f59e0b;
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 900;
   letter-spacing: 1px;
-  padding: 4px 18px;
-  border-radius: 14px;
+  padding: 4px 16px;
+  border-radius: 12px;
   display: inline-block;
+  box-shadow: 0 3px 0 #78350f;
 }
 
-.stats-recap-row {
+.stats-grid {
   display: flex;
   justify-content: center;
   gap: 14px;
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
-.stat-bubble {
-  background: #f8fafc;
-  border: 3px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 10px 14px;
-  min-width: 90px;
+.stat-card {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 18px;
+  padding: 8px 16px;
+  min-width: 100px;
 }
 
-.bubble-icon {
-  font-size: 1.6rem;
+.stat-ico {
+  font-size: 1.4rem;
   display: block;
 }
 
-.bubble-label {
-  font-size: 0.75rem;
+.stat-lbl {
+  font-size: 0.74rem;
   font-weight: 800;
-  color: #64748b;
+  color: #78350f;
 }
 
-.bubble-val {
+.stat-val {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 900;
-  color: #0f172a;
+  color: #1e293b;
 }
 
-.celeb-buttons-row {
+.celeb-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.tap-confetti-hint {
-  font-size: 0.85rem;
-  color: #94a3b8;
+.confetti-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
   font-weight: 800;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 /* ============================================================== */
 /* ANIMACIONES                                                    */
 /* ============================================================== */
-@keyframes popIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+@keyframes spinCoinIcon {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.18) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
 }
 
-@keyframes floatCloud {
-  from { transform: translateY(0) translateX(0); }
-  to { transform: translateY(-15px) translateX(20px); }
-}
-
-@keyframes pulseStar {
-  from { transform: scale(1); }
-  to { transform: scale(1.25) rotate(15deg); }
-}
-
-@keyframes heartbeat {
+@keyframes pulseHeart {
   0% { transform: scale(1); }
-  15% { transform: scale(1.18); }
-  30% { transform: scale(1); }
-  45% { transform: scale(1.18); }
-  60% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
-@keyframes rotateTrophy {
-  0% { transform: rotate(-8deg) scale(0.95); }
-  100% { transform: rotate(8deg) scale(1.05); }
-}
-
-@keyframes shakeRocket {
-  from { transform: translateY(0); }
-  to { transform: translateY(-4px); }
-}
-
-@keyframes zoomNumber {
+@keyframes bounceNumber {
   0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
-  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
-@keyframes slideInRight {
-  from { transform: translateX(100px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+@keyframes popDown {
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
 }
 
-@media (max-width: 500px) {
-  .game-title {
-    font-size: 2rem;
-  }
-  .subtitle-fun {
-    font-size: 1.6rem;
-  }
-  .giant-jump-pill {
-    padding: 12px 28px;
-    font-size: 1.5rem;
-  }
-  .hud-pill {
-    padding: 4px 10px;
-    font-size: 1rem;
-  }
+@keyframes popUp {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounceTrophy {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
 }

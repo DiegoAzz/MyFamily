@@ -3,246 +3,191 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#38bdf8">
+  <meta name="theme-color" content="#1c3d2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Super Diego Jr: Carrera Mágica 🌟</title>
+  <title>Diego Jr: Temple Adventure 3D 🏺</title>
 
-  <!-- Fuentes divertidas y legibles para niños -->
+  <!-- Tipografías de aventura infantil -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Grandstander:wght@800;900&display=swap" rel="stylesheet">
+
+  <!-- Three.js 3D Engine (CDN de alta velocidad) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="game-wrapper">
+  <div id="game-container">
 
-    <!-- ============================================================== -->
-    <!-- 1. PANTALLA PRINCIPAL DE INICIO (MENU AMIGABLE DE DIEGO JR)    -->
-    <!-- ============================================================== -->
-    <div id="start-screen" class="ui-screen">
-      <div class="menu-decorations">
-        <span class="cloud-dec cloud-1">☁️</span>
-        <span class="cloud-dec cloud-2">🌈</span>
-        <span class="cloud-dec cloud-3">☀️</span>
-        <span class="cloud-dec cloud-4">⭐</span>
-      </div>
+    <!-- Canvas 3D de WebGL con Three.js -->
+    <canvas id="webglCanvas"></canvas>
 
-      <div class="start-card">
-        <div class="logo-box">
-          <span class="badge-kids">JUEGO PARA DIEGO JR (4 AÑOS)</span>
-          <h1 class="game-title">
-            SUPER DIEGO JR<br>
-            <span class="subtitle-fun">¡CARRERA MÁGICA! 🚀</span>
-          </h1>
-        </div>
-
-        <!-- Avatar previo animado de Diego Jr -->
-        <div class="avatar-preview-box" id="avatar-preview-container">
-          <canvas id="previewCanvas" width="160" height="180"></canvas>
-          <div class="suit-name-tag" id="preview-suit-name">Super Diego (Capa Roja)</div>
-        </div>
-
-        <!-- Botones de Acción del Menú -->
-        <div class="menu-buttons-col">
-          <button id="btn-start-game" class="btn-giant btn-play-bounce">
-            <span class="btn-icon">▶</span>
-            <span class="btn-text">¡A CORRER!</span>
-          </button>
-
-          <div class="menu-sub-row">
-            <button id="btn-open-closet" class="btn-secondary-squishy">
-              👕 Elegir Traje
-            </button>
-            <button id="btn-toggle-sound" class="btn-secondary-squishy">
-              🔊 Sonido: ON
-            </button>
-            <button id="btn-toggle-voice" class="btn-secondary-squishy active">
-              🗣️ Voz Didáctica: ON
-            </button>
-          </div>
-        </div>
-
-        <!-- Mensaje de bienvenida para Diego -->
-        <div class="welcome-badge">
-          ⭐ ¡Toca la pantalla para saltar y volar como un superhéroe! ⭐
-        </div>
-      </div>
+    <!-- Enredaderas selváticas colgantes en la parte superior (igual que en Temple Run) -->
+    <div class="jungle-vines-top" aria-hidden="true">
+      <svg viewBox="0 0 1000 120" preserveAspectRatio="none">
+        <path d="M0,0 L1000,0 L1000,45 Q900,90 820,30 Q740,110 650,40 Q580,95 480,25 Q380,105 280,35 Q180,90 90,20 Q40,65 0,35 Z" fill="#1b4d2e" opacity="0.95"/>
+        <path d="M0,0 L1000,0 L1000,25 Q880,70 780,15 Q680,85 590,20 Q500,80 400,15 Q300,75 200,10 Q100,60 0,15 Z" fill="#2d6a3f" opacity="0.9"/>
+        <!-- Lianas colgantes decorativas -->
+        <path d="M120,0 Q130,70 125,95 Q120,110 115,115" stroke="#163820" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M340,0 Q330,60 345,90 Q355,105 350,112" stroke="#163820" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M720,0 Q735,65 725,95 Q715,110 710,118" stroke="#163820" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M890,0 Q880,50 895,80 Q905,95 900,105" stroke="#163820" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
     </div>
 
     <!-- ============================================================== -->
-    <!-- 2. HUD DEL JUEGO EN VIVO (DURANTE LA CARRERA)                  -->
+    <!-- 1. HUD EN VIVO (MARCADOR SUPERIOR ESTILO TEMPLE RUN)           -->
     <!-- ============================================================== -->
     <header id="game-hud" class="hidden">
-      <!-- Contador de Estrellas -->
-      <div class="hud-pill hud-stars">
-        <span class="hud-emoji star-spin">⭐</span>
-        <span id="hud-star-count" class="hud-val">0</span>
+      <!-- Monedas de diamante dorado -->
+      <div class="hud-capsule hud-coins">
+        <span class="diamond-coin-icon">🔶</span>
+        <span id="hud-coins-val" class="hud-num">0</span>
       </div>
 
-      <!-- Contador de Metros -->
-      <div class="hud-pill hud-distance">
-        <span class="hud-emoji">🏁</span>
-        <span id="hud-distance-val" class="hud-val">0m</span>
+      <!-- Distancia en metros del templo -->
+      <div class="hud-capsule hud-distance">
+        <span class="hud-ico">🏃</span>
+        <span id="hud-distance-val" class="hud-num">0m</span>
       </div>
 
-      <!-- Corazones mágicos amigables -->
-      <div class="hud-pill hud-hearts" id="hud-hearts-container">
-        <span class="heart-icon">❤️</span>
-        <span class="heart-icon">❤️</span>
-        <span class="heart-icon">❤️</span>
+      <!-- Corazones mágicos de Diego -->
+      <div class="hud-capsule hud-hearts" id="hud-hearts">
+        <span class="heart-pulse">❤️</span>
+        <span class="heart-pulse">❤️</span>
+        <span class="heart-pulse">❤️</span>
       </div>
 
-      <!-- Botón de pausa amigable -->
-      <button id="btn-pause" class="hud-btn-circle" title="Pausa">⏸</button>
+      <!-- Botón de Pausa -->
+      <button id="btn-pause" class="btn-hud-round" title="Pausar">⏸</button>
     </header>
 
-    <!-- Banner flotante de Power-up Activo -->
-    <div id="powerup-banner" class="powerup-alert hidden">
-      <span id="powerup-icon" class="powerup-big-icon">🚀</span>
+    <!-- Banner de Power-up Activo -->
+    <div id="powerup-banner" class="powerup-banner-box hidden">
+      <span id="powerup-emoji" class="powerup-emoji-icon">🧲</span>
       <div class="powerup-texts">
-        <span id="powerup-title" class="powerup-title-text">¡COHETE MÁGICO!</span>
-        <div class="powerup-timer-bar">
-          <div id="powerup-fill" class="powerup-fill-inner"></div>
+        <span id="powerup-name" class="powerup-name-txt">¡IMÁN DE MONEDAS!</span>
+        <div class="powerup-bar-track">
+          <div id="powerup-bar-fill" class="powerup-bar-fill"></div>
         </div>
       </div>
     </div>
 
-    <!-- Banner de Aprendizaje Didáctico (Números y Colores en Grande) -->
-    <div id="didactic-toast" class="didactic-float hidden">
-      <span id="didactic-number" class="didactic-num">1</span>
-      <span id="didactic-word" class="didactic-text">¡UNO!</span>
+    <!-- Toast Didáctico con Números Gigantes -->
+    <div id="didactic-float" class="didactic-float hidden">
+      <span id="didactic-big-num" class="didactic-big-num">1</span>
+      <span id="didactic-word" class="didactic-word">¡UNO!</span>
     </div>
 
-    <!-- Banner de Vitores Familiares en Tiempo Real (Socket.io) -->
-    <div id="family-cheer-banner" class="family-cheer hidden">
-      <span class="cheer-emoji" id="cheer-emoji">❤️</span>
-      <div class="cheer-texts">
-        <span class="cheer-sender" id="cheer-sender">Papá Diego te envió amor:</span>
-        <span class="cheer-msg" id="cheer-msg">¡Bravo Diego Jr! ¡Eres el mejor!</span>
-      </div>
-    </div>
+    <!-- Controles Táctiles Gigantes para Niños de 4 Años -->
+    <div id="touch-controls" class="touch-controls-bar hidden">
+      <button id="btn-touch-left" class="btn-touch btn-touch-dir" title="Izquierda">
+        ◀
+      </button>
 
-    <!-- ============================================================== -->
-    <!-- 3. CANVAS DEL JUEGO (60 FPS PARALLAX & FÍSICAS SUAVES)         -->
-    <!-- ============================================================== -->
-    <main id="canvas-container">
-      <canvas id="gameCanvas"></canvas>
-    </main>
+      <button id="btn-touch-jump" class="btn-touch btn-touch-jump" title="¡Saltar!">
+        <span class="jump-ico">🚀</span>
+        <span class="jump-txt">SALTAR</span>
+      </button>
 
-    <!-- Botón táctil gigante en pantalla para móviles/tablets -->
-    <div id="touch-controls" class="touch-zone hidden">
-      <button id="btn-touch-jump" class="giant-jump-pill">
-        <span class="jump-rocket">🚀</span>
-        <span class="jump-label">¡SALTAR!</span>
+      <button id="btn-touch-right" class="btn-touch btn-touch-dir" title="Derecha">
+        ▶
       </button>
     </div>
 
     <!-- ============================================================== -->
-    <!-- 4. MODAL: EL VESTIDOR MÁGICO DE DIEGO JR                       -->
+    <!-- 2. PANTALLA DE INICIO (MENU TEMPLE ADVENTURE)                   -->
     <!-- ============================================================== -->
-    <div id="modal-closet" class="modal-overlay hidden">
-      <div class="modal-card closet-card">
-        <div class="modal-header-fun">
-          <h2>👕 ¡Elige el Traje de Diego Jr!</h2>
-          <button id="btn-close-closet" class="btn-close-circle">✖</button>
-        </div>
+    <div id="menu-screen" class="ui-screen">
+      <div class="menu-box">
+        <span class="badge-explorer">AVENTURA 3D PARA DIEGO JR (4 AÑOS)</span>
+        <h1 class="main-title">
+          DIEGO JR<br>
+          <span class="temple-sub">TEMPLE RUNNER 3D 🏺</span>
+        </h1>
+        <p class="menu-tagline">¡Corre por el puente del templo sagrado, recoge diamantes dorados y esquiva las trampas!</p>
 
-        <p class="closet-desc">Toca tu traje favorito para correr hoy:</p>
-
-        <div class="suits-grid">
-          <!-- Traje 1: Super Diego -->
-          <div class="suit-card active" data-suit="super_diego">
-            <span class="suit-badge-icon">🦸‍♂️</span>
-            <span class="suit-card-title">Super Diego</span>
-            <span class="suit-card-sub">Capa roja que ondea y planea</span>
+        <!-- Preview del personaje explorador -->
+        <div class="character-preview-card">
+          <div class="preview-avatar-circle">
+            <span class="avatar-emoji">🤠</span>
           </div>
-
-          <!-- Traje 2: Astronauta -->
-          <div class="suit-card" data-suit="astronaut">
-            <span class="suit-badge-icon">🚀</span>
-            <span class="suit-card-title">Diego Astronauta</span>
-            <span class="suit-card-sub">Traje espacial con propulsor</span>
-          </div>
-
-          <!-- Traje 3: Dinosaurio -->
-          <div class="suit-card" data-suit="dino">
-            <span class="suit-badge-icon">🦖</span>
-            <span class="suit-card-title">Dino Diego</span>
-            <span class="suit-card-sub">Disfraz tierno de tiranosaurio verde</span>
-          </div>
-
-          <!-- Traje 4: Rey Dorado -->
-          <div class="suit-card" data-suit="king">
-            <span class="suit-badge-icon">👑</span>
-            <span class="suit-card-title">Rey Diego</span>
-            <span class="suit-card-sub">Corona brillante y capa real púrpura</span>
+          <div class="preview-info">
+            <span class="preview-name">Diego Jr Explorador</span>
+            <span class="preview-role">Sombrero de aventura y mochila</span>
           </div>
         </div>
 
-        <button id="btn-confirm-closet" class="btn-giant btn-confirm-suit">
-          ¡ME ENCANTA ESTE TRAJE! ⭐
+        <button id="btn-start" class="btn-giant-play">
+          ▶ ¡A CORRER POR EL TEMPLO!
         </button>
+
+        <div class="menu-options-row">
+          <button id="btn-toggle-sound" class="btn-pill-opt">
+            🔊 Sonido: ON
+          </button>
+          <button id="btn-toggle-voice" class="btn-pill-opt active">
+            🗣️ Voz: ON
+          </button>
+          <button id="btn-toggle-speed" class="btn-pill-opt">
+            🐢 Velocidad: Suave
+          </button>
+        </div>
+
+        <div class="controls-hint">
+          <span>👈 <strong>Desliza o toca las flechas</strong> para moverte • <strong>Salta</strong> para flotar</span>
+        </div>
       </div>
     </div>
 
     <!-- ============================================================== -->
-    <!-- 5. PANTALLA DE FIESTA / CELEBRACIÓN DE ESTRELLAS               -->
+    <!-- 3. PANTALLA DE CELEBRACIÓN / FIESTA DEL TEMPLO                 -->
     <!-- ============================================================== -->
     <div id="celebration-screen" class="ui-screen hidden">
-      <div class="celebration-card">
-        <div class="celebration-sparkles">🎉 🏆 🌟 🎈 🥳</div>
-        
-        <h2 class="celeb-title">¡ERES UN CAMPEÓN, DIEGO JR!</h2>
-        <p class="celeb-subtitle">¡Hiciste una carrera maravillosa!</p>
+      <div class="celeb-box">
+        <span class="celeb-sparkles">🎉 🏺 💎 🌟 🥳</span>
+        <h2 class="celeb-title">¡ERES UN GRAN EXPLORADOR!</h2>
+        <p class="celeb-sub">¡Completaste una expedición legendaria por el templo!</p>
 
-        <!-- Copa / Medalla de Oro Giratoria -->
-        <div class="trophy-display">
-          <span class="giant-trophy">🥇</span>
-          <span class="ribbon-text">GRAN CAMPEÓN FAMILIAR</span>
+        <div class="trophy-wrap">
+          <span class="giant-trophy">🏆</span>
+          <span class="trophy-badge">EXPLORADOR DE ORO #1</span>
         </div>
 
-        <!-- Estadísticas de la partida -->
-        <div class="stats-recap-row">
-          <div class="stat-bubble">
-            <span class="bubble-icon">⭐</span>
-            <span class="bubble-label">Estrellas</span>
-            <span id="recap-stars" class="bubble-val">0</span>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-ico">🔶</span>
+            <span class="stat-lbl">Diamantes</span>
+            <span id="recap-coins" class="stat-val">0</span>
           </div>
-          <div class="stat-bubble">
-            <span class="bubble-icon">🏁</span>
-            <span class="bubble-label">Distancia</span>
-            <span id="recap-distance" class="bubble-val">0m</span>
-          </div>
-          <div class="stat-bubble">
-            <span class="bubble-icon">🍬</span>
-            <span class="bubble-label">Caramelos</span>
-            <span id="recap-candies" class="bubble-val">0</span>
+          <div class="stat-card">
+            <span class="stat-ico">🏃</span>
+            <span class="stat-lbl">Metros</span>
+            <span id="recap-distance" class="stat-val">0m</span>
           </div>
         </div>
 
-        <!-- Botones de Acción -->
-        <div class="celeb-buttons-row">
-          <button id="btn-replay" class="btn-giant btn-play-bounce">
-            ▶ ¡OTRA CARRERA!
+        <div class="celeb-actions">
+          <button id="btn-play-again" class="btn-giant-play">
+            ▶ ¡OTRA EXPEDICIÓN!
           </button>
-          <button id="btn-home" class="btn-secondary-squishy">
-            🏠 Menú Principal
+          <button id="btn-menu-back" class="btn-pill-opt full-w">
+            🏠 Volver al Inicio
           </button>
         </div>
 
-        <!-- Interactivo: Tocar para lanzar confeti -->
-        <p class="tap-confetti-hint">✨ ¡Toca cualquier parte para hacer llover confeti! ✨</p>
+        <p class="confetti-hint">✨ ¡Toca la pantalla para lanzar fuegos artificiales! ✨</p>
       </div>
     </div>
 
   </div>
 
-  <!-- Socket.io para vitores en vivo -->
+  <!-- Socket.io para vitores familiares -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Motor del Endless Runner para Diego Jr -->
+  <!-- Motor 3D estilo Temple Run -->
   <script src="game.js"></script>
 </body>
 </html>
